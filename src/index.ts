@@ -1,11 +1,19 @@
-/**
- * Logs "Hello world!" to the console.
- * @returns void
- */
-function helloWorld () {
-  console.log('Hello world!');
-}
+// import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
+// import { AwsCloudwatchLogsUtilization } from './aws-cloudwatch-logs-utilization.js';
 
-export {
-  helloWorld
-};
+// const cwLogs = new AwsCloudwatchLogsUtilization({
+//   id: 'test',
+//   displayName: 'test',
+//   type: 'AwsCloudwatchLogsUtilization',
+//   region: 'us-east-1'
+// });
+
+// const credentialsProvider = AwsCredentialsProvider.fromJson({
+//   id: 'thing',
+//   type: 'AwsCredentialsProvider',
+//   credentials: {
+//     profileName: 'akash-dev'
+//   }
+// });
+
+// cwLogs.getData([credentialsProvider]);

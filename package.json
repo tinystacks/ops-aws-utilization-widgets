@@ -6,8 +6,11 @@
   "files": [
     "dist"
   ],
+  "type": "module",
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:types; npm run build:js; pushd dist; rm **/*.jsx; popd",
+    "build:types": "tsc",
+    "build:js": "babel dist --out-dir dist --extensions \".js,.jsx\" --source-maps inline",
     "cleanup": "rm -rf dist || true && rm *.tgz || true",
     "clean-build": "npm ci && npm run cleanup && npm run build",
     "dependency-check": "./node_modules/.bin/depcheck",
@@ -32,6 +35,10 @@
   "author": "",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@babel/cli": "^7.20.7",
+    "@babel/core": "^7.20.12",
+    "@babel/preset-react": "^7.18.6",
+    "@babel/preset-typescript": "^7.21.0",
     "@types/jest": "^29.4.0",
     "@types/lodash.isempty": "^4.4.7",
     "@types/lodash.isnil": "^4.0.7",
@@ -49,5 +56,10 @@
     "lodash.isempty": "^4.4.0",
     "ts-jest": "^29.0.5",
     "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "@aws-sdk/client-cloudwatch-logs": "^3.296.0",
+    "@tinystacks/ops-aws-core-widgets": "^0.0.5",
+    "@tinystacks/ops-core": "^0.0.3"
   }
 }
