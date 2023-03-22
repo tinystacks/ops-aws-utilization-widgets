@@ -13,6 +13,7 @@ type Actions<T> = {
   [ Property in keyof T ]: T[Property];
 };
 
+// key is resource name
 type ResourceUtilization<T> = {
   [ key: string ]: {
     assessments?: Assessments<T>;

@@ -12,7 +12,7 @@
 //   id: 'thing',
 //   type: 'AwsCredentialsProvider',
 //   credentials: {
-//     profileName: 'akash-dev'
+//     profileName: 'ts'
 //   }
 // });
 
