@@ -1,15 +1,15 @@
 import { BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
 
-export type Assessments<T> = {
+type Assessments<T> = {
   [ Property in keyof T ]: T[Property];
 };
 
-export type Alerts<T> = {
+type Alerts<T> = {
   [ Property in keyof T]: T[Property];
 };
 
-export type Actions<T> = {
+type Actions<T> = {
   [ Property in keyof T ]: T[Property];
 };
 
