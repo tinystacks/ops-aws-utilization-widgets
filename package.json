@@ -59,6 +59,7 @@
   "dependencies": {
     "@aws-sdk/client-cloudwatch-logs": "^3.296.0",
     "@tinystacks/ops-aws-core-widgets": "^0.0.5",
-    "@tinystacks/ops-core": "^0.0.3"
+    "@tinystacks/ops-core": "^0.0.3",
+    "react": "^18.2.0"
   }
 }
