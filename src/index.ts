@@ -1,19 +1,14 @@
-// import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-// import { AwsCloudwatchLogsUtilization } from './aws-cloudwatch-logs-utilization.js';
+import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
+import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
 
-// const cwLogs = new AwsCloudwatchLogsUtilization({
-//   id: 'test',
-//   displayName: 'test',
-//   type: 'AwsCloudwatchLogsUtilization',
-//   region: 'us-east-1'
-// });
+const cwLogs = new AwsCloudwatchLogsUtilization();
 
-// const credentialsProvider = AwsCredentialsProvider.fromJson({
-//   id: 'thing',
-//   type: 'AwsCredentialsProvider',
-//   credentials: {
-//     profileName: 'ts'
-//   }
-// });
+const credentialsProvider = AwsCredentialsProvider.fromJson({
+  id: 'thing',
+  type: 'AwsCredentialsProvider',
+  credentials: {
+    profileName: 'akash-dev'
+  }
+});
 
-// cwLogs.getData([credentialsProvider]);
+cwLogs.getAssessment(credentialsProvider, 'us-east-1');
