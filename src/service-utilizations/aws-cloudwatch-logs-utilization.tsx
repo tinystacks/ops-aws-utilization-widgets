@@ -68,8 +68,8 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           limit: 1
         });
         const lastEventTime = describeLogStreamsRes.logStreams[0]?.lastEventTimestamp;
-        const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-        const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+        const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
+        const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         if (lastEventTime < thirtyDaysAgo) {
           this.smartFill(logGroup?.logGroupName, 'lastEventTime', lastEventTime, {
             type: AlertType.Alarm,
