@@ -1,4 +1,4 @@
-import { AwsCloudwatchLogsUtilization } from './aws-cloudwatch-logs-utilization';
+import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
 
 export enum AwsService {
   CloudwatchLogs = 'CloudwatchLogs'
