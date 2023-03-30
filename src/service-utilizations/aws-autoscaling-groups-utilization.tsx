@@ -1,7 +1,7 @@
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import { AwsServiceUtilization, Utilization, AlertType } from './service-utilizations/aws-service-utilization.js';
+import { AwsServiceUtilization, Utilization, AlertType } from './aws-service-utilization.js';
 
 export type AutoScalingGroupsUtilizationProps = { 
     hasScalingPolicy?: boolean; 

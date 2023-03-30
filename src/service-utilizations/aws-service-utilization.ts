@@ -30,7 +30,7 @@ export abstract class AwsServiceUtilization<ScenarioTypes> {
 
   abstract getAssessment (awsCredentialsProvider: AwsCredentialsProvider, region: string): void | Promise<void>;
 
-  protected smartFill<K extends keyof ScenarioTypes>(resourceName: string, scenarioType: K, scenario: Scenario<K, ScenarioTypes>) {
+  protected smartFill<K extends keyof ScenarioTypes> (resourceName: string, scenarioType: K, scenario: Scenario<K, ScenarioTypes>) {
     if (!(resourceName in this.utilization)) {
       this.utilization[resourceName] = {} as Scenarios<ScenarioTypes>;
     }
