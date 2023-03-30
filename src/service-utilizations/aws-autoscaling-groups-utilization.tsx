@@ -129,7 +129,7 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
       Namespace: 'AWS/EC2', 
       MetricName: 'CPUUtilization', 
       StartTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), //one week of data
-      EndTime: new Date(), 
+      EndTime: new Date(Date.now()), 
       Period: 43200, //this should give us 14 data points
       Dimensions: [{ 
         Name: 'AutoScalingGroupName', 
