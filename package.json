@@ -57,6 +57,7 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
+    "@aws-sdk/client-cloudwatch": "^3.301.0",
     "@aws-sdk/client-cloudwatch-logs": "^3.296.0",
     "@tinystacks/ops-aws-core-widgets": "^0.0.5",
     "@tinystacks/ops-core": "^0.0.3",

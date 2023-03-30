@@ -1,39 +1,23 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-
-export enum AlertType {
-  Warning = 'Warning',
-  Alarm = 'Alarm',
-}
-
-export type Scenario<K extends keyof ScenarioTypes, ScenarioTypes> = {
-  value: ScenarioTypes[K],
-  alertType: AlertType,
-  reason: string,
-  recommendation: string,
-  actions: string[]
-}
-
-export type Scenarios<ScenarioTypes> = {
-  [ K in keyof ScenarioTypes ]: Scenario<K, ScenarioTypes>
-}
-
-export type Utilization<ScenarioTypes> = {
-  [ resourceName: string ]: Scenarios<ScenarioTypes>
-}
+import { Scenario, Scenarios, Utilization } from '../types/types';
 
 export abstract class AwsServiceUtilization<ScenarioTypes> {
-  utilization: Utilization<ScenarioTypes>;
+  private _utilization: Utilization<ScenarioTypes>;
 
   constructor () {
-    this.utilization = {};
+    this._utilization = {};
   }
 
-  abstract getAssessment (awsCredentialsProvider: AwsCredentialsProvider, region: string): void | Promise<void>;
+  abstract getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: any): void | Promise<void>;
 
-  protected smartFill<K extends keyof ScenarioTypes>(resourceName: string, scenarioType: K, scenario: Scenario<K, ScenarioTypes>) {
+  protected addScenario<K extends keyof ScenarioTypes> (resourceName: string, scenarioType: K, scenario: Scenario<K, ScenarioTypes>) {
     if (!(resourceName in this.utilization)) {
       this.utilization[resourceName] = {} as Scenarios<ScenarioTypes>;
     }
     this.utilization[resourceName][scenarioType] = scenario;
   }
+
+  public set utilization (utilization: Utilization<ScenarioTypes>) { this._utilization = utilization; }
+
+  public get utilization () { return this._utilization; }
 }
