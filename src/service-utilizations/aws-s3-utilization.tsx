@@ -1,6 +1,7 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AlertType, AwsServiceUtilization } from './aws-service-utilization.js';
+import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { S3 } from '@aws-sdk/client-s3';
+import { AlertType } from '../types/types.js';
 
 export type s3UtilizationScenarios = {
   hasIntelligentTiering?: boolean;
@@ -13,7 +14,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     super();
   }
 
-  async getAssessment (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region
@@ -49,7 +50,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       });
 
       if (!res.IntelligentTieringConfigurationList) {
-        this.smartFill(bucketName, 'hasIntelligentTiering', {
+        this.addScenario(bucketName, 'hasIntelligentTiering', {
           value: false,
           alertType: AlertType.Warning,
           reason: 'Intelligient tiering is not enabled for this bucket',
@@ -73,7 +74,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         Bucket: bucketName
       }).catch((e) => { 
         if(e.Code === 'NoSuchLifecycleConfiguration'){ 
-          this.smartFill(bucketName, 'hasLifecyclePolicy', {
+          this.addScenario(bucketName, 'hasLifecyclePolicy', {
             value: false,
             alertType: AlertType.Warning,
             reason: 'This bucket does not have a lifecycle policy',

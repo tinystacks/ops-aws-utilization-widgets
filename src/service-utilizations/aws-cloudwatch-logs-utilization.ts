@@ -1,6 +1,7 @@
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AlertType, AwsServiceUtilization, Scenarios } from './aws-service-utilization.js';
+import { AlertType } from '../types/types.js';
+import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 // 1. idenitfy scenarios, cpu < 50%
 // 2. Drop scenario into warning or alert, associating action type with it
@@ -35,11 +36,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       logGroupName,
       destination: bucket,
       from: 0,
-      to: 0,
+      to: 0
     });
   }
 
-  async getAssessment (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, _overrides?: any) {
     const cwLogsClient = new CloudWatchLogs({
       credentials: await awsCredentialsProvider.getCredentials(),
       region
@@ -55,7 +56,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
 
     void await Promise.all(logGroups.map(async (logGroup) => {
       if (!logGroup?.retentionInDays) {
-        this.smartFill(logGroup?.logGroupName, 'retentionInDays', {
+        this.addScenario(logGroup?.logGroupName, 'retentionInDays', {
           value: logGroup?.retentionInDays,
           alertType: AlertType.Warning,
           reason: 'this log group does not have a retention policy',
@@ -72,7 +73,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         if (lastEventTime < thirtyDaysAgo) {
-          this.smartFill(logGroup?.logGroupName, 'lastEventTime', {
+          this.addScenario(logGroup?.logGroupName, 'lastEventTime', {
             value: lastEventTime,
             alertType: AlertType.Alarm,
             reason: 'this log group has not had an event in over 30 days',
@@ -80,7 +81,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             actions: [ 'deleteLogGroup' ]
           });
         } else if (lastEventTime < sevenDaysAgo) {
-          this.smartFill(logGroup?.logGroupName, 'lastEventTime', {
+          this.addScenario(logGroup?.logGroupName, 'lastEventTime', {
             value: lastEventTime,
             alertType: AlertType.Warning,
             reason: 'this log group has not had an event in over 7 days',
@@ -91,7 +92,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         const storedBytes = logGroup?.storedBytes;
         // TODO: change limit compared
         if (storedBytes > 100) {
-          this.smartFill(logGroup?.logGroupName, 'storedBytes', {
+          this.addScenario(logGroup?.logGroupName, 'storedBytes', {
             value: storedBytes,
             alertType: AlertType.Warning,
             reason: 'this log group has more than 100 bytes of stored data',

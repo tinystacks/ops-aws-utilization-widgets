@@ -11,4 +11,4 @@ const credentialsProvider = AwsCredentialsProvider.fromJson({
   }
 });
 
-cwLogs.getAssessment(credentialsProvider, 'us-east-1');
+await cwLogs.getUtilization(credentialsProvider, 'us-east-1');

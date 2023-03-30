@@ -1,7 +1,8 @@
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import { AwsServiceUtilization, Utilization, AlertType } from './aws-service-utilization.js';
+import { AwsServiceUtilization } from './aws-service-utilization.js';
+import { AlertType } from '../types/types.js';
 
 export type AutoScalingGroupsUtilizationProps = { 
     hasScalingPolicy?: boolean; 
@@ -30,7 +31,7 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
     super();
   }
   
-  async getAssessment (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void>{
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void>{
 
     const autoScalingClient = new AutoScaling({ 
       credentials: await awsCredentialsProvider.getCredentials(), 
@@ -79,7 +80,7 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
     autoScalingGroups.forEach(async (group) => { 
       const cpuUtilPercent = await this.getGroupCPUUTilization(cloudWatchClient, group.name); 
       if(cpuUtilPercent < 50){ 
-        this.smartFill(group.name, 'cpuUtilization', {
+        this.addScenario(group.name, 'cpuUtilization', {
           value: cpuUtilPercent, 
           alertType: AlertType.Warning, 
           reason: 'Max CPU Utilization has been under 50% for the last week', 
@@ -93,27 +94,22 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
   } 
 
   //tested!
-  static findGroupsWithoutScalingPolicy (groups: {name: string, arn: string}[], scalingPolicies: string[]): Utilization<AutoScalingGroupsUtilizationProps> { 
-
-    const utilization: Utilization<AutoScalingGroupsUtilizationProps> = {};
+  findGroupsWithoutScalingPolicy (groups: {name: string, arn: string}[], scalingPolicies: string[]) { 
     
     groups.forEach((group) => { 
       if(!scalingPolicies.includes(group.name)){ 
-        utilization[group.name] = { 
-          hasScalingPolicy: 
-          { 
-            value: false, 
-            alertType: AlertType.Warning, 
-            reason: 'the auto scaling group is missing a scaling poilcy', 
-            recommendation: 'create auto-scaling policy', 
-            actions: ['createScalingPolicy']
-          }
-        };
+        this.addScenario(group.name, 'hasScalingPolicy', {
+          value: false, 
+          alertType: AlertType.Warning, 
+          reason: 'the auto scaling group is missing a scaling poilcy', 
+          recommendation: 'create auto-scaling policy', 
+          actions: ['createScalingPolicy']
+        }); 
       }
     });
 
   
-    return utilization;
+
 
     
 
