@@ -50,7 +50,9 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
     
     autoScalingGroups = [...autoScalingGroups, ...groups]; 
     while(asgRes.NextToken){ 
-      asgRes = await autoScalingClient.describeAutoScalingGroups({});
+      asgRes = await autoScalingClient.describeAutoScalingGroups({
+        NextToken: asgRes.NextToken
+      });
       autoScalingGroups = [...autoScalingGroups, ...asgRes.AutoScalingGroups.map((group) => { 
         return { 
           name: group.AutoScalingGroupName, 
@@ -66,7 +68,9 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
       return policy.AutoScalingGroupName;
     }));
     while(res.NextToken){ 
-      res = await autoScalingClient.describePolicies({}); 
+      res = await autoScalingClient.describePolicies({
+        NextToken: res.NextToken
+      }); 
       policies.push(...res.ScalingPolicies.map((policy) => {
         return policy.AutoScalingGroupName;
       }));
