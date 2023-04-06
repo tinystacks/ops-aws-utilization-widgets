@@ -14,6 +14,29 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     super();
   }
 
+  async enableIntelligientTiering (s3Client: S3, bucketName: string, configurationId: string){
+
+    return await s3Client.putBucketIntelligentTieringConfiguration({ 
+      Bucket: bucketName, 
+      Id: configurationId, 
+      IntelligentTieringConfiguration: { 
+        Id: configurationId,
+        Status: 'Enabled',
+        Tierings: [
+          {
+            AccessTier: 'ARCHIVE_ACCESS', 
+            Days: 90
+          }, 
+          {
+            AccessTier: 'DEEP_ARCHIVE_ACCESS', 
+            Days: 180
+          }
+        ]
+      }
+    });
+
+  }
+
   async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),

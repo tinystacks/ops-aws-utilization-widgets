@@ -16,6 +16,12 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     super();
   }
 
+  async deleteEBSVolume (ec2Client: EC2, volumeId: string){ 
+    await ec2Client.deleteVolume({ 
+      VolumeId: volumeId
+    });
+  }
+
   async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
     const ec2Client = new EC2({
       credentials: await awsCredentialsProvider.getCredentials(),
@@ -35,7 +41,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     }
     
 
-    this.createAlertForUnAttachedVolumes(volumes);
+    this.findUnusedVolumes(volumes);
     const promises: Promise<any>[] = [];
     
     const cloudWatchClient = new CloudWatch({ 
@@ -52,8 +58,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
   
   }
 
-  //rename
-  createAlertForUnAttachedVolumes (volumes: Volume[]){ 
+  findUnusedVolumes (volumes: Volume[]){ 
     volumes.forEach((volume) => { 
       if(!volume.Attachments || volume.Attachments.length === 0){ 
         this.addScenario(volume.VolumeId, 'hasAttachedInstances', {
