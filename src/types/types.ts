@@ -18,3 +18,9 @@ export type Scenarios<ScenarioTypes> = {
 export type Utilization<ScenarioTypes> = {
   [resourceName: string]: Scenarios<ScenarioTypes>
 }
+
+export type Overrides = { 
+    resourceName: string
+    scenarioType: string
+    userInput: object
+}

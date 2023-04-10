@@ -1,7 +1,7 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { S3 } from '@aws-sdk/client-s3';
-import { AlertType } from '../types/types.js';
+import { AlertType, Overrides } from '../types/types.js';
 
 export type s3UtilizationScenarios = {
   hasIntelligentTiering?: boolean;
@@ -14,8 +14,9 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     super();
   }
 
-  async enableIntelligientTiering (s3Client: S3, bucketName: string, configurationId: string){
-
+  async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput: any){
+    const configurationId = userInput.configurationId || `${bucketName}-tiering-configuration`; // //configurationId should come from user input
+   
     return await s3Client.putBucketIntelligentTieringConfiguration({ 
       Bucket: bucketName, 
       Id: configurationId, 
@@ -37,11 +38,19 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: Overrides): Promise<void> {
+
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region
     });
+
+    if(_overrides){ 
+      const action = this.findActionFromOverrides(_overrides); 
+      if(action && action === 'enableIntelligientTiering'){ 
+        await this.enableIntelligientTiering(s3Client, _overrides.resourceName, _overrides.userInput);
+      }
+    }
 
     const res = await s3Client.listBuckets({});
 
@@ -102,11 +111,20 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
             alertType: AlertType.Warning,
             reason: 'This bucket does not have a lifecycle policy',
             recommendation: 'create a lifecycle policy',
-            actions: ['createLifecyclePolicy']
+            actions: []
           });
         }
       });
     }
   }
-
+  
+  findActionFromOverrides (_overrides: Overrides){ 
+    if(_overrides.scenarioType === 'hasIntelligentTiering'){ 
+      return this.utilization[_overrides.resourceName].hasIntelligentTiering.actions[0];
+    }
+    else{ 
+      return '';
+    }
+    
+  }
 }

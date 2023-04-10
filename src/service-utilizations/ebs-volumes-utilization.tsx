@@ -1,7 +1,7 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { EC2 } from '@aws-sdk/client-ec2';
-import { AlertType } from '../types/types.js';
+import { AlertType, Overrides } from '../types/types.js';
 import { Volume } from '@aws-sdk/client-ec2';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 
@@ -22,11 +22,15 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: Overrides): Promise<void> {
     const ec2Client = new EC2({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region
     });
+
+    if(_overrides){ 
+      await this.deleteEBSVolume(ec2Client, _overrides.resourceName);
+    }
 
     let volumes: Volume[] = [];
 
@@ -120,5 +124,6 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
       });
     }
   }
+
   
 }
