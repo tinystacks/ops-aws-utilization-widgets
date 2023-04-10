@@ -15,7 +15,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
   }
 
   async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput: any){
-    const configurationId = userInput.configurationId || `${bucketName}-tiering-configuration`; // //configurationId should come from user input
+    const configurationId = userInput.configurationId || `${bucketName}-tiering-configuration`;
    
     return await s3Client.putBucketIntelligentTieringConfiguration({ 
       Bucket: bucketName, 

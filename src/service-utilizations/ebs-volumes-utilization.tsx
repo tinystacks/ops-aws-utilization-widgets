@@ -82,7 +82,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
       MetricName: 'VolumeWriteOps', 
       StartTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
       EndTime: new Date(Date.now()),
-      Period: 43200, //this should give us 14 data points
+      Period: 43200,
       Statistics: ['Sum'],
       Dimensions: [{ 
         Name: 'VolumeId', 
