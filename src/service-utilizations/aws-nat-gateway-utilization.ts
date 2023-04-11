@@ -5,6 +5,8 @@ import _ from 'lodash';
 import { AlertType } from '../types/types.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
+const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
+
 type AwsNatGatewayUtilizationScenarioTypes = {
   activeConnectionCount: number,
   totalThroughput: number
@@ -25,8 +27,8 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
 
     const res = await ec2Client.describeNatGateways({});
     const natGatewayIds = res.NatGateways.map(natGateway => natGateway.NatGatewayId);
-    const fiveMinutesAgo = new Date(Date.now() - (5 * 60 * 1000));
     for (const natGatewayId of natGatewayIds) {
+      const fiveMinutesAgo = new Date(Date.now() - (5 * 60 * 1000));
       const metricDataRes = await cwClient.getMetricData({
         MetricDataQueries: [
           {
@@ -116,7 +118,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           value: activeConnectionCount,
           alertType: AlertType.Alarm,
           reason: 'this NAT Gateway currently has 0 active connections',
-          recommendation: 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.',
+          recommendation: DEFAULT_RECOMMENDATION,
           actions: []
         });
       }
@@ -130,7 +132,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           value: activeConnectionCount,
           alertType: AlertType.Alarm,
           reason: 'this NAT Gateway currently has 0 total throughput',
-          recommendation: 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.',
+          recommendation: DEFAULT_RECOMMENDATION,
           actions: []
         });
       }
