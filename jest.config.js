@@ -1,5 +1,4 @@
-// eslint-disable-next-line
-module.exports = {
+export default {
     preset: 'ts-jest',
     testEnvironment: 'node',
     testPathIgnorePatterns: ['.d.ts', '.js'],
@@ -12,4 +11,4 @@ module.exports = {
         statements: 90
     }
   }
-  };
+};

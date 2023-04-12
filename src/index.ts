@@ -14,3 +14,7 @@
 // });
 
 // natGateway.getUtilization(credentialsProvider, 'us-east-1');
+
+export function helloWorld () {
+  console.log('Hello world!');
+}
