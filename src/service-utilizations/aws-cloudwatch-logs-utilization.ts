@@ -1,6 +1,5 @@
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AlertType } from '../types/types.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 // 1. idenitfy scenarios, cpu < 50%
@@ -13,11 +12,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 // We could create a priority system, execute alarm rec's first and fail the other actions gracefully, etc.
 // Could also provide an option to export here first then delete
 
-type AwsCloudwatchLogsUtilizationScenarioTypes = {
-  retentionInDays?: number;
-  lastEventTime?: number;
-  storedBytes?: number;
-}
+type AwsCloudwatchLogsUtilizationScenarioTypes = 'retentionInDays' | 'lastEventTime' | 'storedBytes';
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
 
@@ -57,11 +52,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     void await Promise.all(logGroups.map(async (logGroup) => {
       if (!logGroup?.retentionInDays) {
         this.addScenario(logGroup?.logGroupName, 'retentionInDays', {
-          value: logGroup?.retentionInDays,
-          alertType: AlertType.Warning,
-          reason: 'this log group does not have a retention policy',
-          recommendation: 'attach a retention policy to this log group',
-          actions: []
+          value: logGroup?.retentionInDays?.toString(),
+          optimize: {
+            action: 'TODO',
+            reason: 'this log group does not have a retention policy'
+          }
         });
         const describeLogStreamsRes = await cwLogsClient.describeLogStreams({
           logGroupName: logGroup.logGroupName,
@@ -74,30 +69,30 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
         if (lastEventTime < thirtyDaysAgo) {
           this.addScenario(logGroup?.logGroupName, 'lastEventTime', {
-            value: lastEventTime,
-            alertType: AlertType.Alarm,
-            reason: 'this log group has not had an event in over 30 days',
-            recommendation: 'delete this log group. It is unlikely this log group is still in use.',
-            actions: [ 'deleteLogGroup' ]
+            value: lastEventTime.toString(),
+            delete: {
+              action: 'deleteLogGroup',
+              reason: 'this log group has not had an event in over 30 days'
+            }
           });
         } else if (lastEventTime < sevenDaysAgo) {
           this.addScenario(logGroup?.logGroupName, 'lastEventTime', {
-            value: lastEventTime,
-            alertType: AlertType.Warning,
-            reason: 'this log group has not had an event in over 7 days',
-            recommendation: 'monitor this log group. It may no longer be in use',
-            actions: []
+            value: lastEventTime.toString(),
+            optimize: {
+              action: 'TODO',
+              reason: 'this log group has not had an event in over 7 days'
+            }
           });
         }
         const storedBytes = logGroup?.storedBytes;
         // TODO: change limit compared
         if (storedBytes > 100) {
           this.addScenario(logGroup?.logGroupName, 'storedBytes', {
-            value: storedBytes,
-            alertType: AlertType.Warning,
-            reason: 'this log group has more than 100 bytes of stored data',
-            recommendation: 'consider exporting data in this log group to S3',
-            actions: [ 'createExportTask' ]
+            value: storedBytes.toString(),
+            scaleDown: {
+              action: 'createExportTask',
+              reason: 'this log group has more than 100 bytes of stored data'
+            }
           });
         }
       }

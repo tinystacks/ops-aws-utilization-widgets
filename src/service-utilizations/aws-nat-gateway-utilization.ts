@@ -2,15 +2,11 @@ import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
-import { AlertType } from '../types/types.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
-const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
+// const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
 
-type AwsNatGatewayUtilizationScenarioTypes = {
-  activeConnectionCount: number,
-  totalThroughput: number
-}
+type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
 
@@ -112,14 +108,14 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       });
 
       const results = metricDataRes.MetricDataResults;
-      const activeConnectionCount = _.get(results, '[0].Values[0]');
+      const activeConnectionCount = _.get(results, '[0].Values[0]') as number;
       if (activeConnectionCount === 0) {
         this.addScenario(natGatewayId, 'activeConnectionCount', {
-          value: activeConnectionCount,
-          alertType: AlertType.Alarm,
-          reason: 'this NAT Gateway currently has 0 active connections',
-          recommendation: DEFAULT_RECOMMENDATION,
-          actions: []
+          value: activeConnectionCount.toString(),
+          scaleDown: {
+            action: 'TODO',
+            reason: 'this NAT Gateway currently has 0 active connections'
+          }
         });
       }
       const totalThroughput = 
@@ -129,11 +125,11 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         _.get(results, '[4].Values[0]', 0);
       if (totalThroughput === 0) {
         this.addScenario(natGatewayId, 'totalThroughput', {
-          value: activeConnectionCount,
-          alertType: AlertType.Alarm,
-          reason: 'this NAT Gateway currently has 0 total throughput',
-          recommendation: DEFAULT_RECOMMENDATION,
-          actions: []
+          value: activeConnectionCount.toString(),
+          scaleDown: {
+            action: 'TODO',
+            reason: 'this NAT Gateway currently has 0 total throughput'
+          }
         });
       }
     }
