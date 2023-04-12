@@ -1,3 +1,5 @@
+/*
+
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
@@ -23,7 +25,7 @@ export type AutoScalingGroupsUtilizationProps = {
       3. Network Bandwith 
           alert: warning -- Max Network Bandwith is less than 25% of instance capacity 
           action: scale down instance
-    */
+    
 
 export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScalingGroupsUtilizationProps> {
 
@@ -144,4 +146,4 @@ export class AutoScalingGroupsUtilization extends AwsServiceUtilization<AutoScal
 
     return Math.max(...cpuValues);
   }
-}
+}*/

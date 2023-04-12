@@ -2,7 +2,6 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { CostExplorer } from '@aws-sdk/client-cost-explorer';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { AlertType } from '../types/types.js';
 
 //I think the most relevant apis are the AWS Price List and the AWS Cost Explorer APIs, so we will focus on what actions need to be done to enable these
 
@@ -10,10 +9,7 @@ import { AlertType } from '../types/types.js';
 //enable cost explorer apis -- https://docs.aws.amazon.com/cost-management/latest/userguide/billing-example-policies.html#example-policy-ce-api
 
 
-export type awsAccountUtilizationScenarios = {
-  hasPermissionsForPriceList?: boolean;
-  hasPermissionsForCostExplorer?: boolean;
-}
+export type awsAccountUtilizationScenarios = 'hasPermissionsForPriceList' | 'hasPermissionsForCostExplorer';
 
 export class s3Utilization extends AwsServiceUtilization<awsAccountUtilizationScenarios> {
   
@@ -41,11 +37,11 @@ export class s3Utilization extends AwsServiceUtilization<awsAccountUtilizationSc
     await pricingClient.describeServices({}).catch((e) => { 
       if(e.Code === 'AccessDeniedException'){ 
         this.addScenario('PriceListAPIs', 'hasPermissionsForPriceList', {
-          value: false,
-          alertType: AlertType.Warning,
-          reason: 'This user does not have access to the Price List APIs',
-          recommendation: 'Create a iam policy with correct permissions for the AWS Price List Apis. More details can be found here: https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-example-policies.html#example-policy-pe-api',
-          actions: ['']
+          value: 'false',
+          optimize: {
+            action: '', 
+            reason: 'This user does not have access to the Price List APIs'
+          }
         });
       }
     });
@@ -67,11 +63,11 @@ export class s3Utilization extends AwsServiceUtilization<awsAccountUtilizationSc
     }).catch((e) => { 
       if(e.Code === 'AccessDeniedException'){ 
         this.addScenario('CostExplorerAPIs', 'hasPermissionsForCostExplorer', {
-          value: false,
-          alertType: AlertType.Warning,
-          reason: 'This user does not have access to Cost Explorer APIs',
-          recommendation: 'Create a iam policy with the correct permissions for the AWS Cost Explorer Apis. More details can be found here: https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-example-policies.html#example-policy-pe-api',
-          actions: ['']
+          value: 'false',
+          optimize: { 
+            action: '', 
+            reason: 'This user does not have access to Cost Explorer APIs'
+          }
         });
       }
     });

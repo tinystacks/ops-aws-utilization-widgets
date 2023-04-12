@@ -1,14 +1,11 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { EC2 } from '@aws-sdk/client-ec2';
-import { AlertType, Overrides } from '../types/types.js';
+import { AwsServiceOverrides } from '../types/types.js';
 import { Volume } from '@aws-sdk/client-ec2';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 
-export type ebsVolumesUtilizationScenarios = {
-  hasAttachedInstances?: boolean;
-  volumeReadWriteOps?: number;
-}
+export type ebsVolumesUtilizationScenarios = 'hasAttachedInstances' | 'volumeReadWriteOps';
 
 export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtilizationScenarios> {
   
@@ -22,14 +19,14 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: Overrides): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides): Promise<void> {
     const ec2Client = new EC2({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region
     });
 
     if(_overrides){ 
-      await this.deleteEBSVolume(ec2Client, _overrides.resourceName);
+      await this.deleteEBSVolume(ec2Client, _overrides.resourceArn);
     }
 
     let volumes: Volume[] = [];
@@ -66,11 +63,11 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     volumes.forEach((volume) => { 
       if(!volume.Attachments || volume.Attachments.length === 0){ 
         this.addScenario(volume.VolumeId, 'hasAttachedInstances', {
-          value: false,
-          alertType: AlertType.Alarm,
-          reason: 'This EBS volume does not have any attahcments',
-          recommendation: 'deleteVolume',
-          actions: ['deleteEBSVolume']
+          value: 'false',
+          delete: { 
+            action: 'deleteEBSVolume', 
+            reason: 'This EBS volume does not have any attahcments'
+          }
         });
       }
     });
@@ -116,11 +113,11 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
 
     if(allMetricStats.length === 0 || allMetricStats.every( element => element === 0 )){ 
       this.addScenario(volumeId, 'volumeReadWriteOps', {
-        value: 0,
-        alertType: AlertType.Alarm,
-        reason: 'No operations performed on this volume in the last week',
-        recommendation: 'deleteVolume',
-        actions: ['deleteEBSVolume']
+        value: '0',
+        delete: { 
+          action: 'deleteEBSVolume', 
+          reason: 'No operations performed on this volume in the last week'
+        }
       });
     }
   }

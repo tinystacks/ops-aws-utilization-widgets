@@ -1,12 +1,9 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { S3 } from '@aws-sdk/client-s3';
-import { AlertType, Overrides } from '../types/types.js';
+import { AwsServiceOverrides } from '../types/types.js';
 
-export type s3UtilizationScenarios = {
-  hasIntelligentTiering?: boolean;
-  hasLifecyclePolicy?: boolean;
-}
+export type s3UtilizationScenarios = 'hasIntelligentTiering' | 'hasLifecyclePolicy';
 
 export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios> {
   
@@ -38,7 +35,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: Overrides): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides): Promise<void> {
 
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),
@@ -48,7 +45,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     if(_overrides){ 
       const action = this.findActionFromOverrides(_overrides); 
       if(action && action === 'enableIntelligientTiering'){ 
-        await this.enableIntelligientTiering(s3Client, _overrides.resourceName, _overrides.userInput);
+        await this.enableIntelligientTiering(s3Client, _overrides.resourceArn, _overrides.userInput);
       }
     }
 
@@ -83,11 +80,11 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
       if (!res.IntelligentTieringConfigurationList) {
         this.addScenario(bucketName, 'hasIntelligentTiering', {
-          value: false,
-          alertType: AlertType.Warning,
-          reason: 'Intelligient tiering is not enabled for this bucket',
-          recommendation: 'enable intelligent tiering',
-          actions: ['enableIntelligientTiering']
+          value: 'false',
+          optimize: { 
+            action: 'enableIntelligientTiering', 
+            reason: 'Intelligient tiering is not enabled for this bucket'
+          }
         });
       }
 
@@ -107,20 +104,20 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       }).catch((e) => { 
         if(e.Code === 'NoSuchLifecycleConfiguration'){ 
           this.addScenario(bucketName, 'hasLifecyclePolicy', {
-            value: false,
-            alertType: AlertType.Warning,
-            reason: 'This bucket does not have a lifecycle policy',
-            recommendation: 'create a lifecycle policy',
-            actions: []
+            value: 'false',
+            optimize: { 
+              action: '', 
+              reason: 'This bucket does not have a lifecycle policyt'
+            }
           });
         }
       });
     }
   }
   
-  findActionFromOverrides (_overrides: Overrides){ 
+  findActionFromOverrides (_overrides: AwsServiceOverrides){ 
     if(_overrides.scenarioType === 'hasIntelligentTiering'){ 
-      return this.utilization[_overrides.resourceName].hasIntelligentTiering.actions[0];
+      return this.utilization[_overrides.resourceArn].scenarios.hasIntelligentTiering.optimize.action;
     }
     else{ 
       return '';

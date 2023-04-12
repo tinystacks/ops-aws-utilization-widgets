@@ -1,6 +1,7 @@
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
 import { AwsService, AwsServiceUtilizationFactory } from './aws-service-utilization-factory.js';
+import { AwsUtilizationOverrides } from './types/types.js';
 import { getAwsCredentialsProvider } from './utils/utils.js';
 
 type AwsUtilizationType = Widget & {
@@ -20,15 +21,15 @@ export class AwsUtilization extends BaseWidget {
     this.region = props.region;
   }
 
-  async getData (providers?: BaseProvider[], overrides?: any): Promise<void> {
+  async getData (providers?: BaseProvider[], overrides?: AwsUtilizationOverrides): Promise<void> {
     const awsCredentialsProvider = getAwsCredentialsProvider(providers);
     for (const awsService of this.awsServices) {
       const awsServiceUtilization = AwsServiceUtilizationFactory.createObject(awsService);
-      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.region, overrides);
+      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.region, overrides[awsService]);
     }
   }
   
-  render (_children?: (Widget & { renderedElement: JSX.Element; })[], _overridesCallback?: (overrides: any) => void): JSX.Element {
+  render (_children?: (Widget & { renderedElement: JSX.Element; })[], _overridesCallback?: (overrides: AwsUtilizationOverrides) => void): JSX.Element {
     return <></>;
   }
 }

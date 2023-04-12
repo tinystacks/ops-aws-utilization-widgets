@@ -1,17 +1,10 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
-import { AlertType, Overrides } from '../types/types.js';
+import { AwsServiceOverrides } from '../types/types.js';
 import { RDS, DBInstance } from '@aws-sdk/client-rds';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 
-export type rdsInstancesUtilizationScenarios = {
-  hasDatabaseConnections?: boolean;
-  CPUUtilization?: number;
-  NetworkUtilization?: number;
-  shouldDownscaleStorage?: boolean;
-  hasAutoScalingEnabled?: boolean;
-}
-
+export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'CPUUtilization' | 'NetworkUtilization' | 'shouldDownscaleStorage' | 'hasAutoScalingEnabled';
 
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   
@@ -20,7 +13,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
   }
 
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: Overrides): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides): Promise<void> {
 
     const rdsClient = new RDS({
       credentials: await awsCredentialsProvider.getCredentials(),
@@ -72,11 +65,11 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
 
     if(dbConnectionStats.length === 0 || dbConnectionStats.every( element => element === 0 )){ 
       this.addScenario(dbInstanceIdentifier, 'hasDatabaseConnections', {
-        value: false,
-        alertType: AlertType.Alarm,
-        reason: 'This instance does not have any db connections',
-        recommendation: 'deleteInstance',
-        actions: ['deleteInstance']
+        value: 'false',
+        delete: { 
+          action: 'deleteInstance', 
+          reason: 'This instance does not have any db connections'
+        }
       });
     }
   }
@@ -86,11 +79,11 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     //if theres a maxallocatedstorage then storage auto-scaling is enabled
     if(!dbInstance.MaxAllocatedStorage){ 
       this.addScenario(dbInstance.DBInstanceIdentifier, 'hasAutoScalingEnabled', {
-        value: false,
-        alertType: AlertType.Alarm,
-        reason: 'This instance does not have storage auto-scaling turned on',
-        recommendation: 'Enable Storage Auto-Scaling',
-        actions: ['enableAutoScaling']
+        value: 'false',
+        optimize: { 
+          action: 'enableAutoScaling',
+          reason: 'This instance does not have storage auto-scaling turned on'
+        }
       });
     }
 
@@ -114,11 +107,11 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
  
     if(storageSpaceStats.length > 0 && storageSpaceStats.every(element => element >= (dbInstance.AllocatedStorage/2))){ 
       this.addScenario(dbInstance.DBInstanceIdentifier, 'shouldDownscaleStorage', {
-        value: true,
-        alertType: AlertType.Alarm,
-        reason: 'This instance has more than half of its allocated storage still available',
-        recommendation: 'Should downscale storage',
-        actions: []
+        value: 'true',
+        scaleDown: { 
+          action: '', 
+          reason: 'This instance has more than half of its allocated storage still available'
+        }
       });
     }
   }
