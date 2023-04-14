@@ -7,7 +7,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "npm run build:types; npm run build:js; pushd dist; rm **/*.jsx; popd",
     "build:types": "tsc",
     "build:js": "babel dist --out-dir dist --extensions \".js,.jsx\" --source-maps inline",
     "cleanup": "rm -rf dist || true && rm *.tgz || true",
