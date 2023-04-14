@@ -4,12 +4,18 @@ import { AwsServiceOverrides } from '../types/types.js';
 import { RDS, DBInstance } from '@aws-sdk/client-rds';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 
-export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'CPUUtilization' | 'NetworkUtilization' | 'shouldDownscaleStorage' | 'hasAutoScalingEnabled';
+export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' | 'hasAutoScalingEnabled';
 
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   
   constructor () {
     super();
+  }
+
+  async deleteInstance (rdsClient: RDS, dbInstanceIdentifier: string){ 
+    await rdsClient.deleteDBInstance({ 
+      DBInstanceIdentifier: dbInstanceIdentifier
+    });
   }
 
 
@@ -33,12 +39,21 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       dbInstances = [...dbInstances, ...res.DBInstances]; 
     }
 
-    /*const cloudWatchClient = new CloudWatch({ 
+
+    const promises: Promise<any>[] = [];
+    
+    const cloudWatchClient = new CloudWatch({ 
       credentials: await awsCredentialsProvider.getCredentials(), 
       region: region
-    }); */
+    }); 
 
-    //DBInstanceIdentifier
+    for (let i = 0; i < dbInstances.length; ++i) {
+      promises.push(this.getDatabaseConnections(cloudWatchClient, dbInstances[i].DBInstanceIdentifier));
+      promises.push(this.checkInstanceStorage(cloudWatchClient, dbInstances[i]));
+      promises.push(this.getCPUUTilization(cloudWatchClient, dbInstances[i].DBInstanceIdentifier));
+    }
+
+    void await Promise.all(promises).catch(e => console.log(e));
 
   }
 
@@ -60,9 +75,6 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       return data.Sum;
     });
 
-    console.log('dbConnectionStats: ', dbConnectionStats);
-
-
     if(dbConnectionStats.length === 0 || dbConnectionStats.every( element => element === 0 )){ 
       this.addScenario(dbInstanceIdentifier, 'hasDatabaseConnections', {
         value: 'false',
@@ -81,7 +93,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       this.addScenario(dbInstance.DBInstanceIdentifier, 'hasAutoScalingEnabled', {
         value: 'false',
         optimize: { 
-          action: 'enableAutoScaling',
+          action: '', //didnt find an action for this, need to do it in the console
           reason: 'This instance does not have storage auto-scaling turned on'
         }
       });
@@ -106,7 +118,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     });
  
     if(storageSpaceStats.length > 0 && storageSpaceStats.every(element => element >= (dbInstance.AllocatedStorage/2))){ 
-      this.addScenario(dbInstance.DBInstanceIdentifier, 'shouldDownscaleStorage', {
+      this.addScenario(dbInstance.DBInstanceIdentifier, 'shouldScaleDownStorage', {
         value: 'true',
         scaleDown: { 
           action: '', 
@@ -116,5 +128,38 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     }
   }
 
+  async getCPUUTilization (cloudWatchClient: CloudWatch, dbInstanceIdentifier: string){
 
+    const metricStats = await cloudWatchClient.getMetricStatistics({ 
+      Namespace: 'AWS/RDS', 
+      MetricName: 'CPUUtilization', 
+      StartTime: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      EndTime: new Date(Date.now()), 
+      Period: 43200,
+      Statistics: ['Maximum'],
+      Dimensions: [{ 
+        Name: 'DBInstanceIdentifier', 
+        Value: dbInstanceIdentifier
+      }],
+      Unit: 'Percent'
+    }); 
+
+    const cpuValues = metricStats.Datapoints.map((data) => { 
+      return data.Maximum;
+    });
+
+    const maxCPU = Math.max(...cpuValues);
+
+    if(maxCPU < 50){ 
+      this.addScenario(dbInstanceIdentifier, 'cpuUtilization', {
+        value: maxCPU.toString(), 
+        scaleDown: { 
+          action: '', 
+          reason: 'Max CPU Utilization is under 50%'
+        }
+      }
+      );
+    }
+
+  }
 }

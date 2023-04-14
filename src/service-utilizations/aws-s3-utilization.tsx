@@ -42,13 +42,6 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       region: region
     });
 
-    if(_overrides){ 
-      const action = this.findActionFromOverrides(_overrides); 
-      if(action && action === 'enableIntelligientTiering'){ 
-        await this.enableIntelligientTiering(s3Client, _overrides.resourceArn, _overrides.userInput);
-      }
-    }
-
     const res = await s3Client.listBuckets({});
 
     const buckets = res.Buckets.map((bucket) => {
