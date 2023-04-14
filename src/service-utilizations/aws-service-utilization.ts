@@ -12,7 +12,9 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
 
   protected addScenario (resourceArn: string, scenarioType: ScenarioTypes, scenario: Scenario) {
     if (!(resourceArn in this.utilization)) {
-      this.utilization[resourceArn] = {} as Resource<ScenarioTypes>;
+      this.utilization[resourceArn] = {
+        scenarios: {}
+      } as Resource<ScenarioTypes>;
     }
     this.utilization[resourceArn].scenarios[scenarioType] = scenario;
   }
