@@ -18,8 +18,8 @@ export class s3Utilization extends AwsServiceUtilization<awsAccountUtilizationSc
   }
 
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string): Promise<void> {
-    
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[]): Promise<void> {
+    const region = regions[0];
     await this.checkPermissionsForCostExplorer(awsCredentialsProvider, region);
 
     await this.checkPermissionsForPricing(awsCredentialsProvider, region);

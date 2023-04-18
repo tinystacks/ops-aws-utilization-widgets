@@ -9,7 +9,7 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     this._utilization = {};
   }
 
-  abstract getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region?: string[], overrides?: any): void | Promise<void>;
+  abstract getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: any): void | Promise<void>;
 
   protected addScenario (resourceArn: string, scenarioType: ScenarioTypes, scenario: Scenario) {
     if (!(resourceArn in this.utilization)) {
