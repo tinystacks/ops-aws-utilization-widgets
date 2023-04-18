@@ -1,7 +1,10 @@
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import { EC2 } from '@aws-sdk/client-ec2';
+import { DescribeNatGatewaysCommandOutput, EC2 } from '@aws-sdk/client-ec2';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
+import { Arns } from '../types/constants.js';
+import { NatGatewayWithRegion } from '../types/types.js';
+import { getAccountId, listAllRegions } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 // const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
@@ -10,21 +13,54 @@ type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThr
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, _overrides?: any) {
-    const credentials = await awsCredentialsProvider.getCredentials();
-    const ec2Client = new EC2({
-      credentials,
-      region
-    });
-    const cwClient = new CloudWatch({
-      credentials,
-      region
-    });
+  constructor () {
+    super();
+  }
 
-    const res = await ec2Client.describeNatGateways({});
-    const natGatewayIds = res.NatGateways.map(natGateway => natGateway.NatGatewayId);
-    for (const natGatewayId of natGatewayIds) {
-      const fiveMinutesAgo = new Date(Date.now() - (5 * 60 * 1000));
+  async deleteNatGateway (ec2Client: EC2, natGatewayId: string) {
+    await ec2Client.deleteNatGateway({
+      NatGatewayId: natGatewayId
+    });
+  }
+
+  private async getAllNatGateways (credentials: any, regions: string[]) {
+    let allNatGateways: NatGatewayWithRegion[] = [];
+    void await Promise.all(regions.map(async (region) => {
+      const ec2Client = new EC2({
+        credentials,
+        region
+      });
+      let describeNatGatewaysRes: DescribeNatGatewaysCommandOutput;
+      do {
+        describeNatGatewaysRes = await ec2Client.describeNatGateways({
+          NextToken: describeNatGatewaysRes?.NextToken
+        });
+        const natGatewaysWithRegion = describeNatGatewaysRes?.NatGateways?.map((natGateway) => {
+          return {
+            region,
+            natGateway
+          };
+        });
+        allNatGateways = [...allNatGateways, ...natGatewaysWithRegion];
+      } while (describeNatGatewaysRes?.NextToken);
+    }));
+    return allNatGateways;
+  }
+
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const accountId = await getAccountId(credentials);
+    const usedRegions = regions || await listAllRegions(credentials);
+    const allNatGateways = await this.getAllNatGateways(credentials, usedRegions);
+    void await Promise.all(allNatGateways.map(async (natGateway) => {
+      const region = natGateway.region;
+      const natGatewayId = natGateway.natGateway.NatGatewayId;
+      const natGatewayArn = Arns.NatGateway(region, accountId, natGatewayId);
+      const fiveMinutesAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+      const cwClient = new CloudWatch({
+        credentials,
+        region
+      });
       const metricDataRes = await cwClient.getMetricData({
         MetricDataQueries: [
           {
@@ -110,11 +146,11 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       const results = metricDataRes.MetricDataResults;
       const activeConnectionCount = _.get(results, '[0].Values[0]') as number;
       if (activeConnectionCount === 0) {
-        this.addScenario(natGatewayId, 'activeConnectionCount', {
+        this.addScenario(natGatewayArn, 'activeConnectionCount', {
           value: activeConnectionCount.toString(),
-          scaleDown: {
-            action: 'TODO',
-            reason: 'this NAT Gateway currently has 0 active connections'
+          delete: {
+            action: 'deleteNatGateway',
+            reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.'
           }
         });
       }
@@ -124,15 +160,18 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         _.get(results, '[3].Values[0]', 0) +
         _.get(results, '[4].Values[0]', 0);
       if (totalThroughput === 0) {
-        this.addScenario(natGatewayId, 'totalThroughput', {
-          value: activeConnectionCount.toString(),
-          scaleDown: {
-            action: 'TODO',
-            reason: 'this NAT Gateway currently has 0 total throughput'
+        this.addScenario(natGatewayArn, 'totalThroughput', {
+          value: totalThroughput.toString(),
+          delete: {
+            action: 'deleteNatGateway',
+            reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.'
           }
         });
       }
-    }
+      this.addData(natGatewayArn, 'resourceId', natGatewayId);
+      this.addData(natGatewayArn, 'region', region);
+    }));
+    await this.identifyCloudformationStack(credentials);
     console.log(this.utilization);
   }
 }

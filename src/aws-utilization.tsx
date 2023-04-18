@@ -7,25 +7,25 @@ import { getAwsCredentialsProvider } from './utils/utils.js';
 type AwsUtilizationType = Widget & {
    // utilizations: Utilization[];
   awsServices: AwsService[],
-  region: string
+  regions: string[]
 }
 
 export class AwsUtilization extends BaseWidget {
   // utilizations: Utilization[];
   awsServices: AwsService[];
-  region: string;
+  regions: string[];
 
   constructor (props: AwsUtilizationType) {
     super(props);
     this.awsServices = props.awsServices;
-    this.region = props.region;
+    this.regions = props.regions;
   }
 
   async getData (providers?: BaseProvider[], overrides?: AwsUtilizationOverrides): Promise<void> {
     const awsCredentialsProvider = getAwsCredentialsProvider(providers);
     for (const awsService of this.awsServices) {
       const awsServiceUtilization = AwsServiceUtilizationFactory.createObject(awsService);
-      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.region, overrides[awsService]);
+      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.regions, overrides[awsService]);
     }
   }
   
