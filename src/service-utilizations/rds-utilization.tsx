@@ -19,7 +19,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
   }
 
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides) {
 
     const rdsClient = new RDS({
       credentials: await awsCredentialsProvider.getCredentials(),

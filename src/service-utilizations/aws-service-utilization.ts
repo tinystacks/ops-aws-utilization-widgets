@@ -1,5 +1,5 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { Resource, Scenario, Utilization } from '../types/types';
+import { AwsServiceOverrides, Scenario, Scenarios, Utilization } from '../types/types';
 
 export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
   private _utilization: Utilization<ScenarioTypes>;
@@ -8,18 +8,23 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     this._utilization = {};
   }
 
-  abstract getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: any): void | Promise<void>;
+  abstract getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsServiceOverrides): void | Promise<void>;
 
   protected addScenario (resourceArn: string, scenarioType: ScenarioTypes, scenario: Scenario) {
     if (!(resourceArn in this.utilization)) {
-      this.utilization[resourceArn] = {} as Resource<ScenarioTypes>;
+      this.utilization[resourceArn] = {
+        scenarios: {} as Scenarios<ScenarioTypes>
+      };
     }
     this.utilization[resourceArn].scenarios[scenarioType] = scenario;
   }
 
   protected addData (resourceArn: string, dataType: string, value: any) {
     if (!(resourceArn in this.utilization)) {
-      this.utilization[resourceArn] = {} as Resource<ScenarioTypes>;
+      this.utilization[resourceArn] = {
+        scenarios: {} as Scenarios<ScenarioTypes>,
+        data: {} as  { [ key: string ]: any }
+      };
     }
     this.utilization[resourceArn].data[dataType] = value;
   }

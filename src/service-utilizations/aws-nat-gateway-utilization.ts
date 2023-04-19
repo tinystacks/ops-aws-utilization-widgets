@@ -2,6 +2,7 @@ import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { EC2 } from '@aws-sdk/client-ec2';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
+import { AwsServiceOverrides } from '../types/types.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 // const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
@@ -10,7 +11,7 @@ type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThr
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, _overrides?: any) {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ec2Client = new EC2({
       credentials,

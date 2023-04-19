@@ -19,7 +19,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides): Promise<void> {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,   _overrides?: AwsServiceOverrides) {
     const ec2Client = new EC2({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region

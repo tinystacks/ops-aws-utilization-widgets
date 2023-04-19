@@ -1,5 +1,6 @@
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
+import { AwsServiceOverrides } from '../types/types.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 // 1. idenitfy scenarios, cpu < 50%
@@ -35,7 +36,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, _overrides?: any) {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides) {
     const cwLogsClient = new CloudWatchLogs({
       credentials: await awsCredentialsProvider.getCredentials(),
       region
