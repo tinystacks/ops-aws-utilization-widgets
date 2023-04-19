@@ -1,7 +1,12 @@
 import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
+import { s3Utilization } from './service-utilizations/aws-s3-utilization.jsx';
+import { rdsInstancesUtilization } from './service-utilizations/rds-utilization.jsx';
 
 export enum AwsService {
-  CloudwatchLogs = 'CloudwatchLogs'
+  CloudwatchLogs = 'CloudwatchLogs', 
+  S3 = 'S3', 
+  RDS = 'RDS'
+
 }
 
 export class AwsServiceUtilizationFactory {
@@ -9,6 +14,10 @@ export class AwsServiceUtilizationFactory {
     switch (awsService) {
       case AwsService.CloudwatchLogs:
         return new AwsCloudwatchLogsUtilization();
+      case AwsService.S3: 
+        return new s3Utilization(); 
+      case AwsService.RDS: 
+        return new rdsInstancesUtilization();
     }
   }
 }
