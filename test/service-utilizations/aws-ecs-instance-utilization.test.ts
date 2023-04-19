@@ -1,20 +1,64 @@
-/*
+
 import { MockCache } from "../mocks/MockCache";
 jest.useFakeTimers();
 jest.setSystemTime(new Date('2023-04-14T00:00:00.000Z'));
 const mockGetCredentials = jest.fn();
+const mockEcs = jest.fn();
 const mockEc2 = jest.fn();
+const mockElbV2 = jest.fn();
+const mockApiGatewayV2 = jest.fn();
+const mockCloudWatch = jest.fn();
+
+// ECS
+const mockDescribeServices = jest.fn();
+const mockListClusters = jest.fn();
+const mockListServices = jest.fn();
+const mockListTasks = jest.fn();
+const mockDescribeTasks = jest.fn();
+const mockDescribeContainerInstances = jest.fn();
+
+// EC2
 const mockDescribeInstances = jest.fn();
 const mockDescribeInstanceTypes = jest.fn();
-const mockAutoScaling = jest.fn();
-const mockDescribeAutoScalingInstances = jest.fn();
-const mockCloudWatch = jest.fn();
+
+// ElbV2
+const mockDescribeTargetGroups = jest.fn();
+
+// CloudWatch
 const mockGetMetricData = jest.fn();
+
+// ApiGatewayV2
+const mockGetApis = jest.fn();
+const mockGetIntegrations = jest.fn();
 
 const mockCache = new MockCache();
 
 jest.mock('cached', () => () => mockCache);
 
+jest.mock('@aws-sdk/client-ecs', () => {
+  const original = jest.requireActual('@aws-sdk/client-ecs');
+  const {
+    ContainerInstance,
+    DesiredStatus,
+    LaunchType,
+    ListClustersCommandOutput,
+    ListServicesCommandOutput,
+    ListTasksCommandOutput,
+    Service,
+    Task
+  } = original;
+  return {
+    ECS: mockEcs,
+    ContainerInstance,
+    DesiredStatus,
+    LaunchType,
+    ListClustersCommandOutput,
+    ListServicesCommandOutput,
+    ListTasksCommandOutput,
+    Service,
+    Task
+  };
+});
 jest.mock('@aws-sdk/client-ec2', () => {
   const original = jest.requireActual('@aws-sdk/client-ec2');
   const { DescribeInstanceTypesCommandOutput, Instance, InstanceTypeInfo, _InstanceType } = original;
@@ -26,8 +70,22 @@ jest.mock('@aws-sdk/client-ec2', () => {
     _InstanceType
   };
 });
-jest.mock('@aws-sdk/client-auto-scaling', () => ({
-    AutoScaling: mockAutoScaling
+jest.mock('@aws-sdk/client-apigatewayv2', () => {
+  const original = jest.requireActual('@aws-sdk/client-apigatewayv2');
+  const {
+    Api,
+    GetApisCommandOutput,
+    Integration
+  } = original;
+  return {
+    ApiGatewayV2: mockApiGatewayV2,
+    Api,
+    GetApisCommandOutput,
+    Integration
+  };
+});
+jest.mock('@aws-sdk/client-elastic-load-balancing-v2', () => ({
+  ElasticLoadBalancingV2: mockElbV2
 }));
 jest.mock('@aws-sdk/client-cloudwatch', () => {
   const original = jest.requireActual('@aws-sdk/client-cloudwatch');
@@ -38,7 +96,7 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
     MetricDataResult
   };
 });
-*/
+
 
 const mockInstance1 = {
   InstanceId: 'mock-instance-1',
@@ -53,21 +111,32 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsEcsInstanceUtilization } from '../../src/service-utilizations/aws-ecs-instance-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
-import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
+import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
 
-describe('AwsEc2InstanceUtilization', () => {
-  /*
+describe('AwsEcsInstanceUtilization', () => {
   beforeEach(() => {
+    mockEcs.mockReturnValue({
+      describeServices: mockDescribeServices,
+      listClusters: mockListClusters,
+      listServices: mockListServices,
+      listTasks: mockListTasks,
+      describeTasks: mockDescribeTasks,
+      describeContainerInstances: mockDescribeContainerInstances
+    });
     mockEc2.mockReturnValue({
       describeInstances: mockDescribeInstances,
       describeInstanceTypes: mockDescribeInstanceTypes
     });
-    mockAutoScaling.mockReturnValue({
-      describeAutoScalingInstances: mockDescribeAutoScalingInstances
-    });
+    mockElbV2.mockReturnValue({
+      describeTargetGroups: mockDescribeTargetGroups
+    })
     mockCloudWatch.mockReturnValue({
       getMetricData: mockGetMetricData
     });
+    mockApiGatewayV2.mockReturnValue({
+      getApis: mockGetApis,
+      getIntegrations: mockGetIntegrations
+    })
   });
 
   afterEach(() => {
@@ -79,82 +148,122 @@ describe('AwsEc2InstanceUtilization', () => {
     mockCache.restore();
   });
 
-  describe('getUtilization', () => {
-    it('Calls describeInstances with instanceIds if provided', async () => {
-      mockDescribeInstances.mockResolvedValueOnce({
-        Reservations: [], // Return empty to short circuit test
-        NextToken: 'nextToken'
+  describe('getRegionalUtilization', () => {
+    it('Calls describeServices with cluster name and service arns if provided', async () => {
+      mockDescribeServices.mockResolvedValue({
+        services: []
       });
-      mockDescribeInstances.mockResolvedValueOnce({
-        Reservations: []
-      });
-      mockDescribeInstanceTypes.mockResolvedValueOnce({});
 
-      const ec2Util = new AwsEc2InstanceUtilization(true);
+      const ecsUtil = new AwsEcsInstanceUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-      await ec2Util.getUtilization(provider, 'us-east-1', { instanceIds: ['mock-instance-1', 'mock-instance-2'] });
+      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+          services: [
+            {
+              clusterArn: 'mock-cluster-a',
+              serviceArn: 'mock-service-a'
+            },
+            {
+              clusterArn: 'mock-cluster-a',
+              serviceArn: 'mock-service-a-2'
+            },
+            {
+              clusterArn: 'mock-cluster-b',
+              serviceArn: 'mock-service-b'
+            }
+          ]
+        }
+      );
 
-      expect(mockDescribeInstances).toBeCalled();
-      expect(mockDescribeInstances).toBeCalledTimes(2);
-      expect(mockDescribeInstances).toBeCalledWith({
-        InstanceIds: ['mock-instance-1', 'mock-instance-2']
+
+      expect(mockDescribeServices).toBeCalled();
+      expect(mockDescribeServices).toBeCalledTimes(2);
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster-a',
+        services: ['mock-service-a', 'mock-service-a-2']
       });
-      expect(mockDescribeInstances).toBeCalledWith({
-        InstanceIds: ['mock-instance-1', 'mock-instance-2'],
-        NextToken: 'nextToken'
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster-b',
+        services: ['mock-service-b']
       });
     });
-    it('Filters out instances that are part of an ASG', async () => {
-      mockDescribeInstances.mockResolvedValueOnce({
-        Reservations: [
-          {
-            Instances: [mockInstance1]
-          },
-          {
-            Instances: [mockInstance2]
-          }
-        ]
+    it('lists all services if cluster name and service arns if provided', async () => {
+      mockListClusters.mockResolvedValueOnce({
+        clusterArns: ['mock-cluster-a'],
+        nextToken: 'next-token'
       });
-      mockDescribeAutoScalingInstances.mockResolvedValueOnce({
-        AutoScalingInstances: [mockInstance1, mockInstance2] // return both to short circuit test
+      mockListClusters.mockResolvedValueOnce({
+        clusterArns: ['mock-cluster-b']
+      });
+      mockListServices.mockResolvedValueOnce({
+        serviceArns: ['mock-service-a'],
+        nextToken: 'next-token'
+      });
+      mockListServices.mockResolvedValueOnce({
+        serviceArns: ['mock-service-a-2']
+      });
+      mockListServices.mockResolvedValueOnce({
+        serviceArns: ['mock-service-b']
+      });
+      mockDescribeServices.mockResolvedValue({
+        services: []
       });
 
-      const ec2Util = new AwsEc2InstanceUtilization(true);
+      const ecsUtil = new AwsEcsInstanceUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
+      await ecsUtil.getRegionalUtilization(provider, 'us-east-1');
 
-      await ec2Util.getUtilization(provider, 'us-east-1');
-      
 
-      expect(mockDescribeInstances).toBeCalled();
-      expect(mockDescribeInstances).toBeCalledWith({});
+      expect(mockListClusters).toBeCalled();
+      expect(mockListClusters).toBeCalledTimes(2);
+      expect(mockListClusters).toBeCalledWith({});
+      expect(mockListClusters).toBeCalledWith({ nextToken: 'next-token' });
       
-      expect(mockDescribeAutoScalingInstances).toBeCalled();
-      expect(mockDescribeAutoScalingInstances).toBeCalledWith({
-        InstanceIds: ['mock-instance-1', 'mock-instance-2']
+      expect(mockListServices).toBeCalled();
+      expect(mockListServices).toBeCalledTimes(3);
+      expect(mockListServices).toBeCalledWith({ cluster: 'mock-cluster-a' });
+      expect(mockListServices).toBeCalledWith({ cluster: 'mock-cluster-a', nextToken: 'next-token' });
+      expect(mockListServices).toBeCalledWith({ cluster: 'mock-cluster-b' });
+
+      expect(mockDescribeServices).toBeCalled();
+      expect(mockDescribeServices).toBeCalledTimes(2);
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster-a',
+        services: ['mock-service-a', 'mock-service-a-2']
       });
-      
-      expect(mockDescribeInstanceTypes).not.toBeCalled();
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster-b',
+        services: ['mock-service-b']
+      });
     });
-    it('Suggests termination if an instance appears to not be used', async () => {
-      mockDescribeInstances.mockResolvedValueOnce({
-        Reservations: [
+    it('Suggests termination if a service appears to not be used', async () => {
+      mockDescribeServices.mockResolvedValue({
+        services: [
           {
-            Instances: [mockInstance1]
+            serviceArn: 'mock-service',
+            serviceName: 'mock-service',
+            clusterArn: 'mock-cluster',
+            loadBalancers: [
+              {
+                targetGroupArn: 'mock-target-group'
+              }
+            ],
+            serviceRegistries: []
           }
         ]
       });
-      mockDescribeAutoScalingInstances.mockResolvedValueOnce({
-        AutoScalingInstances: []
-      });
-      mockDescribeInstanceTypes.mockResolvedValueOnce({
-        InstanceTypes: [
-          t2Micro
+
+      mockDescribeTargetGroups.mockResolvedValue({
+        TargetGroups: [
+          {
+            LoadBalancerArns: ['mock-load-balancer']
+          }
         ]
       });
+
       mockGetMetricData.mockResolvedValueOnce({
         MetricDataResults: [
           {
@@ -166,77 +275,264 @@ describe('AwsEc2InstanceUtilization', () => {
             Values: [0.01, 0.02, 0.03]
           },
           {
-            Id: DISK_READ_OPS,
+            Id: AVG_MEMORY,
+            Values: [0.01, 0.02, 0.03]
+          },
+          {
+            Id: MAX_MEMORY,
+            Values: [0.01, 0.02, 0.03]
+          },
+          {
+            Id: ALB_REQUEST_COUNT,
             Values: [0, 0, 0]
-          },
-          {
-            Id: DISK_WRITE_OPS,
-            Values: [0, 0, 0]
-          },
-          {
-            Id: AVG_NETWORK_BYTES_IN,
-            Values: [1500, 1750, 2250]
-          },
-          {
-            Id: AVG_NETWORK_BYTES_OUT,
-            Values: [1250, 1500, 1750]
           }
         ]
       });
 
-      const ec2Util = new AwsEc2InstanceUtilization(true);
+      const ecsUtil = new AwsEcsInstanceUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-
-      try { 
-        await ec2Util.getUtilization(provider, 'us-east-1');
-      } catch (error) {
-        console.error(error);
-      }
-
-      expect(mockDescribeInstances).toBeCalled();
-      expect(mockDescribeInstances).toBeCalledWith({});
+      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+          services: [
+            {
+              clusterArn: 'mock-cluster',
+              serviceArn: 'mock-service'
+            }
+          ]
+        }
+      );
       
-      expect(mockDescribeAutoScalingInstances).toBeCalled();
-      expect(mockDescribeAutoScalingInstances).toBeCalledWith({
-        InstanceIds: ['mock-instance-1']
+      expect(mockDescribeServices).toBeCalled();
+      expect(mockDescribeServices).toBeCalledTimes(1);
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster',
+        services: ['mock-service']
       });
-      
-      expect(mockDescribeInstanceTypes).toBeCalled();
-      expect(mockDescribeInstanceTypes).toBeCalledTimes(1);
-      expect(mockDescribeInstanceTypes).toBeCalledWith({
-        InstanceTypes: ['t2.micro']
+
+      expect(mockDescribeTargetGroups).toBeCalled();
+      expect(mockDescribeTargetGroups).toBeCalledTimes(1);
+      expect(mockDescribeTargetGroups).toBeCalledWith({
+        TargetGroupArns: ['mock-target-group']
       });
 
       expect(mockGetMetricData).toBeCalled();
 
-      expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
+      expect(ecsUtil.utilization).toHaveProperty('mock-service', {
+        data: {},
         scenarios: {
           unused: {
             value: 'unused',
             delete: {
-              action: 'terminateInstance',
-              reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, and network traffic.'
+              action: 'deleteService',
+              reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and network traffic.'
             }
           }
         }
       });
     });
-    it('Suggests scale down if an instance appears to be used but underutilized', async () => {
-      mockDescribeInstances.mockResolvedValueOnce({
-        Reservations: [
+    it('Suggests scale down if a fargate service appears to be used but underutilized', async () => {
+      mockDescribeServices.mockResolvedValue({
+        services: [
           {
-            Instances: [mockInstance1]
+            serviceArn: 'mock-service',
+            serviceName: 'mock-service',
+            clusterArn: 'mock-cluster',
+            launchType: 'FARGATE',
+            loadBalancers: [],
+            serviceRegistries: [
+              {
+                registryArn: 'mock-registry'
+              }
+            ]
           }
         ]
       });
-      mockDescribeAutoScalingInstances.mockResolvedValueOnce({
-        AutoScalingInstances: []
+
+      mockGetApis.mockResolvedValue({
+        Items: [
+          {
+            ApiId: 'mock-api'
+          }
+        ]
       });
-      mockDescribeInstanceTypes.mockResolvedValueOnce({
-        InstanceTypes: [
-          t2Micro
+      mockGetIntegrations.mockResolvedValue({
+        Items: [
+          {
+            IntegrationUri: 'mock-registry'
+          }
+        ]
+      });
+
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Id: AVG_CPU,
+            Values: [0.10, 0.12, 0.13]
+          },
+          {
+            Id: MAX_CPU,
+            Values: [0.11, 0.22, 0.33]
+          },
+          {
+            Id: AVG_MEMORY,
+            Values: [0.10, 0.12, 0.13]
+          },
+          {
+            Id: MAX_MEMORY,
+            Values: [0.11, 0.22, 0.33]
+          },
+          {
+            Id: APIG_REQUEST_COUNT,
+            Values: [10, 20, 30]
+          }
+        ]
+      });
+
+      mockListTasks.mockResolvedValueOnce({
+        taskArns: ['mock-task']
+      });
+      
+      mockDescribeTasks.mockResolvedValueOnce({
+        tasks: [
+          {
+            cpu: 1024,
+            memory: 4
+          }
+        ]
+      });
+
+      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const provider = {
+        getCredentials: mockGetCredentials
+      } as unknown as AwsCredentialsProvider;
+      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+          services: [
+            {
+              clusterArn: 'mock-cluster',
+              serviceArn: 'mock-service'
+            }
+          ]
+        }
+      );
+      
+      expect(mockDescribeServices).toBeCalled();
+      expect(mockDescribeServices).toBeCalledTimes(1);
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster',
+        services: ['mock-service']
+      });
+
+      expect(mockGetApis).toBeCalled();
+      expect(mockGetApis).toBeCalledTimes(1);
+
+      expect(mockGetIntegrations).toBeCalled();
+      expect(mockGetIntegrations).toBeCalledTimes(1);
+      expect(mockGetIntegrations).toBeCalledWith({
+        ApiId: 'mock-api'
+      });
+
+      expect(mockGetMetricData).toBeCalled();
+
+      expect(ecsUtil.utilization).toHaveProperty('mock-service', {
+        data: {},
+        scenarios: {
+          overAllocated: {
+            value: 'overAllocated',
+            scaleDown: {
+              action: 'scaleDownFargateService',
+              reason: 'This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.  We suggest scaling the CPU down to 512 and the Memory to 2048 MiB.'
+            }
+          }
+        }
+      });
+    });
+    it('Suggests scale down if an Ec2 services appears to be used but underutilized', async () => {
+      mockDescribeServices.mockResolvedValue({
+        services: [
+          {
+            serviceArn: 'mock-service',
+            serviceName: 'mock-service',
+            clusterArn: 'mock-cluster',
+            loadBalancers: [],
+            serviceRegistries: [
+              {
+                registryArn: 'mock-registry'
+              }
+            ]
+          }
+        ]
+      });
+
+      mockGetApis.mockResolvedValue({
+        Items: [
+          {
+            ApiId: 'mock-api'
+          }
+        ]
+      });
+      mockGetIntegrations.mockResolvedValue({
+        Items: [
+          {
+            IntegrationUri: 'mock-registry'
+          }
+        ]
+      });
+
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Id: AVG_CPU,
+            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
+          },
+          {
+            Id: MAX_CPU,
+            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
+          },
+          {
+            Id: AVG_MEMORY,
+            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
+          },
+          {
+            Id: MAX_MEMORY,
+            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
+          },
+          {
+            Id: APIG_REQUEST_COUNT,
+            Values: [10, 20, 30, 40, 50]
+          }
+        ]
+      });
+
+      mockListTasks.mockResolvedValueOnce({
+        taskArns: ['mock-task']
+      });
+      
+      mockDescribeTasks.mockResolvedValueOnce({
+        tasks: [
+          {
+            cpu: '0',
+            memory: '4096'
+          }
+        ]
+      });
+      
+      mockDescribeContainerInstances.mockResolvedValueOnce({
+        containerInstances: [
+          {
+            registeredResources: [
+              {
+                name: 'CPU',
+                integerValue: '1024'
+              }
+            ],
+            attributes: [
+              {
+                name: 'ecs.instance-type',
+                value: 't3.medium'
+              }
+            ]
+          }
         ]
       });
       mockDescribeInstanceTypes.mockResolvedValueOnce({
@@ -245,102 +541,54 @@ describe('AwsEc2InstanceUtilization', () => {
           t2Micro
         ]
       });
-      mockGetMetricData.mockResolvedValueOnce({
-        MetricDataResults: [
-          {
-            Id: AVG_CPU,
-            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
-          },
-          {
-            Id: MAX_CPU,
-            Values: [0.01, 0.02, 0.03, 0.10, 0.15]
-          },
-          {
-            Id: DISK_READ_OPS,
-            Values: [0, 0, 0, 1, 2]
-          },
-          {
-            Id: DISK_WRITE_OPS,
-            Values: [0, 0, 0, 1, 2]
-          },
-          {
-            Id: AVG_NETWORK_BYTES_IN,
-            Values: [1500, 1750, 2250, (1.45 * Math.pow(10, 6)), (1.6 * Math.pow(10, 6))]
-          },
-          {
-            Id: AVG_NETWORK_BYTES_OUT,
-            Values: [1250, 1500, 1750, (4.60 * Math.pow(10, 6)), (5.02 * Math.pow(10, 6))]
-          },
-          {
-            Id: MAX_NETWORK_BYTES_IN,
-            Values: [1500, 1750, 2250, (1.45 * Math.pow(10, 6)), (1.6 * Math.pow(10, 6))]
-          },
-          {
-            Id: MAX_NETWORK_BYTES_OUT,
-            Values: [1250, 1500, 1750, (4.60 * Math.pow(10, 6)), (5.02 * Math.pow(10, 6))]
-          }
-        ]
-      });
-
       mockCache.getOrElse.mockImplementationOnce((_key, refreshFunction) => {
         return refreshFunction();
       });
 
-      const ec2Util = new AwsEc2InstanceUtilization(true);
+      const ecsUtil = new AwsEcsInstanceUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-
-      await ec2Util.getUtilization(provider, 'us-east-1');
-
-      expect(mockDescribeInstances).toBeCalled();
-      expect(mockDescribeInstances).toBeCalledWith({});
+      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+          services: [
+            {
+              clusterArn: 'mock-cluster',
+              serviceArn: 'mock-service'
+            }
+          ]
+        }
+      );
       
-      expect(mockDescribeAutoScalingInstances).toBeCalled();
-      expect(mockDescribeAutoScalingInstances).toBeCalledWith({
-        InstanceIds: ['mock-instance-1']
+      expect(mockDescribeServices).toBeCalled();
+      expect(mockDescribeServices).toBeCalledTimes(1);
+      expect(mockDescribeServices).toBeCalledWith({
+        cluster: 'mock-cluster',
+        services: ['mock-service']
       });
-      
-      expect(mockDescribeInstanceTypes).toBeCalled();
-      expect(mockDescribeInstanceTypes).toBeCalledTimes(2);
-      expect(mockDescribeInstanceTypes).toBeCalledWith({
-        InstanceTypes: [
-          't2.2xlarge',
-          't2.large',
-          't2.medium',
-          't2.micro',
-          't2.nano',
-          't2.small',
-          't2.xlarge'
-        ]
+
+      expect(mockGetApis).toBeCalled();
+      expect(mockGetApis).toBeCalledTimes(1);
+
+      expect(mockGetIntegrations).toBeCalled();
+      expect(mockGetIntegrations).toBeCalledTimes(1);
+      expect(mockGetIntegrations).toBeCalledWith({
+        ApiId: 'mock-api'
       });
 
       expect(mockGetMetricData).toBeCalled();
 
-      expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
+      expect(ecsUtil.utilization).toHaveProperty('mock-service', {
+        data: {},
         scenarios: {
           overAllocated: {
             value: 'overAllocated',
             scaleDown: {
               action: 'TODO',
-              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a t2.nano`
+              reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a t2.micro.'
             }
           }
         }
       });
     });
   });
-  */
-  it('live test', async () => {
-    const credentialProvider = new AwsCredentialsProvider({
-      id: 'test',
-      type: 'LocalAwsProfile',
-      credentials: {
-        profileName: 'ts'
-      }
-    });
-    const ecsUtilizaiton = new AwsEcsInstanceUtilization();
-    await ecsUtilizaiton.getUtilization(credentialProvider, 'us-east-1');
-    await ecsUtilizaiton.getUtilization(credentialProvider, 'us-west-2');
-  }, 15000);
 });

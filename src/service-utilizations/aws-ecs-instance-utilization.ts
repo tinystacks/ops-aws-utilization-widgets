@@ -2,15 +2,36 @@ import cached from 'cached';
 import dayjs from 'dayjs';
 import chunk from 'lodash.chunk';
 import stats from 'simple-statistics';
-import { ContainerInstance, DesiredStatus, ECS, LaunchType, ListClustersCommandOutput, ListServicesCommandOutput, ListTasksCommandOutput, Service, Task } from '@aws-sdk/client-ecs';
-import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsServiceUtilization } from './aws-service-utilization.js';
+import {
+  ContainerInstance,
+  DesiredStatus,
+  ECS,
+  LaunchType,
+  ListClustersCommandOutput,
+  ListServicesCommandOutput,
+  ListTasksCommandOutput,
+  Service,
+  Task
+} from '@aws-sdk/client-ecs';
 import {
   CloudWatch,
   MetricDataQuery,
   MetricDataResult
 } from '@aws-sdk/client-cloudwatch';
+import { ElasticLoadBalancingV2 } from '@aws-sdk/client-elastic-load-balancing-v2';
+import {
+  Api,
+  ApiGatewayV2,
+  GetApisCommandOutput,
+  Integration
+} from '@aws-sdk/client-apigatewayv2';
+import {
+  DescribeInstanceTypesCommandOutput,
+  EC2,
+  InstanceTypeInfo,
+  _InstanceType
+} from '@aws-sdk/client-ec2';
 import { getStabilityStats } from '../utils/stats.js';
 import {
   AVG_CPU,
@@ -20,9 +41,7 @@ import {
   ALB_REQUEST_COUNT,
   APIG_REQUEST_COUNT
 } from '../constants.js';
-import { ElasticLoadBalancingV2 } from '@aws-sdk/client-elastic-load-balancing-v2';
-import { Api, ApiGatewayV2, GetApisCommandOutput, Integration } from '@aws-sdk/client-apigatewayv2';
-import { DescribeInstanceTypesCommandOutput, EC2, InstanceTypeInfo, _InstanceType } from '@aws-sdk/client-ec2';
+import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 const cache = cached<string>('ecs-util-cache', {
   backend: {
@@ -70,7 +89,6 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
   services: Service[];
   ecsClient: ECS;
   ec2Client: EC2;
-  autoScalingClient: AutoScaling;
   cwClient: CloudWatch;
   elbV2Client: ElasticLoadBalancingV2;
   apigClient: ApiGatewayV2;
@@ -142,8 +160,9 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
   private async describeTheseServices (ecsServices: EcsService[]): Promise<Service[]> {
     const clusters = ecsServices.reduce<ClusterServices>((acc, ecsService) => {
       acc[ecsService.clusterArn] = acc[ecsService.clusterArn] || {
-        serviceArns: [ecsService.serviceArn]
+        serviceArns: []
       };
+      acc[ecsService.clusterArn].serviceArns.push(ecsService.serviceArn);
       return acc;
     }, {});
    
@@ -456,9 +475,11 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
       increment
     } = range;
     const discreteVales: number[] = [];
-    for (let i = min; i <= max; i + increment) {
+    let i = min;
+    do {
+      i = i + increment;
       discreteVales.push(i);
-    }
+    } while (i <= max);
     return discreteVales;
   }
 
@@ -469,7 +490,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
 
     let allocatedCpu = taskCpu;
     let containerInstance: ContainerInstance;
-    if (!taskCpu) {
+    if (!taskCpu || taskCpu === 0) {
       const containerInstanceTaskGroupObject = tasks.reduce<{
         [containerInstanceArn: string]: {
           containerInstanceArn: string;
@@ -516,28 +537,31 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
       containerInstance = containerInstanceResponse?.containerInstances?.at(0);
     }
 
-    const maxConsumedCpu = maxCpuPercentage * allocatedCpu;
+    const maxConsumedVcpus = (maxCpuPercentage * allocatedCpu) / 1024;
     const maxConsumedMemory = maxMemoryPercentage * allocatedMemory;
     const instanceVcpus = allocatedCpu / 1024;
 
-    let instanceFamily = containerInstance.attributes.find(attr => attr.name === 'ecs.instance-type')?.value?.split('.')?.at(0);
+    const instanceType = containerInstance.attributes.find(attr => attr.name === 'ecs.instance-type')?.value;
+    let instanceFamily = instanceType?.split('.')?.at(0);
     if (!instanceFamily) {
       instanceFamily = await this.getInstanceFamilyForContainerInstance(containerInstance);
     }
+
     const allInstanceTypes = Object.values(_InstanceType);
     const instanceTypeNamesInFamily = allInstanceTypes.filter(it => it.startsWith(`${instanceFamily}.`));
     const cachedInstanceTypes = await cache.getOrElse(instanceFamily, async () => JSON.stringify(await this.getInstanceTypes(instanceTypeNamesInFamily)));
     const instanceTypesInFamily = JSON.parse(cachedInstanceTypes || '[]');
 
     const smallerInstances = instanceTypesInFamily.filter((it: InstanceTypeInfo) => {
-      return (
-        it.VCpuInfo.DefaultVCpus >= maxConsumedCpu &&
+      const betterFitCpu = (
+        it.VCpuInfo.DefaultVCpus >= maxConsumedVcpus &&
         it.VCpuInfo.DefaultVCpus <= instanceVcpus
-      ) &&
-      (
+      );
+      const betterFitMemory = (
         it.MemoryInfo.SizeInMiB >= maxConsumedMemory &&
         it.MemoryInfo.SizeInMiB <= allocatedMemory
       );
+      return betterFitCpu && betterFitMemory;
     }).sort((a: InstanceTypeInfo, b: InstanceTypeInfo) => {
       const vCpuScore = a.VCpuInfo.DefaultVCpus < b.VCpuInfo.DefaultVCpus ? -1 : 1;
       const memoryScore = a.MemoryInfo.SizeInMiB < b.MemoryInfo.SizeInMiB ? -1 : 1;
@@ -551,7 +575,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
         value: 'overAllocated',
         scaleDown: {
           action: 'TODO',
-          reason: `The EC2 instances used in this Service's cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}`
+          reason: `The EC2 instances used in this Service's cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
         }
       });
     }
@@ -614,7 +638,10 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     const maxConsumedCpu = maxCpuPercentage * allocatedCpu;
     const maxConsumedMemory = maxMemoryPercentage * allocatedMemory;
 
-    const lowerCpuOptions = Object.keys(fargateScaleOptions).filter(cpu => Number(cpu) < maxConsumedCpu).sort();
+    const lowerCpuOptions = Object.keys(fargateScaleOptions).filter((cpuString) => {
+      const cpu = Number(cpuString);
+      return cpu < allocatedCpu && cpu > maxConsumedCpu; 
+    }).sort();
     let targetScaleOption: FargateScale;
     for (const cpuOption of lowerCpuOptions) {
       const scalingOption = fargateScaleOptions[Number(cpuOption)];
@@ -642,23 +669,19 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
         value: 'overAllocated',
         scaleDown: {
           action: 'scaleDownFargateService',
-          reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.  We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to ${targetScaleOption.memory} MiB`
+          reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.  We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to ${targetScaleOption.memory} MiB.`
         }
       });
     }
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsInstanceUtilizationOverrides) {
+  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsInstanceUtilizationOverrides) {
     const credentials = await awsCredentialsProvider.getCredentials();
     this.ecsClient = new ECS({
       credentials,
       region
     });
     this.ec2Client = new EC2({
-      credentials,
-      region
-    });
-    this.autoScalingClient = new AutoScaling({
       credentials,
       region
     });
@@ -754,6 +777,12 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
+  }
+  
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsInstanceUtilizationOverrides) {
+    for (const region of regions) {
+      await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
+    }
   }
 
   async scaleDownFargateService (_serviceArn: string, _cpu: number, _memory: number) {
