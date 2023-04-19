@@ -294,7 +294,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         // TODO: For burstable instance types, we need to factor in credit consumption and baseline utilization
         const networkInMax = stats.max(maxNetworkBytesIn.Values);
         const networkOutMax = stats.max(maxNetworkBytesOut.Values);
-        const optimiziedVcpuCount = Math.ceil(maxCpu * instanceType.VCpuInfo.DefaultVCpus);
+        const optimizedVcpuCount = Math.ceil(maxCpu * instanceType.VCpuInfo.DefaultVCpus);
         const minimumNetworkThroughput = Math.ceil((networkInMax + networkOutMax) / (Math.pow(1024, 3)));
         const currentNetworkThroughput = this.getInstanceNetworkSetting(instanceType.NetworkInfo.NetworkPerformance);
         const currentNetworkThroughputIsDefined = typeof currentNetworkThroughput === 'number';
@@ -307,7 +307,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           const availableNetworkThroughput = this.getInstanceNetworkSetting(it.NetworkInfo.NetworkPerformance);
           const availableNetworkThroughputIsDefined = typeof availableNetworkThroughput === 'number';
           return (
-            it.VCpuInfo.DefaultVCpus >= optimiziedVcpuCount &&
+            it.VCpuInfo.DefaultVCpus >= optimizedVcpuCount &&
             it.VCpuInfo.DefaultVCpus <= instanceType.VCpuInfo.DefaultVCpus
           ) &&
           (
