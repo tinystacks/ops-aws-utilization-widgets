@@ -185,7 +185,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     return networkSetting;
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEc2InstanceUtilizationOverrides) {
+  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEc2InstanceUtilizationOverrides) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ec2Client = new EC2({
       credentials,
@@ -349,5 +349,11 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
+  }
+
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEc2InstanceUtilizationOverrides) {
+    for (const region of regions) {
+      await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
+    }
   }
 }
