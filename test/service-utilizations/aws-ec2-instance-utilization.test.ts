@@ -209,6 +209,7 @@ describe('AwsEc2InstanceUtilization', () => {
       expect(mockGetMetricData).toBeCalled();
 
       expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
+        data: {},
         scenarios: {
           unused: {
             value: 'unused',
@@ -315,6 +316,7 @@ describe('AwsEc2InstanceUtilization', () => {
       expect(mockGetMetricData).toBeCalled();
 
       expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
+        data: {},
         scenarios: {
           overAllocated: {
             value: 'overAllocated',
