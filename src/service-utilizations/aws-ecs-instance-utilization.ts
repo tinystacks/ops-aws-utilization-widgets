@@ -2,6 +2,7 @@ import cached from 'cached';
 import dayjs from 'dayjs';
 import chunk from 'lodash.chunk';
 import stats from 'simple-statistics';
+import HttpError from 'http-errors';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import {
   ContainerInstance,
@@ -12,7 +13,9 @@ import {
   ListServicesCommandOutput,
   ListTasksCommandOutput,
   Service,
-  Task
+  Task,
+  TaskDefinition,
+  TaskDefinitionField
 } from '@aws-sdk/client-ecs';
 import {
   CloudWatch,
@@ -574,7 +577,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
       this.addScenario(service.serviceArn, 'overAllocated', {
         value: 'overAllocated',
         scaleDown: {
-          action: 'TODO',
+          action: 'scaleDownEc2Service',
           reason: `The EC2 instances used in this Service's cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
         }
       });
@@ -785,7 +788,89 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     }
   }
 
-  async scaleDownFargateService (_serviceArn: string, _cpu: number, _memory: number) {
-    return;
+  async deleteService (awsCredentialsProvider: AwsCredentialsProvider, serviceArn: string, region: string) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const ecsClient = new ECS({
+      credentials,
+      region
+    });
+
+    await ecsClient.deleteService({
+      service: serviceArn,
+      cluster: 'TODO: describe service or get from cache to get cluster name'
+    });
+  }
+
+  async scaleDownFargateService (awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string, cpu: number, memory: number) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const ecsClient = new ECS({
+      credentials,
+      region
+    });
+
+    const serviceResponse = await ecsClient.describeServices({
+      cluster: clusterName,
+      services: [serviceArn]
+    });
+    const taskDefinitionArn = serviceResponse?.services?.at(0)?.taskDefinition;
+    const taskDefResponse = await ecsClient.describeTaskDefinition({ taskDefinition: taskDefinitionArn, include: [TaskDefinitionField.TAGS]  });
+    const taskDefinition: TaskDefinition = taskDefResponse?.taskDefinition;
+    const tags = taskDefResponse?.tags;
+    // TODO: CPU and Memory validation?
+    taskDefinition.cpu = cpu.toString();
+    taskDefinition.memory = memory.toString();
+
+    const {
+      containerDefinitions,
+      family,
+      ephemeralStorage,
+      executionRoleArn,
+      inferenceAccelerators,
+      ipcMode,
+      networkMode,
+      pidMode,
+      placementConstraints,
+      proxyConfiguration,
+      requiresCompatibilities,
+      runtimePlatform,
+      taskRoleArn,
+      volumes
+    } = taskDefinition;
+
+
+    const revisionResponse = await ecsClient.registerTaskDefinition({
+      cpu: cpu.toString(),
+      memory: memory.toString(),
+      containerDefinitions,
+      family,
+      ephemeralStorage,
+      executionRoleArn,
+      inferenceAccelerators,
+      ipcMode,
+      networkMode,
+      pidMode,
+      placementConstraints,
+      proxyConfiguration,
+      requiresCompatibilities,
+      runtimePlatform,
+      taskRoleArn,
+      volumes,
+      tags
+    });
+ 
+    await ecsClient.updateService({
+      cluster: clusterName,
+      service: serviceArn,
+      taskDefinition: revisionResponse?.taskDefinition?.taskDefinitionArn,
+      forceNewDeployment: true
+    });
+  }
+  
+  async scaleDownEc2Service (_serviceArn: string, _cpu: number, _memory: number) {
+    /*
+      TODO:
+        Update Asg/Capacity provider? Or update memory/cpu allocation on the tasks? Or both?
+     */
+    throw HttpError.NotImplemented('Automatic scale down for EC2 backed ECS Clusters is not yet supported.');
   }
 }
