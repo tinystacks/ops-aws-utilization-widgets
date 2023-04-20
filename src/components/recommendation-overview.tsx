@@ -6,31 +6,8 @@ export default function RecommendationOverview (props: { utilizations: { [ servi
 
   const { utilizations } = props;
 
-  let totalRecommendations = 0;
-  let totalUnusedResources = 0; 
-  let totalScalingActions = 0;
-  //let totalOptimizeActions = 0;
+  const { totalRecommendations, totalUnusedResources, totalScalingActions } = getTotalRecommendationValues(utilizations);
 
-  for(const service in utilizations) {
-    const serviceUtilization = utilizations[service];
-    for(const resource in serviceUtilization){
-      const scenarios = serviceUtilization[resource].scenarios;
-      for(const scenario in scenarios){ 
-        if(scenarios[scenario].delete){ 
-          ++totalUnusedResources; 
-          ++totalRecommendations;
-        }
-        if(scenarios[scenario].scaleDown){ 
-          ++totalScalingActions;
-          ++totalRecommendations;
-        }
-        if(scenarios[scenario].optimize){ 
-          //++totalOptimizeActions;
-          ++totalRecommendations;
-        }
-      }
-    }
-  }
   const labelStyles = {
     fontFamily: 'monospace',
     fontSize: '42px',
@@ -65,4 +42,39 @@ export default function RecommendationOverview (props: { utilizations: { [ servi
   );
 
 
+}
+
+function getTotalRecommendationValues (utilizations:  { [ serviceName: string ] : Utilization<string> }) { 
+  let totalRecommendations = 0;
+  let totalUnusedResources = 0; 
+  let totalScalingActions = 0;
+  let totalOptimizeActions = 0;
+
+  for(const service in utilizations) {
+    const serviceUtilization = utilizations[service];
+    for(const resource in serviceUtilization){
+      const scenarios = serviceUtilization[resource].scenarios;
+      for(const scenario in scenarios){ 
+        if(scenarios[scenario].delete){ 
+          ++totalUnusedResources; 
+          ++totalRecommendations;
+        }
+        if(scenarios[scenario].scaleDown){ 
+          ++totalScalingActions;
+          ++totalRecommendations;
+        }
+        if(scenarios[scenario].optimize){ 
+          ++totalOptimizeActions;
+          ++totalRecommendations;
+        }
+      }
+    }
+  }
+
+  return { 
+    totalRecommendations, 
+    totalUnusedResources, 
+    totalScalingActions, 
+    totalOptimizeActions
+  };
 }
