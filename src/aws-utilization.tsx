@@ -26,7 +26,6 @@ export class AwsUtilization extends BaseWidget {
   }
 
   async getData (providers?: BaseProvider[], overrides?: AwsUtilizationOverrides): Promise<void> {
-    console.log('this.awsServices: ', this.awsServices);
     const awsCredentialsProvider = getAwsCredentialsProvider(providers);
     for (const awsService of this.awsServices) {
       const awsServiceUtilization = AwsServiceUtilizationFactory.createObject(awsService);

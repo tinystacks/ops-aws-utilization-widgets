@@ -5,12 +5,11 @@ import { Utilization } from '../types/types.js';
 export default function RecommendationOverview (props: { utilizations: { [ serviceName: string ] : Utilization<string> } }) {
 
   const { utilizations } = props;
-  console.log('utilizationsssssss: ', JSON.stringify(utilizations));
 
   let totalRecommendations = 0;
   let totalUnusedResources = 0; 
   let totalScalingActions = 0;
-  let totalOptimizeActions = 0;
+  //let totalOptimizeActions = 0;
 
   for(const service in utilizations) {
     const serviceUtilization = utilizations[service];
@@ -26,19 +25,12 @@ export default function RecommendationOverview (props: { utilizations: { [ servi
           ++totalRecommendations;
         }
         if(scenarios[scenario].optimize){ 
-          ++totalOptimizeActions;
+          //++totalOptimizeActions;
           ++totalRecommendations;
         }
       }
     }
   }
-
-  console.log('totalUnusedResources: ', totalUnusedResources);
-  console.log('totalRecommendations: ', totalRecommendations);
-  console.log('totalScalingActions: ', totalScalingActions);
-  console.log('totalOptimizeActions: ', totalOptimizeActions);
-
-
   const labelStyles = {
     fontFamily: 'monospace',
     fontSize: '42px',
