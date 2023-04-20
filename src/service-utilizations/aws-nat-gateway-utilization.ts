@@ -134,6 +134,5 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         });
       }
     }
-    console.log(this.utilization);
   }
 }

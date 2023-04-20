@@ -1,47 +1,75 @@
-import { Stack, Box, Heading, Text } from '@chakra-ui/react';
-import { Utilization } from '../types/types';
+import React from 'react';
+import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
+import { Utilization } from '../types/types.js';
 
 export default function RecommendationOverview (props: { utilizations: { [ serviceName: string ] : Utilization<string> } }) {
 
   const { utilizations } = props;
+  console.log('utilizationsssssss: ', JSON.stringify(utilizations));
 
   let totalRecommendations = 0;
   let totalUnusedResources = 0; 
   let totalScalingActions = 0;
+  let totalOptimizeActions = 0;
 
   for(const service in utilizations) {
     const serviceUtilization = utilizations[service];
     for(const resource in serviceUtilization){
       const scenarios = serviceUtilization[resource].scenarios;
-      if(scenarios){ 
-        ++totalRecommendations; 
-      }
-      if(scenarios['delete']){ 
-        ++totalUnusedResources; 
-      } 
-      if(scenarios['scaleDown']){ 
-        ++totalScalingActions;
+      for(const scenario in scenarios){ 
+        if(scenarios[scenario].delete){ 
+          ++totalUnusedResources; 
+          ++totalRecommendations;
+        }
+        if(scenarios[scenario].scaleDown){ 
+          ++totalScalingActions;
+          ++totalRecommendations;
+        }
+        if(scenarios[scenario].optimize){ 
+          ++totalOptimizeActions;
+          ++totalRecommendations;
+        }
       }
     }
   }
 
+  console.log('totalUnusedResources: ', totalUnusedResources);
+  console.log('totalRecommendations: ', totalRecommendations);
+  console.log('totalScalingActions: ', totalScalingActions);
+  console.log('totalOptimizeActions: ', totalOptimizeActions);
+
+
+  const labelStyles = {
+    fontFamily: 'monospace',
+    fontSize: '42px',
+    fontWeight: '500', 
+    lineHeight: '150%'
+  };
+
+  const textStyles = {
+    fontFamily: 'monospace',
+    fontSize: '15px',
+    fontWeight: '500', 
+    lineHeight: '150%', 
+    color: 'rgba(0, 0, 0, 0.48)'
+  };
+
 
   return (
-
-    <Stack direction='row' style={{ width: '100%' }}>
-      <Box p={5} shadow='md' borderWidth='1px'>
-        <Heading fontSize='xl'>{totalRecommendations}</Heading>
-        <Text mt={4}>{'recommendations'}</Text>
+    <SimpleGrid columns={3} spacing={2}>
+      <Box p={5}>
+        <Heading style={labelStyles}>{totalRecommendations}</Heading>
+        <Text style={textStyles}>{'recommendations'}</Text>
       </Box>
-      <Box p={5} shadow='md' borderWidth='1px'>
-        <Heading fontSize='xl'>{totalUnusedResources}</Heading>
-        <Text mt={4}>{'totalUnusedResources'}</Text>
+      <Box p={5}>
+        <Heading style={labelStyles}>{totalUnusedResources}</Heading>
+        <Text style={textStyles}>{'unused resources'}</Text>
       </Box>
-      <Box p={5} shadow='md' borderWidth='1px'>
-        <Heading fontSize='xl'>{totalScalingActions}</Heading>
-        <Text mt={4}>{'totalScalingActions'}</Text>
+      <Box p={5}>
+        <Heading style={labelStyles}>{totalScalingActions}</Heading>
+        <Text style={textStyles}>{'scaling actions'}</Text>
       </Box>
-    </Stack>
+    </SimpleGrid>
   );
 
 

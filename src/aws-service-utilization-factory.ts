@@ -1,6 +1,6 @@
 import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
-import { s3Utilization } from './service-utilizations/aws-s3-utilization.jsx';
-import { rdsInstancesUtilization } from './service-utilizations/rds-utilization.jsx';
+import { s3Utilization } from './service-utilizations/aws-s3-utilization.js';
+import { rdsInstancesUtilization } from './service-utilizations/rds-utilization.js';
 
 export enum AwsService {
   CloudwatchLogs = 'CloudwatchLogs', 

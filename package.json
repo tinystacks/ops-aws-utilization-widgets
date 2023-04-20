@@ -68,6 +68,7 @@
     "@chakra-ui/react": "^2.5.5",
     "@tinystacks/ops-aws-core-widgets": "^0.0.5",
     "@tinystacks/ops-core": "^0.0.3",
-    "react": "^18.2.0"
+    "react": "^18.2.0",
+    "reacy": "^1.0.0"
   }
 }
