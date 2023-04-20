@@ -16,6 +16,10 @@ const mockListServices = jest.fn();
 const mockListTasks = jest.fn();
 const mockDescribeTasks = jest.fn();
 const mockDescribeContainerInstances = jest.fn();
+const mockDeleteService = jest.fn();
+const mockDescribeTaskDefinition = jest.fn();
+const mockRegisterTaskDefinition = jest.fn();
+const mockUpdateService = jest.fn();
 
 // EC2
 const mockDescribeInstances = jest.fn();
@@ -45,7 +49,8 @@ jest.mock('@aws-sdk/client-ecs', () => {
     ListServicesCommandOutput,
     ListTasksCommandOutput,
     Service,
-    Task
+    Task,
+    TaskDefinitionField
   } = original;
   return {
     ECS: mockEcs,
@@ -56,7 +61,8 @@ jest.mock('@aws-sdk/client-ecs', () => {
     ListServicesCommandOutput,
     ListTasksCommandOutput,
     Service,
-    Task
+    Task,
+    TaskDefinitionField
   };
 });
 jest.mock('@aws-sdk/client-ec2', () => {
@@ -97,20 +103,11 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
   };
 });
 
-
-const mockInstance1 = {
-  InstanceId: 'mock-instance-1',
-  InstanceType: 't2.micro'
-};
-const mockInstance2 = {
-  InstanceId: 'mock-instance-2',
-  InstanceType: 'm5.medium'
-};
-
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsEcsInstanceUtilization } from '../../src/service-utilizations/aws-ecs-instance-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
+import fargateTaskDef from '../mocks/FargateTaskDef.json';
 import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
 
 describe('AwsEcsInstanceUtilization', () => {
@@ -121,7 +118,11 @@ describe('AwsEcsInstanceUtilization', () => {
       listServices: mockListServices,
       listTasks: mockListTasks,
       describeTasks: mockDescribeTasks,
-      describeContainerInstances: mockDescribeContainerInstances
+      describeContainerInstances: mockDescribeContainerInstances,
+      deleteService: mockDeleteService,
+      describeTaskDefinition: mockDescribeTaskDefinition,
+      registerTaskDefinition: mockRegisterTaskDefinition,
+      updateService: mockUpdateService
     });
     mockEc2.mockReturnValue({
       describeInstances: mockDescribeInstances,
@@ -583,12 +584,93 @@ describe('AwsEcsInstanceUtilization', () => {
           overAllocated: {
             value: 'overAllocated',
             scaleDown: {
-              action: 'TODO',
+              action: 'scaleDownEc2Service',
               reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a t2.micro.'
             }
           }
         }
       });
+    });
+  });
+  it('deleteService', async () => {
+    const ecsUtil = new AwsEcsInstanceUtilization(true);
+    const provider = {
+      getCredentials: mockGetCredentials
+    } as unknown as AwsCredentialsProvider;
+
+    await ecsUtil.deleteService(provider, 'mock-cluster', 'mock-service', 'us-mock-1');
+
+    expect(mockDeleteService).toBeCalled();
+    expect(mockDeleteService).toBeCalledWith({
+      service: 'mock-service',
+      cluster: 'mock-cluster'
+    });
+  });
+  it('scaleDownFargateService', async () => {
+    mockDescribeServices.mockResolvedValue({
+      services: [
+        {
+          serviceArn: 'mock-service',
+          serviceName: 'mock-service',
+          clusterArn: 'mock-cluster',
+          taskDefinition: 'mock-task-def',
+          launchType: 'FARGATE',
+          loadBalancers: [],
+          serviceRegistries: [
+            {
+              registryArn: 'mock-registry'
+            }
+          ]
+        }
+      ]
+    });
+    mockDescribeTaskDefinition.mockResolvedValue(fargateTaskDef)
+    mockRegisterTaskDefinition.mockResolvedValue({
+      taskDefinition: {
+        taskDefinitionArn: 'mock-task-def:2'
+      }
+    });
+
+    const ecsUtil = new AwsEcsInstanceUtilization(true);
+    const provider = {
+      getCredentials: mockGetCredentials
+    } as unknown as AwsCredentialsProvider;
+
+    await ecsUtil.scaleDownFargateService(provider, 'mock-cluster', 'mock-service', 'us-mock-1', 256, 1024);
+
+    expect(mockDescribeServices).toBeCalled();
+    expect(mockDescribeServices).toBeCalledWith({
+      services: ['mock-service'],
+      cluster: 'mock-cluster'
+    });
+
+    expect(mockDescribeTaskDefinition).toBeCalled();
+    expect(mockDescribeTaskDefinition).toBeCalledWith({
+      taskDefinition: 'mock-task-def',
+      include: ['TAGS']
+    });
+
+    expect(mockRegisterTaskDefinition).toBeCalled();
+    expect(mockRegisterTaskDefinition).toBeCalledWith({
+      cpu: '256',
+      memory: '1024',
+      containerDefinitions: fargateTaskDef.taskDefinition.containerDefinitions,
+      family: fargateTaskDef.taskDefinition.family,
+      executionRoleArn: fargateTaskDef.taskDefinition.executionRoleArn,
+      networkMode: fargateTaskDef.taskDefinition.networkMode,
+      placementConstraints: fargateTaskDef.taskDefinition.placementConstraints,
+      requiresCompatibilities: fargateTaskDef.taskDefinition.requiresCompatibilities,
+      taskRoleArn: fargateTaskDef.taskDefinition.taskRoleArn,
+      volumes: fargateTaskDef.taskDefinition.volumes,
+      tags: fargateTaskDef.tags
+    });
+
+    expect(mockUpdateService).toBeCalled();
+    expect(mockUpdateService).toBeCalledWith({
+      cluster: 'mock-cluster',
+      service: 'mock-service',
+      taskDefinition: 'mock-task-def:2',
+      forceNewDeployment: true
     });
   });
 });

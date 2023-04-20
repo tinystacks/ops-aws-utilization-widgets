@@ -788,7 +788,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     }
   }
 
-  async deleteService (awsCredentialsProvider: AwsCredentialsProvider, serviceArn: string, region: string) {
+  async deleteService (awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ecsClient = new ECS({
       credentials,
@@ -797,7 +797,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
 
     await ecsClient.deleteService({
       service: serviceArn,
-      cluster: 'TODO: describe service or get from cache to get cluster name'
+      cluster: clusterName
     });
   }
 
@@ -815,10 +815,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     const taskDefinitionArn = serviceResponse?.services?.at(0)?.taskDefinition;
     const taskDefResponse = await ecsClient.describeTaskDefinition({ taskDefinition: taskDefinitionArn, include: [TaskDefinitionField.TAGS]  });
     const taskDefinition: TaskDefinition = taskDefResponse?.taskDefinition;
-    const tags = taskDefResponse?.tags;
-    // TODO: CPU and Memory validation?
-    taskDefinition.cpu = cpu.toString();
-    taskDefinition.memory = memory.toString();
+    const tags = taskDefResponse?.tags;    
 
     const {
       containerDefinitions,
@@ -838,6 +835,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     } = taskDefinition;
 
 
+    // TODO: CPU and Memory validation?
     const revisionResponse = await ecsClient.registerTaskDefinition({
       cpu: cpu.toString(),
       memory: memory.toString(),
