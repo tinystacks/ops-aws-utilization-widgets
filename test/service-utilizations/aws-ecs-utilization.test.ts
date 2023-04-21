@@ -104,13 +104,13 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
 });
 
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsEcsInstanceUtilization } from '../../src/service-utilizations/aws-ecs-instance-utilization';
+import { AwsEcsUtilization } from '../../src/service-utilizations/aws-ecs-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
 import fargateTaskDef from '../mocks/FargateTaskDef.json';
 import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
 
-describe('AwsEcsInstanceUtilization', () => {
+describe('AwsEcsUtilization', () => {
   beforeEach(() => {
     mockEcs.mockReturnValue({
       describeServices: mockDescribeServices,
@@ -155,7 +155,7 @@ describe('AwsEcsInstanceUtilization', () => {
         services: []
       });
 
-      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
@@ -211,7 +211,7 @@ describe('AwsEcsInstanceUtilization', () => {
         services: []
       });
 
-      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
@@ -290,7 +290,7 @@ describe('AwsEcsInstanceUtilization', () => {
         ]
       });
 
-      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
@@ -403,7 +403,7 @@ describe('AwsEcsInstanceUtilization', () => {
         ]
       });
 
-      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
@@ -546,7 +546,7 @@ describe('AwsEcsInstanceUtilization', () => {
         return refreshFunction();
       });
 
-      const ecsUtil = new AwsEcsInstanceUtilization(true);
+      const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
@@ -593,7 +593,7 @@ describe('AwsEcsInstanceUtilization', () => {
     });
   });
   it('deleteService', async () => {
-    const ecsUtil = new AwsEcsInstanceUtilization(true);
+    const ecsUtil = new AwsEcsUtilization(true);
     const provider = {
       getCredentials: mockGetCredentials
     } as unknown as AwsCredentialsProvider;
@@ -631,7 +631,7 @@ describe('AwsEcsInstanceUtilization', () => {
       }
     });
 
-    const ecsUtil = new AwsEcsInstanceUtilization(true);
+    const ecsUtil = new AwsEcsUtilization(true);
     const provider = {
       getCredentials: mockGetCredentials
     } as unknown as AwsCredentialsProvider;
