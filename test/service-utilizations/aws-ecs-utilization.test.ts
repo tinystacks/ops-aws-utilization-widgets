@@ -104,7 +104,7 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
 });
 
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsEcsUtilization } from '../../src/service-utilizations/aws-ecs-instance-utilization';
+import { AwsEcsUtilization } from '../../src/service-utilizations/aws-ecs-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
 import fargateTaskDef from '../mocks/FargateTaskDef.json';
