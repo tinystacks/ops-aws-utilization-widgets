@@ -1,3 +1,4 @@
+import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
 import { AwsService, AwsServiceUtilizationFactory } from './aws-service-utilization-factory.js';
