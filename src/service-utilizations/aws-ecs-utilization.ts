@@ -52,7 +52,7 @@ const cache = cached<string>('ecs-util-cache', {
   }
 });
 
-type AwsEcsInstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
+type AwsEcsUtilizationScenarioTypes = 'unused' | 'overAllocated';
 
 type EcsService = {
   clusterArn: string;
@@ -83,11 +83,11 @@ type FargateScale = {
   memory: number
 }
 
-type AwsEcsInstanceUtilizationOverrides = {
+type AwsEcsUtilizationOverrides = {
   services: EcsService[];
 }
 
-export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInstanceUtilizationScenarioTypes> {
+export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationScenarioTypes> {
   serviceArns: string[];
   services: Service[];
   ecsClient: ECS;
@@ -678,7 +678,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     }
   }
 
-  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsInstanceUtilizationOverrides) {
+  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsUtilizationOverrides) {
     const credentials = await awsCredentialsProvider.getCredentials();
     this.ecsClient = new ECS({
       credentials,
@@ -782,7 +782,7 @@ export class AwsEcsInstanceUtilization extends AwsServiceUtilization<AwsEcsInsta
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
   
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsInstanceUtilizationOverrides) {
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsUtilizationOverrides) {
     for (const region of regions) {
       await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
     }
