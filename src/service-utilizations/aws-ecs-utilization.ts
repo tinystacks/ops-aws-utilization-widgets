@@ -1,7 +1,7 @@
 import cached from 'cached';
 import dayjs from 'dayjs';
 import chunk from 'lodash.chunk';
-import stats from 'simple-statistics';
+import * as stats from 'simple-statistics';
 import HttpError from 'http-errors';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import {
@@ -45,6 +45,7 @@ import {
   APIG_REQUEST_COUNT
 } from '../constants.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
+import { AwsServiceOverrides } from '../types/types.js';
 
 const cache = cached<string>('ecs-util-cache', {
   backend: {
@@ -83,7 +84,7 @@ type FargateScale = {
   memory: number
 }
 
-type AwsEcsUtilizationOverrides = {
+type AwsEcsUtilizationOverrides = AwsServiceOverrides & {
   services: EcsService[];
 }
 

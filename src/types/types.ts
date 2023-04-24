@@ -42,6 +42,7 @@ export type AwsServiceOverrides = {
   delete?: boolean,
   scaleDown?: boolean,
   optimize?: boolean,
+  forceRefesh?: boolean,
   userInput: UserInput
 }
 
@@ -81,3 +82,13 @@ export type NatGatewayWithRegion = {
 export type LogGroupsPerRegion = {
   [ region: string ]: LogGroup[]
 }
+
+export type AwsResourceType = 'Account' |
+  'CloudwatchLogs' |
+  'AutoscalingGroup' |
+  'Ec2Instance' |
+  'EcsService' |
+  'NatGateway' |
+  'S3Bucket' |
+  'EbsVolume' |
+  'RdsInstance';

@@ -1,7 +1,7 @@
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { DescribeNatGatewaysCommandOutput, EC2 } from '@aws-sdk/client-ec2';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import _ from 'lodash';
+import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
 import { NatGatewayWithRegion } from '../types/types.js';
 import { getAccountId, listAllRegions } from '../utils/utils.js';
@@ -144,7 +144,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       });
 
       const results = metricDataRes.MetricDataResults;
-      const activeConnectionCount = _.get(results, '[0].Values[0]') as number;
+      const activeConnectionCount = get(results, '[0].Values[0]') as number;
       if (activeConnectionCount === 0) {
         this.addScenario(natGatewayArn, 'activeConnectionCount', {
           value: activeConnectionCount.toString(),
@@ -155,10 +155,10 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         });
       }
       const totalThroughput = 
-        _.get(results, '[1].Values[0]', 0) + 
-        _.get(results, '[2].Values[0]', 0) + 
-        _.get(results, '[3].Values[0]', 0) +
-        _.get(results, '[4].Values[0]', 0);
+        get(results, '[1].Values[0]', 0) + 
+        get(results, '[2].Values[0]', 0) + 
+        get(results, '[3].Values[0]', 0) +
+        get(results, '[4].Values[0]', 0);
       if (totalThroughput === 0) {
         this.addScenario(natGatewayArn, 'totalThroughput', {
           value: totalThroughput.toString(),
