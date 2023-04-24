@@ -76,7 +76,7 @@ describe('AwsEc2InstanceUtilization', () => {
     mockCache.restore();
   });
 
-  describe('getUtilization', () => {
+  describe('getRegionalUtilization', () => {
     it('Calls describeInstances with instanceIds if provided', async () => {
       mockDescribeInstances.mockResolvedValueOnce({
         Reservations: [], // Return empty to short circuit test
@@ -91,7 +91,7 @@ describe('AwsEc2InstanceUtilization', () => {
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-      await ec2Util.getUtilization(provider, 'us-east-1', { instanceIds: ['mock-instance-1', 'mock-instance-2'] });
+      await ec2Util.getRegionalUtilization(provider, 'us-east-1', { instanceIds: ['mock-instance-1', 'mock-instance-2'] });
 
       expect(mockDescribeInstances).toBeCalled();
       expect(mockDescribeInstances).toBeCalledTimes(2);
@@ -123,7 +123,7 @@ describe('AwsEc2InstanceUtilization', () => {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
 
-      await ec2Util.getUtilization(provider, 'us-east-1');
+      await ec2Util.getRegionalUtilization(provider, 'us-east-1');
       
 
       expect(mockDescribeInstances).toBeCalled();
@@ -187,7 +187,7 @@ describe('AwsEc2InstanceUtilization', () => {
       } as unknown as AwsCredentialsProvider;
 
       try { 
-        await ec2Util.getUtilization(provider, 'us-east-1');
+        await ec2Util.getRegionalUtilization(provider, 'us-east-1');
       } catch (error) {
         console.error(error);
       }
@@ -289,7 +289,7 @@ describe('AwsEc2InstanceUtilization', () => {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
 
-      await ec2Util.getUtilization(provider, 'us-east-1');
+      await ec2Util.getRegionalUtilization(provider, 'us-east-1');
 
       expect(mockDescribeInstances).toBeCalled();
       expect(mockDescribeInstances).toBeCalledWith({});
