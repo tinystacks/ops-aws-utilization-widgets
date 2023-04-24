@@ -339,7 +339,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           this.addScenario(instanceId, 'overAllocated', {
             value: 'overAllocated',
             scaleDown: {
-              action: 'TODO',
+              action: 'scaleDownInstance',
               reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}`
             }
           });
@@ -356,5 +356,34 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     for (const region of regions) {
       await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
     }
+  }
+
+  async terminateInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const ec2Client = new EC2({
+      credentials,
+      region
+    });
+
+    await ec2Client.terminateInstances({
+      InstanceIds: [instanceId]
+    });
+
+    // TODO: Remove scenario?
+  }
+
+  async scaleDownInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string, instanceType: string) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const ec2Client = new EC2({
+      credentials,
+      region
+    });
+
+    await ec2Client.modifyInstanceAttribute({
+      InstanceId: instanceId,
+      InstanceType: {
+        Value: instanceType
+      }
+    });
   }
 }
