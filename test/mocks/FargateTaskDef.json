@@ -1,0 +1,93 @@
+{
+    "taskDefinition": {
+        "taskDefinitionArn": "arn:aws:ecs:us-mock-1:123456789012:task-definition/MockApiServiceEcsTaskDefinitionA3331824:4",
+        "containerDefinitions": [
+            {
+                "name": "mock-api",
+                "image": "123456789012.dkr.ecr.us-mock-1.amazonaws.com/mock-api:latest",
+                "cpu": 0,
+                "links": [],
+                "portMappings": [
+                    {
+                        "containerPort": 9000,
+                        "hostPort": 9000,
+                        "protocol": "tcp"
+                    }
+                ],
+                "essential": true,
+                "entryPoint": [],
+                "command": [],
+                "environment": [],
+                "environmentFiles": [],
+                "mountPoints": [],
+                "volumesFrom": [],
+                "secrets": [],
+                "dnsServers": [],
+                "dnsSearchDomains": [],
+                "extraHosts": [],
+                "dockerSecurityOptions": [],
+                "dockerLabels": {},
+                "ulimits": [],
+                "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                        "awslogs-group": "MockApi-MockApiServiceEcsTaskDefinitionEcsContainerLogGroupD0CA4C8C-qAs3xD04cVeV",
+                        "awslogs-region": "us-mock-1",
+                        "awslogs-stream-prefix": "mock-api"
+                    },
+                    "secretOptions": []
+                },
+                "systemControls": []
+            }
+        ],
+        "family": "MockApiServiceEcsTaskDefinitionA3331824",
+        "taskRoleArn": "arn:aws:iam::123456789012:role/MockApi-MockApiServiceEcsTaskRole376ED7B0-J7CMSBJRKR74",
+        "executionRoleArn": "arn:aws:iam::123456789012:role/MockApi-MockApiServiceEcsTaskDefinitionEx-HVVWA5QIAK0F",
+        "networkMode": "awsvpc",
+        "revision": 4,
+        "volumes": [],
+        "status": "ACTIVE",
+        "requiresAttributes": [
+            {
+                "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+            },
+            {
+                "name": "ecs.capability.execution-role-awslogs"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.ecr-auth"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.17"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.task-iam-role"
+            },
+            {
+                "name": "ecs.capability.execution-role-ecr-pull"
+            },
+            {
+                "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+            },
+            {
+                "name": "ecs.capability.task-eni"
+            }
+        ],
+        "placementConstraints": [],
+        "compatibilities": [
+            "EC2",
+            "FARGATE"
+        ],
+        "requiresCompatibilities": [
+            "FARGATE"
+        ],
+        "cpu": "256",
+        "memory": "512",
+        "registeredAt": "2023-03-24T13:29:04.586000-05:00",
+        "registeredBy": "arn:aws:sts::123456789012:assumed-role/cdk-hnb659fds-cfn-exec-role-123456789012-us-mock-1/AWSCloudFormation"
+    },
+    "tags": []
+}

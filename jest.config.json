@@ -23,12 +23,11 @@
   },
   "testEnvironment": "jest-environment-jsdom",
   "transform": {
-    "^.+\\.[jt]s$": ["ts-jest", {
+    "^.+\\.[jt]s": ["ts-jest", {
       "tsconfig": "tsconfig.test.json",
       "isolatedModules": true,
       "useESM": true
-    }],
-    "^.+\\.[jt]sx$": "babel-jest"
+    }]
   },
   "transformIgnorePatterns": [
     "\\/node_modules\\/(?!((@tinystacks|@aws-sdk|uuid)\\/))"
