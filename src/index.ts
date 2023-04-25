@@ -1,6 +1,9 @@
 // import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 // import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
 
+import { AwsUtilization } from './aws-utilization.js';
+import { AwsUtilizationProvider } from './aws-utilization-provider.js';
+
 // const cwLogs = new AwsCloudwatchLogsUtilization();
 // // const natGateway = new AwsNatGatewayUtilization();
 
@@ -18,3 +21,8 @@
 export function helloWorld () {
   console.log('Hello world!');
 }
+
+export { 
+  AwsUtilization,
+  AwsUtilizationProvider
+};

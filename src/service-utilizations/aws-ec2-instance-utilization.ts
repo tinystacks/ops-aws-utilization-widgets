@@ -2,7 +2,7 @@ import cached from 'cached';
 import dayjs from 'dayjs';
 import isNil from 'lodash.isnil';
 import chunk from 'lodash.chunk';
-import stats from 'simple-statistics';
+import * as stats from 'simple-statistics';
 import { DescribeInstanceTypesCommandOutput, DescribeInstancesCommandOutput, EC2, Instance, InstanceTypeInfo, _InstanceType } from '@aws-sdk/client-ec2';
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
@@ -23,6 +23,7 @@ import {
   AVG_NETWORK_BYTES_IN,
   AVG_NETWORK_BYTES_OUT
 } from '../constants.js';
+import { AwsServiceOverrides } from '../types/types.js';
 
 const cache = cached<string>('ec2-util-cache', {
   backend: {
@@ -32,7 +33,7 @@ const cache = cached<string>('ec2-util-cache', {
 
 type AwsEc2InstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
 
-type AwsEc2InstanceUtilizationOverrides = {
+type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
   instanceIds: string[];
 }
 
@@ -294,7 +295,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         // TODO: For burstable instance types, we need to factor in credit consumption and baseline utilization
         const networkInMax = stats.max(maxNetworkBytesIn.Values);
         const networkOutMax = stats.max(maxNetworkBytesOut.Values);
-        const optimiziedVcpuCount = Math.ceil(maxCpu * instanceType.VCpuInfo.DefaultVCpus);
+        const optimizedVcpuCount = Math.ceil(maxCpu * instanceType.VCpuInfo.DefaultVCpus);
         const minimumNetworkThroughput = Math.ceil((networkInMax + networkOutMax) / (Math.pow(1024, 3)));
         const currentNetworkThroughput = this.getInstanceNetworkSetting(instanceType.NetworkInfo.NetworkPerformance);
         const currentNetworkThroughputIsDefined = typeof currentNetworkThroughput === 'number';
@@ -307,7 +308,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           const availableNetworkThroughput = this.getInstanceNetworkSetting(it.NetworkInfo.NetworkPerformance);
           const availableNetworkThroughputIsDefined = typeof availableNetworkThroughput === 'number';
           return (
-            it.VCpuInfo.DefaultVCpus >= optimiziedVcpuCount &&
+            it.VCpuInfo.DefaultVCpus >= optimizedVcpuCount &&
             it.VCpuInfo.DefaultVCpus <= instanceType.VCpuInfo.DefaultVCpus
           ) &&
           (
