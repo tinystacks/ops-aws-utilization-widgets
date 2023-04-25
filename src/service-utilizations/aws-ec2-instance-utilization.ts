@@ -2,7 +2,7 @@ import cached from 'cached';
 import dayjs from 'dayjs';
 import isNil from 'lodash.isnil';
 import chunk from 'lodash.chunk';
-import stats from 'simple-statistics';
+import * as stats from 'simple-statistics';
 import { DescribeInstanceTypesCommandOutput, DescribeInstancesCommandOutput, EC2, Instance, InstanceTypeInfo, _InstanceType } from '@aws-sdk/client-ec2';
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
@@ -23,6 +23,7 @@ import {
   AVG_NETWORK_BYTES_IN,
   AVG_NETWORK_BYTES_OUT
 } from '../constants.js';
+import { AwsServiceOverrides } from '../types/types.js';
 
 const cache = cached<string>('ec2-util-cache', {
   backend: {
@@ -32,7 +33,7 @@ const cache = cached<string>('ec2-util-cache', {
 
 type AwsEc2InstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
 
-type AwsEc2InstanceUtilizationOverrides = {
+type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
   instanceIds: string[];
 }
 

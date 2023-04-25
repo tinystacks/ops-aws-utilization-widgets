@@ -1,4 +1,4 @@
-import stats from 'simple-statistics';
+import * as stats from 'simple-statistics';
 import { StabilityStats, StabilityStatsOptions } from '../types/types';
 
 /**

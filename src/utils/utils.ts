@@ -17,6 +17,19 @@ export function getAwsCredentialsProvider (providers?: BaseProvider[]): AwsCrede
   return provider as AwsCredentialsProvider;
 }
 
+export function findProvider<T extends BaseProvider> (providers: BaseProvider[] = [], providerType: string): T {
+  if (!providers || isEmpty(providers)) {
+    throw new Error('No providers are available!');
+  }
+
+  const provider = providers.find(p => p.type === providerType);
+  if (!provider) {
+    throw new Error(`No ${providerType}s are available!`);
+  }
+
+  return provider as T;
+}
+
 export async function listAllRegions (credentials: any) {
   const accountClient = new Account({
     credentials,
