@@ -4,31 +4,34 @@ import { AwsNatGatewayUtilization } from './service-utilizations/aws-nat-gateway
 import { s3Utilization } from './service-utilizations/aws-s3-utilization.js';
 import { ebsVolumesUtilization } from './service-utilizations/ebs-volumes-utilization.jsx';
 import { rdsInstancesUtilization } from './service-utilizations/rds-utilization.js';
-
-export enum AwsService {
-  CloudwatchLogs = 'CloudwatchLogs', 
-  S3 = 'S3', 
-  RDS = 'RDS', 
-  AwsAccount = 'AwsAccount', 
-  NatGatewway = 'NatGatewway', 
-  EBS = 'EBS'
-}
+import HttpError from 'http-errors';
+import { AwsResourceType } from './types/types.js';
+import { AwsResourceTypes } from './types/constants.js';
+import { AwsEc2InstanceUtilization } from './service-utilizations/aws-ec2-instance-utilization.js';
+import { AwsEcsUtilization } from './service-utilizations/aws-ecs-utilization.js';
+import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 
 export class AwsServiceUtilizationFactory {
-  static createObject (awsService: AwsService) {
+  static createObject (awsService: AwsResourceType): AwsServiceUtilization<string> {
     switch (awsService) {
-      case AwsService.CloudwatchLogs:
+      case AwsResourceTypes.CloudwatchLogs:
         return new AwsCloudwatchLogsUtilization();
-      case AwsService.S3: 
+      case AwsResourceTypes.S3Bucket: 
         return new s3Utilization(); 
-      case AwsService.RDS: 
+      case AwsResourceTypes.RdsInstance: 
         return new rdsInstancesUtilization();
-      case AwsService.AwsAccount: 
+      case AwsResourceTypes.Account: 
         return new awsAccountUtilization(); 
-      case AwsService.NatGatewway: 
+      case AwsResourceTypes.NatGatewway: 
         return new AwsNatGatewayUtilization(); 
-      case AwsService.EBS: 
+      case AwsResourceTypes.EbsVolume: 
         return new ebsVolumesUtilization();
+      case AwsResourceTypes.Ec2Instance:
+        return new AwsEc2InstanceUtilization();
+      case AwsResourceTypes.EcsService:
+        return new AwsEcsUtilization();
+      default:
+        throw HttpError.BadRequest(`${awsService} is not supported!`);
     }
   }
 }

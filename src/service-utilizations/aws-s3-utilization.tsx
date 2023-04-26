@@ -35,8 +35,8 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string,  _overrides?: AwsServiceOverrides) {
-
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides): Promise<void> {
+    const region = regions[0];
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),
       region: region

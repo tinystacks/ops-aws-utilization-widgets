@@ -17,8 +17,9 @@ export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtili
     super();
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
-    
+
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[]): Promise<void> {
+    const region = regions[0];
     await this.checkPermissionsForCostExplorer(awsCredentialsProvider, region);
 
     await this.checkPermissionsForPricing(awsCredentialsProvider, region);

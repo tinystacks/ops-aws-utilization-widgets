@@ -1,27 +1,27 @@
 import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
-import { AwsService, AwsServiceUtilizationFactory } from './aws-service-utilization-factory.js';
+import { AwsServiceUtilizationFactory } from './aws-service-utilization-factory.js';
 import RecommendationOverview from './components/recommendation-overview.js';
-import { AwsUtilizationOverrides, Utilization } from './types/types.js';
+import { AwsResourceType, AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { getAwsCredentialsProvider } from './utils/utils.js';
 import { Stack } from '@chakra-ui/react';
 
 type AwsUtilizationType = Widget & {
   utilizations?: { [ serviceName: string ] : Utilization<string> },
-  awsServices: AwsService[],
-  region: string
+  awsServices: AwsResourceType[],
+  regions: string[]
 }
 
 export class AwsUtilization extends BaseWidget {
   utilizations: { [ serviceName: string ] : Utilization<string> };
-  awsServices: AwsService[];
-  region: string;
+  awsServices: AwsResourceType[];
+  regions: string[];
 
   constructor (props: AwsUtilizationType) {
     super(props);
     this.awsServices = props.awsServices;
-    this.region = props.region;
+    this.regions = props.regions;
     this.utilizations = props.utilizations || {};
   }
 
@@ -29,7 +29,7 @@ export class AwsUtilization extends BaseWidget {
     const awsCredentialsProvider = getAwsCredentialsProvider(providers);
     for (const awsService of this.awsServices) {
       const awsServiceUtilization = AwsServiceUtilizationFactory.createObject(awsService);
-      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.region, overrides ? overrides[awsService]: undefined);
+      await awsServiceUtilization.getUtilization(awsCredentialsProvider, this.regions, overrides ? overrides[awsService]: undefined);
       this.utilizations[awsService] = awsServiceUtilization.utilization;
     }
   }
@@ -43,7 +43,7 @@ export class AwsUtilization extends BaseWidget {
       ...super.toJson(),
       utilizations: this.utilizations,
       awsServices: this.awsServices,
-      region: this.region
+      regions: this.regions
     };
   }
   
