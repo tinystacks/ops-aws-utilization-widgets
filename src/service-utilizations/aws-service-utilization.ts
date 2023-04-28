@@ -63,6 +63,21 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     }
   }
 
+  protected getEstimatedMaxMonthlySavings () {
+    for (const resourceArn in this.utilization) {
+      const scenarios = (this.utilization as Utilization<string>)[resourceArn].scenarios;
+      const maxSavingsPerScenario = Object.values(scenarios).map((scenario) => {
+        return Math.max(
+          scenario.delete?.monthlySavings || 0,
+          scenario.scaleDown?.monthlySavings || 0,
+          scenario.optimize?.monthlySavings || 0
+        );
+      });
+      const maxSavingsPerResource = Math.max(...maxSavingsPerScenario);
+      this.utilization[resourceArn].data.maxMonthlySavings = maxSavingsPerResource;
+    }
+  }
+
   public set utilization (utilization: Utilization<ScenarioTypes>) { this._utilization = utilization; }
 
   public get utilization () { return this._utilization; }

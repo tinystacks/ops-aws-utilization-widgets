@@ -1,7 +1,8 @@
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { DescribeNatGatewaysCommandOutput, EC2 } from '@aws-sdk/client-ec2';
+import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import _ from 'lodash';
+import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
 import { NatGatewayWithRegion } from '../types/types.js';
 import { getAccountId, listAllRegions } from '../utils/utils.js';
@@ -12,7 +13,6 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
-
   constructor () {
     super();
   }
@@ -49,6 +49,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
 
   async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {
     const credentials = await awsCredentialsProvider.getCredentials();
+    const cost = await this.getPrice(credentials);
     const accountId = await getAccountId(credentials);
     const usedRegions = regions || await listAllRegions(credentials);
     const allNatGateways = await this.getAllNatGateways(credentials, usedRegions);
@@ -144,34 +145,71 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       });
 
       const results = metricDataRes.MetricDataResults;
-      const activeConnectionCount = _.get(results, '[0].Values[0]') as number;
+      const activeConnectionCount = get(results, '[0].Values[0]') as number;
       if (activeConnectionCount === 0) {
         this.addScenario(natGatewayArn, 'activeConnectionCount', {
           value: activeConnectionCount.toString(),
           delete: {
             action: 'deleteNatGateway',
-            reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.'
+            reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.',
+            monthlySavings: cost
           }
         });
       }
       const totalThroughput = 
-        _.get(results, '[1].Values[0]', 0) + 
-        _.get(results, '[2].Values[0]', 0) + 
-        _.get(results, '[3].Values[0]', 0) +
-        _.get(results, '[4].Values[0]', 0);
+        get(results, '[1].Values[0]', 0) + 
+        get(results, '[2].Values[0]', 0) + 
+        get(results, '[3].Values[0]', 0) +
+        get(results, '[4].Values[0]', 0);
       if (totalThroughput === 0) {
         this.addScenario(natGatewayArn, 'totalThroughput', {
           value: totalThroughput.toString(),
           delete: {
             action: 'deleteNatGateway',
-            reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.'
+            reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.',
+            monthlySavings: cost
           }
         });
       }
       this.addData(natGatewayArn, 'resourceId', natGatewayId);
       this.addData(natGatewayArn, 'region', region);
+      this.addData(natGatewayArn, 'monthyCost', cost);
     }));
+
     await this.identifyCloudformationStack(credentials);
-    console.log(this.utilization);
+    this.getEstimatedMaxMonthlySavings();
+  }
+
+  private async getPrice (credentials: any) {
+    const pricingClient = new Pricing({
+      credentials,
+      // global but have to specify region
+      region: 'us-east-1'
+    });
+
+    // const natGatewayId = 'nat-0a6557968578af14d';
+    const res = await pricingClient.getProducts({
+      ServiceCode: 'AmazonEC2',
+      Filters: [
+        {
+          Type: 'TERM_MATCH',
+          Field: 'productFamily',
+          Value: 'NAT Gateway'
+        },
+        {
+          Type: 'TERM_MATCH',
+          Field: 'usageType',
+          Value: 'NatGateway-Hours'
+        }
+      ]
+    });
+    const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
+    const onDemandKeys = Object.keys(onDemandData);
+    const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
+    const priceDimensionsKeys = Object.keys(priceDimensionsData);
+    const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
+
+    // monthly cost
+    return pricePerHour * 24 * 30;
   }
 }

@@ -11,7 +11,7 @@ import { Pricing } from '@aws-sdk/client-pricing';
 
 export type awsAccountUtilizationScenarios = 'hasPermissionsForPriceList' | 'hasPermissionsForCostExplorer';
 
-export class s3Utilization extends AwsServiceUtilization<awsAccountUtilizationScenarios> {
+export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtilizationScenarios> {
   
   constructor () {
     super();

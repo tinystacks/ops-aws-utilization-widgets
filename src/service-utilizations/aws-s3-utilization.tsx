@@ -56,7 +56,11 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       promises.push(this.getIntelligentTieringConfiguration(s3Client, buckets[i], region));
     }
 
-    void await Promise.all(promises).catch(e => console.log(e));
+    try{
+      void await Promise.all(promises).catch(e => console.log(e));
+    } catch(e){ 
+      console.error('Error getting utilization for S3', e);
+    }
 
   }
 
