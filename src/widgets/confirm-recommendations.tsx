@@ -19,7 +19,7 @@ export class ConfirmRecommendations extends BaseWidget {
     super(props);
     this.utilization = props.utilization;
     this.actionType = props.actionType;
-    this.resourceIds = props.resourceIds || [];
+    this.resourceIds = props.resourceIds; //typeof props.resourceIds === 'string' ? JSON.parse(props.resourceIds) : props.resourceIds || [];
   }
 
   static fromJson (props: ConfirmRecommendationsProps) {

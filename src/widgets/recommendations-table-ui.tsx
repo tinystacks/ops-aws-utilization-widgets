@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { RecommendationsCallback } from './recommendations-table-types.js';
-import { Button, Checkbox, HStack, Link, Stack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
+import { Button, Checkbox, HStack, Stack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
 import { ActionType, AwsResourceType, Utilization, actionTypeText } from '../types/types.js';
@@ -29,6 +29,7 @@ export function RecommendationsTableUi (props: {
           }
         });
         setCheckedResources(cascadedCheckedResources);
+        setCheckedServices([...checkedServices, serviceName]);
       } else {
         setCheckedServices(checkedServices.filter(s => s !== serviceName));
         setCheckedResources(checkedResources.filter(id => !filteredServices[serviceName][id]));
@@ -131,15 +132,16 @@ export function RecommendationsTableUi (props: {
   }
 
   return (
-    <Stack>
-      <HStack >
+    <Stack pt="20px" pb="20px" w="100%">
+      <HStack>
         <Button onClick={() => callback({ refresh: true })}>Refresh</Button>
-        <Link
-          variant='button'
+        <Button
+          as='a'
           href={`/confirm-recommendations?actionType=${actionType}&resourceIds=[${join(checkedResources, ',')}]`}
+          colorScheme='red'
         >
           Continue
-        </Link>
+        </Button>
       </HStack>
       
       <Stack pt="20px" pb="20px" w="100%">
