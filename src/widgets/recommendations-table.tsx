@@ -25,7 +25,7 @@ export class RecommendationsTable extends BaseWidget {
     };
   }
 
-  async getData (providers: BaseProvider[], _overrides: RecommendationsOverrides) {
+  async getData (providers: BaseProvider[], overrides?: RecommendationsOverrides) {
     const depMap = {
       utils: '../utils/utils.js'
     };
@@ -33,7 +33,7 @@ export class RecommendationsTable extends BaseWidget {
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
     
-    if (_overrides.refresh) {
+    if (overrides?.refresh) {
       await utilProvider.hardRefresh(awsCredsProvider, ['us-east-1']);
     }
 

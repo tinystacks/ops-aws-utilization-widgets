@@ -4,7 +4,7 @@ import {
   Button, HStack, Heading, Stack, Text, Box, useDisclosure, Input
 } from '@chakra-ui/react';
 import { ActionType } from '../types/types';
-import { ConfirmSingleRecommendation } from './confirm-single-recommendation-ui';
+import { ConfirmSingleRecommendation } from './confirm-single-recommendation-ui.js';
 
 export type ConfirmRecommendationsUiProps = {
   actionType: ActionType;
