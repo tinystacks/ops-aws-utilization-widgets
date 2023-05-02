@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import { RecommendationsCallback } from './recommendations-table-types.js';
-import { Button, Checkbox, HStack, Stack, Table, TableContainer, Tbody, Td, Text, Th, Thead, Tr } from '@chakra-ui/react';
+import { Button, Checkbox, HStack, Heading, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
 import { ActionType, AwsResourceType, Utilization, actionTypeText } from '../types/types.js';
-import join from 'lodash.join';
 import { filterUtilizationForActionType } from '../utils/utilization.js';
 
 export function RecommendationsTableUi (props: {
   utilization: { [key: AwsResourceType | string]: Utilization<string> };
   actionType: ActionType;
-  callback: RecommendationsCallback;
 }) {
-  const { utilization, actionType, callback } = props;
+  const { utilization, actionType } = props;
   const [checkedResources, setCheckedResources] = useState<string[]>([]);
   const [checkedServices, setCheckedServices] = useState<string[]>([]);
 
@@ -133,11 +130,10 @@ export function RecommendationsTableUi (props: {
 
   return (
     <Stack pt="20px" pb="20px" w="100%">
-      <HStack>
-        <Button onClick={() => callback({ refresh: true })}>Refresh</Button>
+      <HStack pl='2'>
         <Button
           as='a'
-          href={`/confirm-recommendations?actionType=${actionType}&resourceIds=[${join(checkedResources, ',')}]`}
+          href={`/confirm-recommendations?actionType=${actionType}&resourceIds=${checkedResources}`}
           colorScheme='red'
         >
           Continue
@@ -145,8 +141,7 @@ export function RecommendationsTableUi (props: {
       </HStack>
       
       <Stack pt="20px" pb="20px" w="100%">
-        <Text>Review resources to {actionTypeText[actionType]}
-        </Text>
+        <Heading as='h4' size='sm'>Review resources to {actionTypeText[actionType]}</Heading>
         {table()}
       </Stack>
     </Stack>

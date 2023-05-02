@@ -15,7 +15,7 @@ export function ConfirmRecommendationsUi (props: ConfirmRecommendationsUiProps) 
   const { actionType, resourceIds } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
-  const actionLabel = actionType.charAt(0).toUpperCase() + actionType.slice(1) + ' now';
+  const actionLabel = actionType.charAt(0).toUpperCase() + actionType.slice(1);
   const resourceActions = resourceIds.map(rid => (
     <ConfirmSingleRecommendation
       resourceId={rid}
@@ -23,7 +23,7 @@ export function ConfirmRecommendationsUi (props: ConfirmRecommendationsUiProps) 
     />
   ));
   return (
-    <Stack>
+    <Stack p="20px" w="100%">
       <HStack>
         <Heading as='h5' size='sm'>Automatically {actionType}</Heading>
         <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel} all</Button>

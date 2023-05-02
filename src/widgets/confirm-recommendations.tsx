@@ -4,11 +4,12 @@ import React from 'react';
 import { RecommendationsOverrides } from './recommendations-table-types.js';
 import { Widget } from '@tinystacks/ops-model';
 import { ConfirmRecommendationsUi } from './confirm-recommendations-ui.js';
+import join from 'lodash.join';
 
 export type ConfirmRecommendationsProps = Widget & {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
   actionType: ActionType;
-  resourceIds: string[];
+  resourceIds: string;
 };
 
 export class ConfirmRecommendations extends BaseWidget {
@@ -19,7 +20,7 @@ export class ConfirmRecommendations extends BaseWidget {
     super(props);
     this.utilization = props.utilization;
     this.actionType = props.actionType;
-    this.resourceIds = props.resourceIds; //typeof props.resourceIds === 'string' ? JSON.parse(props.resourceIds) : props.resourceIds || [];
+    this.resourceIds = (props.resourceIds || '').split(',');
   }
 
   static fromJson (props: ConfirmRecommendationsProps) {
@@ -31,7 +32,7 @@ export class ConfirmRecommendations extends BaseWidget {
       ...super.toJson(),
       utilization: this.utilization,
       actionType: this.actionType,
-      resourceIds: this.resourceIds
+      resourceIds: join(this.resourceIds, ',')
     };
   }
 

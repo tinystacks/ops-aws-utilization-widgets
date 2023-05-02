@@ -1,6 +1,6 @@
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { ActionType, AwsResourceType, Utilization } from '../types/types.js';
-import { RecommendationsCallback, RecommendationsOverrides, RecommendationsTableProps } from './recommendations-table-types.js';
+import { RecommendationsOverrides, RecommendationsTableProps } from './recommendations-table-types.js';
 import { RecommendationsTableUi } from './recommendations-table-ui.js';
 import React from 'react';
 
@@ -40,11 +40,10 @@ export class RecommendationsTable extends BaseWidget {
     this.utilization = await utilProvider.getUtilization(awsCredsProvider, ['us-east-1']);
   }
 
-  render (_children?: [], overridesCallback?: RecommendationsCallback) {
+  render () {
     return (
       <RecommendationsTableUi
         utilization={this.utilization}
-        callback={overridesCallback}
         actionType={this.actionType}
       />
     );
