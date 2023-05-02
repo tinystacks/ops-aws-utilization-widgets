@@ -9,6 +9,18 @@ export type Data = {
   [ key: string ]: any;
 }
 
+export enum ActionType {
+  OPTIMIZE='optimize',
+  DELETE='delete',
+  SCALE_DOWN='scaleDown'
+}
+
+export const actionTypeText = {
+  [ActionType.OPTIMIZE]: 'optimize',
+  [ActionType.DELETE]: 'delete',
+  [ActionType.SCALE_DOWN]: 'scale down'
+};
+
 export type Action = {
   action: string,
   reason: string

@@ -3,15 +3,29 @@ import { STS } from '@aws-sdk/client-sts';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
+import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
+
+export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
+  if (!providers || isEmpty(providers)) {
+    throw new Error('No AwsUtilizationProvider provided');
+  }
+
+  const provider = providers.find(p => p.type === AwsUtilizationProvider.type);
+  if (!provider) {
+    throw new Error('No AwsUtilizationProvider provided');
+  }
+
+  return provider as AwsUtilizationProvider;
+}
 
 export function getAwsCredentialsProvider (providers?: BaseProvider[]): AwsCredentialsProvider {
   if (!providers || isEmpty(providers)) {
     throw new Error('No AwsCredentialsProvider provided');
   }
 
-  const provider = providers[0];
-  if (providers[0].type !== AwsCredentialsProvider.type) {
-    throw new Error(`The passed in provider ${provider.id} is not an AwsCredentialsProvider`);
+  const provider = providers.find(p => p.type === AwsCredentialsProvider.type);
+  if (!provider) {
+    throw new Error('No AwsCredentialsProvider provided');
   }
 
   return provider as AwsCredentialsProvider;

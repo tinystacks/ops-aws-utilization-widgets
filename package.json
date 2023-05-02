@@ -45,6 +45,7 @@
     "@types/lodash.isempty": "^4.4.7",
     "@types/lodash.isnil": "^4.0.7",
     "@types/lodash.isplainobject": "^4.0.7",
+    "@types/lodash.join": "^4.0.7",
     "@types/node": "^18.11.18",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
@@ -76,6 +77,7 @@
     "@aws-sdk/client-rds": "^3.312.0",
     "@aws-sdk/client-s3": "^3.301.0",
     "@aws-sdk/client-sts": "^3.312.0",
+    "@chakra-ui/icons": "^2.0.19",
     "@chakra-ui/react": "^2.5.5",
     "@tinystacks/ops-aws-core-widgets": "^0.0.5",
     "@tinystacks/ops-core": "^0.0.3",
@@ -86,7 +88,9 @@
     "lodash.chunk": "^4.2.0",
     "lodash.get": "^4.4.2",
     "lodash.isnil": "^4.0.0",
+    "lodash.join": "^4.0.1",
     "react": "^18.2.0",
+    "react-icons": "^4.8.0",
     "simple-statistics": "^7.8.3"
   }
 }

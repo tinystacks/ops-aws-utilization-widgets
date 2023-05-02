@@ -34,9 +34,18 @@ class AwsUtilizationProvider extends BaseProvider {
     const { 
       services
     } = props;
-    this.services = services;
+
     this.utilizationClasses = {};
     this.utilization = {};
+    this.initServices(services || [
+      'Account',
+      'CloudwatchLogs',
+      'Ec2Instance',
+      'EcsService',
+      'S3Bucket',
+      'EbsVolume',
+      'RdsInstance'
+    ]);
   }
 
   static fromJson (props: AwsUtilizationProviderType) {
@@ -63,6 +72,16 @@ class AwsUtilizationProvider extends BaseProvider {
     return this.utilizationClasses[service]?.utilization;
   }
 
+  async hardRefresh (credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}) {
+    for (const service of this.services) {
+      const serviceOverrides = overrides[service];
+      this.utilization[service] = await this.refreshUtilizationData(service, credentialsProvider, regions, serviceOverrides);
+      await cache.set(service, this.utilization[service]);
+    }
+
+    return this.utilization;
+  }
+
   async getUtilization (credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
@@ -76,6 +95,8 @@ class AwsUtilizationProvider extends BaseProvider {
         );
       }
     }
+
+    return this.utilization;
   }
 }
 
