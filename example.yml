@@ -30,7 +30,9 @@ Console:
         - $ref: '#/Console/widgets/ConfirmRecommendations'
       parameters:
         - name: actionType
+          default: delete
         - name: resourceIds
+          default: ''
   widgets:
     DeleteResourcesTable:
       type: "RecommendationsTable"
@@ -62,8 +64,8 @@ Console:
     ConfirmRecommendations:
       type: "ConfirmRecommendations"
       displayName: Confirm Recommended Actions
-      resourceIds: $params.resourceIds
-      actionType: $params.actionType
+      resourceIds: $param.resourceIds
+      actionType: $param.actionType
       providers: 
         - $ref: '#/Console/providers/AwsLocalProvider'
         - $ref: '#/Console/providers/UtilizationProvider'
