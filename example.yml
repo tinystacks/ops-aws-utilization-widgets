@@ -1,0 +1,76 @@
+Console:
+  name: TinyStacks example
+  providers:
+    AwsLocalProvider:
+      type: AwsCredentialsProvider
+      credentials:
+        profileName: ts
+    UtilizationProvider:
+      type: AwsUtilizationProvider
+  dashboards:
+    Delete Recommendations:
+      route: delete-recommendations
+      widgets: 
+        - $ref: '#/Console/widgets/DeleteResourcesTable'
+    Scale Down Recommendations:
+      route: scale-down-recommendations
+      widgets: 
+        - $ref: '#/Console/widgets/ScaleDownResourcesTable'
+    Optimize Recommendations:
+      route: optimize-recommendations
+      widgets: 
+        - $ref: '#/Console/widgets/OptimizeResourcesTable'
+    Recommendations Action Summary:
+      route: recommended-actions
+      widgets:
+        - $ref: '#/Console/widgets/RecommendationsActionSummary'
+    Confirm Recommendations:
+      route: confirm-recommendations
+      widgets:
+        - $ref: '#/Console/widgets/ConfirmRecommendations'
+      parameters:
+        - name: actionType
+        - name: resourceIds
+  widgets:
+    DeleteResourcesTable:
+      type: "RecommendationsTable"
+      displayName: Delete Resources
+      actionType: delete
+      providers: 
+        - $ref: '#/Console/providers/AwsLocalProvider'
+        - $ref: '#/Console/providers/UtilizationProvider'
+    OptimizeResourcesTable:
+      type: "RecommendationsTable"
+      displayName: Optimize Resources
+      actionType: optimize
+      providers: 
+        - $ref: '#/Console/providers/AwsLocalProvider'
+        - $ref: '#/Console/providers/UtilizationProvider'
+    ScaleDownResourcesTable:
+      type: "RecommendationsTable"
+      displayName: Scale Down Resources
+      actionType: scaleDown
+      providers: 
+        - $ref: '#/Console/providers/AwsLocalProvider'
+        - $ref: '#/Console/providers/UtilizationProvider'
+    RecommendationsActionSummary:
+      type: "RecommendationsActionSummary"
+      displayName: TinyStacks Recommendations
+      providers: 
+        - $ref: '#/Console/providers/AwsLocalProvider'
+        - $ref: '#/Console/providers/UtilizationProvider'
+    ConfirmRecommendations:
+      type: "ConfirmRecommendations"
+      displayName: Confirm Recommended Actions
+      resourceIds: $params.resourceIds
+      actionType: $params.actionType
+      providers: 
+        - $ref: '#/Console/providers/AwsLocalProvider'
+        - $ref: '#/Console/providers/UtilizationProvider'
+
+  dependencies:
+    AwsCredentialsProvider: "@tinystacks/ops-aws-core-widgets"
+    AwsUtilizationProvider:       "@tinystacks/ops-aws-utilization-widgets"
+    RecommendationsTable:         "@tinystacks/ops-aws-utilization-widgets"
+    RecommendationsActionSummary: "@tinystacks/ops-aws-utilization-widgets"
+    ConfirmRecommendations:       "@tinystacks/ops-aws-utilization-widgets"

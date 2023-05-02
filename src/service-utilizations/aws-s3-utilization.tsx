@@ -104,7 +104,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
             value: 'false',
             optimize: { 
               action: '', 
-              reason: 'This bucket does not have a lifecycle policyt'
+              reason: 'This bucket does not have a lifecycle policy'
             }
           });
         }
