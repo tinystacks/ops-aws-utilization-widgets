@@ -31,7 +31,7 @@ export type RecommendationsActionSummaryProps = {
 
 export type ConfirmSingleRecommendationProps = {
   resourceId: string;
-  actionType: string;
+  actionType: ActionType;
   onRemoveResource: (resourceId: string) => void;
 };
 

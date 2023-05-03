@@ -5,12 +5,13 @@ import {
 } from '@chakra-ui/react';
 import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
 import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
+import { actionTypeText } from '../../types/types.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const { actionType, resourceIds, onRemoveResource } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
-  const actionLabel = actionType.charAt(0).toUpperCase() + actionType.slice(1);
+  const actionLabel = actionTypeText[actionType];
   const resourceActions = resourceIds.map(rid => (
     <ConfirmSingleRecommendation
       resourceId={rid}
