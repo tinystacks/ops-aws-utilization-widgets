@@ -3,16 +3,11 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   Button, HStack, Heading, Stack, Text, Box, useDisclosure, Input
 } from '@chakra-ui/react';
-import { ActionType } from '../types/types';
-import { ConfirmSingleRecommendation } from './confirm-single-recommendation-ui.js';
+import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
+import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
 
-export type ConfirmRecommendationsUiProps = {
-  actionType: ActionType;
-  resourceIds: string[];
-};
-
-export function ConfirmRecommendationsUi (props: ConfirmRecommendationsUiProps) {
-  const { actionType, resourceIds } = props;
+export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
+  const { actionType, resourceIds, onRemoveResource } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
   const actionLabel = actionType.charAt(0).toUpperCase() + actionType.slice(1);
@@ -20,6 +15,7 @@ export function ConfirmRecommendationsUi (props: ConfirmRecommendationsUiProps) 
     <ConfirmSingleRecommendation
       resourceId={rid}
       actionType={actionType}
+      onRemoveResource={onRemoveResource}
     />
   ));
   return (

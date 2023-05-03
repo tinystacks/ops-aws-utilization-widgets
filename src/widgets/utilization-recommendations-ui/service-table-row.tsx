@@ -7,15 +7,9 @@ import {
   Checkbox
 } from '@chakra-ui/react';
 import React from 'react';
-import { Utilization } from '../types/types';
+import { ServiceTableRowProps } from '../utilization-recommendations-types.js';
 
-export default function ServiceTableRow (props: {
-  serviceUtil: Utilization<string>;
-  serviceName: string;
-  children?: React.ReactNode;
-  onServiceCheckChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isChecked: boolean;
-}) {
+export default function ServiceTableRow (props: ServiceTableRowProps) {
   const { serviceUtil, serviceName, children, isChecked, onServiceCheckChange } = props;
   const { isOpen, onToggle } = useDisclosure();
   return (

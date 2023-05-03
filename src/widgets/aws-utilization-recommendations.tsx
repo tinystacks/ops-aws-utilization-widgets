@@ -1,27 +1,24 @@
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
-import { ActionType, AwsResourceType, Utilization } from '../types/types.js';
-import { RecommendationsOverrides, RecommendationsTableProps } from './recommendations-table-types.js';
-import { RecommendationsTableUi } from './recommendations-table-ui.js';
+import { AwsResourceType, Utilization } from '../types/types.js';
+import { RecommendationsOverrides, UtilizationRecommendationsWidget } from './utilization-recommendations-types.js';
 import React from 'react';
+import { UtilizationRecommendationsUi } from './utilization-recommendations-ui/utilization-recommendations-ui.js';
 
-export class RecommendationsTable extends BaseWidget {
+export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
-  actionType?: ActionType;
-  constructor (props: RecommendationsTableProps) {
+  constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
-    this.actionType = props.actionType || ActionType.DELETE;
   }
 
-  static fromJson (props: RecommendationsTableProps) {
-    return new RecommendationsTable(props);
+  static fromJson (props: UtilizationRecommendationsWidget) {
+    return new AwsUtilizationRecommendations(props);
   }
 
   toJson () {
     return {
       ...super.toJson(),
-      utilization: this.utilization,
-      actionType: this.actionType
+      utilization: this.utilization
     };
   }
 
@@ -42,9 +39,8 @@ export class RecommendationsTable extends BaseWidget {
 
   render () {
     return (
-      <RecommendationsTableUi
-        utilization={this.utilization}
-        actionType={this.actionType}
+      <UtilizationRecommendationsUi
+        utilization={this.utilization || {}}
       />
     );
   }

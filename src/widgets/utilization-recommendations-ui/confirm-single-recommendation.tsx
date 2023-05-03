@@ -1,13 +1,9 @@
 import { Stack, Heading, Button, Spacer, Flex } from '@chakra-ui/react';
 import React from 'react';
-
-export type ConfirmSingleRecommendationProps = {
-  resourceId: string;
-  actionType: string;
-};
+import { ConfirmSingleRecommendationProps } from '../utilization-recommendations-types';
 
 export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationProps) {
-  const { resourceId, actionType } = props;
+  const { resourceId, actionType, onRemoveResource } = props;
   const actionLabel = actionType.charAt(0).toUpperCase() + actionType.slice(1) + ' now';
 
   return (
@@ -23,7 +19,7 @@ export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationP
       <Spacer />
       <Stack>
         <Button colorScheme='red' size='sm'>{actionLabel}</Button>
-        <Button variant='link' size='sm'>{'Don\'t ' + actionType}</Button>
+        <Button variant='link' size='sm' onClick={() => onRemoveResource(resourceId)}>{'Don\'t ' + actionType}</Button>
       </Stack>
     </Flex>
   );

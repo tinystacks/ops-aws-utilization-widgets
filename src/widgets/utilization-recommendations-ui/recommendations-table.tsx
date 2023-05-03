@@ -2,13 +2,11 @@ import React, { useState } from 'react';
 import { Button, Checkbox, HStack, Heading, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
-import { ActionType, AwsResourceType, Utilization, actionTypeText } from '../types/types.js';
-import { filterUtilizationForActionType } from '../utils/utilization.js';
+import { Utilization, actionTypeText } from '../../types/types.js';
+import { filterUtilizationForActionType } from '../../utils/utilization.js';
+import { RecommendationsTableProps } from '../utilization-recommendations-types.js';
 
-export function RecommendationsTableUi (props: {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
-  actionType: ActionType;
-}) {
+export function RecommendationsTable (props: RecommendationsTableProps) {
   const { utilization, actionType } = props;
   const [checkedResources, setCheckedResources] = useState<string[]>([]);
   const [checkedServices, setCheckedServices] = useState<string[]>([]);
@@ -132,8 +130,7 @@ export function RecommendationsTableUi (props: {
     <Stack pt="20px" pb="20px" w="100%">
       <HStack pl='2'>
         <Button
-          as='a'
-          href={`/confirm-recommendations?actionType=${actionType}&resourceIds=${checkedResources}`}
+          onClick={() => props.onContinue(checkedResources)}
           colorScheme='red'
         >
           Continue

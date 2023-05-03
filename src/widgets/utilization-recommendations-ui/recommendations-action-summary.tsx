@@ -2,19 +2,15 @@ import React from 'react';
 import { Box, Button, Flex, Heading, Icon, Spacer, Stack, Text } from '@chakra-ui/react';
 import { DeleteIcon, ArrowForwardIcon, ArrowDownIcon } from '@chakra-ui/icons';
 import { TbVectorBezier2 } from 'react-icons/tb/index.js';
-import { filterUtilizationForActionType } from '../utils/utilization.js';
-import { ActionType, AwsResourceType, Utilization } from '../types/types.js';
+import { filterUtilizationForActionType } from '../../utils/utilization.js';
+import { ActionType, Utilization } from '../../types/types.js';
 import isEmpty from 'lodash.isempty';
+import { RecommendationsActionSummaryProps } from '../utilization-recommendations-types.js';
 
-export type RecommendationsActionSummaryUiProps = {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
-  deleteLink: string;
-  optimizeLink: string;
-  scaleDownLink: string;
-};
 
-export function RecommendationsActionSummaryUi (props: RecommendationsActionSummaryUiProps) {
-  const { utilization, deleteLink, optimizeLink, scaleDownLink } = props;
+
+export function RecommendationsActionSummary (props: RecommendationsActionSummaryProps) {
+  const { utilization, onContinue } = props;
 
   function getNumberOfResourcesFromFilteredActions (filtered: { [service: string]: Utilization<string> }): number {
     let total = 0;
@@ -33,7 +29,7 @@ export function RecommendationsActionSummaryUi (props: RecommendationsActionSumm
   const numScaleDownChanges = getNumberOfResourcesFromFilteredActions(scaleDownChanges);
   const numOptimizeChanges = getNumberOfResourcesFromFilteredActions(optimizeChanges);
 
-  function actionSummaryStack (icon: JSX.Element, actionLabel: string, numResources: number, link: string, description: string) {
+  function actionSummaryStack (actionType: ActionType, icon: JSX.Element, actionLabel: string, numResources: number, description: string) {
     return (
       <Stack w="100%" p='2'>
         <Flex>
@@ -52,7 +48,7 @@ export function RecommendationsActionSummaryUi (props: RecommendationsActionSumm
             <Text fontSize='sm' color='gray.500'>{numResources} available</Text>
           </Box>
           <Spacer />
-          <Button colorScheme='purple' size='sm' as='a' href={'/' + link}>Review <ArrowForwardIcon /></Button>
+          <Button colorScheme='purple' size='sm' onClick={() => onContinue(actionType)}>Review <ArrowForwardIcon /></Button>
         </Flex>
       </Stack>
     );
@@ -60,11 +56,11 @@ export function RecommendationsActionSummaryUi (props: RecommendationsActionSumm
 
   return (
     <Stack pt="20px" pb="20px" w="100%">
-      {actionSummaryStack(<DeleteIcon color='gray' />, 'Delete', numDeleteChanges, deleteLink, 'Resources that have had no recent activity.')}
+      {actionSummaryStack(ActionType.DELETE, <DeleteIcon color='gray' />, 'Delete', numDeleteChanges, 'Resources that have had no recent activity.')}
       <hr />
-      {actionSummaryStack(<ArrowDownIcon color='gray' />, 'Scale Down', numScaleDownChanges, scaleDownLink, 'Resources are recently underutilized.')}
+      {actionSummaryStack(ActionType.SCALE_DOWN, <ArrowDownIcon color='gray' />, 'Scale Down', numScaleDownChanges, 'Resources are recently underutilized.')}
       <hr />
-      {actionSummaryStack(<Icon as={TbVectorBezier2} color='gray' />, 'Optimize', numOptimizeChanges, optimizeLink, 'Resources that would be more cost effective using an AWS optimization tool.')}
+      {actionSummaryStack(ActionType.OPTIMIZE, <Icon as={TbVectorBezier2} color='gray' />, 'Optimize', numOptimizeChanges, 'Resources that would be more cost effective using an AWS optimization tool.')}
     </Stack>
   );
 }
