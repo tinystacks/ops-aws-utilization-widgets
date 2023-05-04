@@ -18,7 +18,9 @@ interface HasResourcesAction {
 }
 
 export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction
-export type UtilizationRecommendationsWidget = Widget & HasActionType & HasUtilization;
+export type UtilizationRecommendationsWidget = Widget & HasActionType & HasUtilization & {
+  region: string
+};
 export type RecommendationsCallback = (props: RecommendationsOverrides) => void;
 export type RecommendationsOverrides = {
   refresh?: boolean;
