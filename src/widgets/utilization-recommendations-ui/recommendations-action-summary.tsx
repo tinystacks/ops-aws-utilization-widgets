@@ -33,25 +33,30 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
     actionType: ActionType, icon: JSX.Element, actionLabel: string, numResources: number, description: string
   ) {
     return (
-      <Stack w="100%" p='2'>
+      <Stack w="100%" p='2' pl='5' pr='5'>
         <Flex>
           <Box w='20px'>
             {icon}
           </Box>
-          <Stack w='450px'>
+          <Stack w='450px' pl='1'>
             <Box>
               <Heading as='h5' size='sm'>{actionLabel}</Heading>
             </Box>
             <Box>
-              <Text fontSize='sm' color='gray.500' pl='2'>{description}</Text>
+              <Text fontSize='sm' color='gray.500'>{description}</Text>
             </Box>
           </Stack>
+          <Spacer />
           <Box w='150px'>
             <Text fontSize='sm' color='gray.500'>{numResources} available</Text>
           </Box>
-          <Spacer />
-          <Button colorScheme='purple' size='sm' onClick={() => onContinue(actionType)}>
-            Review <ArrowForwardIcon />
+          <Button
+            colorScheme={actionType === ActionType.DELETE ? 'purple' : 'gray'}
+            size='sm'
+            disabled={actionType !== ActionType.DELETE}
+            onClick={() => actionType === ActionType.DELETE ? onContinue(actionType) : undefined}
+          >
+            {actionType === ActionType.DELETE ? <>Review <ArrowForwardIcon /></> : <>Coming Soon!</>}
           </Button>
         </Flex>
       </Stack>

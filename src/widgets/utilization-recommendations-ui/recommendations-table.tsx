@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import {
-  Button, Checkbox, HStack, Heading, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr
+  Box,
+  Button, Checkbox, Flex, Heading, Spacer, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr
 } from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
 import { Utilization, actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
 import { RecommendationsTableProps } from '../utilization-recommendations-types.js';
+
+export const CHECKBOX_CELL_MAX_WIDTH = '16px';
+export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
 
 export function RecommendationsTable (props: RecommendationsTableProps) {
   const { utilization, actionType } = props;
@@ -72,19 +76,37 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
       Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
     );
     const tableHeaders = [...tableHeadersSet];
-    const tableHeadersDom = [...tableHeaders].map(th => <Th key={th}>{th}</Th>);
+    const tableHeadersDom = [...tableHeaders].map(th =>
+      <Th key={th} maxW={RESOURCE_PROPERTY_MAX_WIDTH}>
+        {th}
+      </Th>
+    );
+    console.log('servficeUtil', serviceUtil);
 
     const taskRows = Object.keys(serviceUtil).map(resId => (
       <Tr key={resId}>
-        <Td>
+        <Td w={CHECKBOX_CELL_MAX_WIDTH}>
           <Checkbox
             isChecked={checkedResources.includes(resId)}
             onChange={onResourceCheckChange(resId, serviceName)}
           />
         </Td>
-        <Td>{resId}</Td>
+        <Td
+          maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+          overflow='hidden'
+          textOverflow='ellipsis'
+        >
+          {resId}
+        </Td>
         {tableHeaders.map(th => 
-          <Td key={resId + 'scenario' + th}>{serviceUtil[resId].scenarios[th]?.value}</Td>
+          <Td
+            key={resId + 'scenario' + th}
+            maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+            overflow='hidden'
+            textOverflow='ellipsis'
+          >
+            {serviceUtil[resId].scenarios[th]?.value}
+          </Td>
         )}
       </Tr>
     ));
@@ -99,7 +121,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           <Table variant="simple">
             <Thead bgColor="gray.50">
               <Tr>
-                <Th></Th>
+                <Th w={CHECKBOX_CELL_MAX_WIDTH}></Th>
                 <Th>Resource ID</Th>
                 {tableHeadersDom}
                 <Th />
@@ -120,7 +142,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
       <TableContainer border="1px" borderColor="gray.100">
         <Table variant="simple">
           <Thead bgColor="gray.50">
-            <Th></Th>
+            <Th w={CHECKBOX_CELL_MAX_WIDTH}></Th>
             <Th>Service</Th>
             <Th># Resources</Th>
             <Th>Details</Th>
@@ -134,18 +156,22 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   return (
-    <Stack pt="20px" pb="20px" w="100%">
-      <HStack pl='2'>
-        <Button
-          onClick={() => props.onContinue(checkedResources)}
-          colorScheme='red'
-        >
-          Continue
-        </Button>
-      </HStack>
-      
-      <Stack pt="20px" pb="20px" w="100%">
-        <Heading as='h4' size='sm'>Review resources to {actionTypeText[actionType]}</Heading>
+    <Stack pt="3" pb="3" w="100%">
+      <Flex pl='4' pr='4'>
+        <Box>
+          <Heading as='h4' size='md'>Review resources to {actionTypeText[actionType]}</Heading>
+        </Box>
+        <Spacer />
+        <Box>
+          <Button
+            onClick={() => props.onContinue(checkedResources)}
+            colorScheme='red'
+          >
+            Continue
+          </Button>
+        </Box>
+      </Flex>
+      <Stack pb='2' w="100%">
         {table()}
       </Stack>
     </Stack>

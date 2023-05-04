@@ -50,6 +50,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
           setSelectedResourceIds(selectedResourceIds.filter((r: string) => r !== resourceId));
         }}
         onResourcesAction={onResourcesAction}
+        utilization={utilization}
       />);
   }
 

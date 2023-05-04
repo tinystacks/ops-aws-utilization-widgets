@@ -1,5 +1,5 @@
 import {
-  Stack, Heading, Button, Spacer, Flex, Text, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader,
+  Stack, Button, Spacer, Flex, Text, Modal, ModalBody, ModalCloseButton, ModalContent, ModalHeader,
   ModalOverlay, useDisclosure
 } from '@chakra-ui/react';
 import React from 'react';
@@ -8,14 +8,15 @@ import { actionTypeText } from '../../types/types.js';
 
 export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationProps) {
   const { resourceId, actionType, onRemoveResource, onResourcesAction } = props;
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  // TODO: const { isOpen, onOpen, onClose } = useDisclosure();
+  const { isOpen, onClose } = useDisclosure();
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1) + ' now';
 
   return (
-    <Stack w="100%" pb='1'>
+    <Stack w="100%" pb='2' pt='2'>
       <Flex>
         <Stack>
-          <Heading as='h5' size='sm'>{resourceId}</Heading>
+          <Text>{resourceId}</Text>
         </Stack>
         {/* TODO */}
         {/* <Stack>
@@ -24,13 +25,13 @@ export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationP
           </Stack> */}
         <Spacer />
         <Stack>
-          <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel}</Button>
+          {/* TODO */}
+          {/* <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel}</Button> */}
           <Button variant='link' size='sm' onClick={() => onRemoveResource(resourceId)}>
             {'Don\'t ' + actionTypeText[actionType]}
           </Button>
         </Stack>
       </Flex>
-      <hr />
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
         <ModalContent>

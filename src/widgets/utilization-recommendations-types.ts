@@ -39,7 +39,7 @@ export type RecommendationsActionSummaryProps = HasUtilization & {
 export type ConfirmSingleRecommendationProps = RemovableResource & HasActionType & HasResourcesAction & {
   resourceId: string;
 };
-export type ConfirmRecommendationsProps = RemovableResource & HasActionType & HasResourcesAction & {
+export type ConfirmRecommendationsProps = RemovableResource & HasActionType & HasResourcesAction & HasUtilization & {
   resourceIds: string[];
 };
 

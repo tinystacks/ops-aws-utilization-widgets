@@ -8,6 +8,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 import { ServiceTableRowProps } from '../utilization-recommendations-types.js';
+import { CHECKBOX_CELL_MAX_WIDTH } from './recommendations-table.js';
 
 export default function ServiceTableRow (props: ServiceTableRowProps) {
   const { serviceUtil, serviceName, children, isChecked, onServiceCheckChange } = props;
@@ -15,7 +16,7 @@ export default function ServiceTableRow (props: ServiceTableRowProps) {
   return (
     <React.Fragment>
       <Tr key={serviceName}>
-        <Td>
+        <Td w={CHECKBOX_CELL_MAX_WIDTH}>
           <Checkbox 
             isChecked={isChecked}
             onChange={onServiceCheckChange}
