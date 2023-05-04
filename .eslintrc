@@ -37,6 +37,9 @@
         "SwitchCase": 1
       }
     ],
+    "max-len": [
+      1, 120
+    ],
     "object-curly-spacing": [
       "error",
       "always"

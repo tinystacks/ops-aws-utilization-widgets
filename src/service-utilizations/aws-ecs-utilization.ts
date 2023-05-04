@@ -105,6 +105,14 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     this.DEBUG_MODE = enableDebugMode || false;
   }
 
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'deleteService') {
+      await this.deleteService(awsCredentialsProvider, resourceId.split('/')[1], resourceId, region);
+    }
+  }
+
   private async listAllClusters (): Promise<string[]> {
     const allClusterArns: string[] = [];
     let nextToken;
@@ -530,7 +538,10 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       containerInstance = containerInstanceResponse?.containerInstances?.at(0);
 
       const containerInstanceCpuResource = containerInstance.registeredResources?.find(r => r.name === 'CPU');
-      const containerInstanceCpu = Number(containerInstanceCpuResource?.doubleValue || containerInstanceCpuResource?.integerValue || containerInstanceCpuResource?.longValue);
+      const containerInstanceCpu = Number(
+        containerInstanceCpuResource?.doubleValue || containerInstanceCpuResource?.integerValue
+        || containerInstanceCpuResource?.longValue
+      );
 
       allocatedCpu = containerInstanceCpu / maxTaskCount;
     } else {
@@ -553,7 +564,9 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
 
     const allInstanceTypes = Object.values(_InstanceType);
     const instanceTypeNamesInFamily = allInstanceTypes.filter(it => it.startsWith(`${instanceFamily}.`));
-    const cachedInstanceTypes = await cache.getOrElse(instanceFamily, async () => JSON.stringify(await this.getInstanceTypes(instanceTypeNamesInFamily)));
+    const cachedInstanceTypes = await cache.getOrElse(
+      instanceFamily, async () => JSON.stringify(await this.getInstanceTypes(instanceTypeNamesInFamily))
+    );
     const instanceTypesInFamily = JSON.parse(cachedInstanceTypes || '[]');
 
     const smallerInstances = instanceTypesInFamily.filter((it: InstanceTypeInfo) => {
@@ -579,7 +592,8 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         value: 'overAllocated',
         scaleDown: {
           action: 'scaleDownEc2Service',
-          reason: `The EC2 instances used in this Service's cluster appears to be over allocated based on its CPU and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
+          reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU' +
+                  `and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
         }
       });
     }
@@ -655,7 +669,8 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       const discreteMemoryOptionValues = scalingOption.discrete || [];
       memoryOptionValues.push(...discreteMemoryOptionValues);
       
-      const rangeMemoryOptionsValues = scalingOption.range ? this.createDiscreteValuesForRange(scalingOption.range) : [];
+      const rangeMemoryOptionsValues = scalingOption.range ?
+        this.createDiscreteValuesForRange(scalingOption.range) : [];
       memoryOptionValues.push(...rangeMemoryOptionsValues);
 
       const optimizedMemory = memoryOptionValues.filter(mem => (mem > maxConsumedMemory)).sort().at(0);
@@ -673,13 +688,17 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         value: 'overAllocated',
         scaleDown: {
           action: 'scaleDownFargateService',
-          reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.  We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to ${targetScaleOption.memory} MiB.`
+          reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.
+                   We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to
+                   ${targetScaleOption.memory} MiB.`
         }
       });
     }
   }
 
-  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsUtilizationOverrides) {
+  async getRegionalUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsUtilizationOverrides
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     this.ecsClient = new ECS({
       credentials,
@@ -754,7 +773,9 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         maxMemory < 10
       );
       
-      const requestCountMetricValues = [...(albRequestCountMetrics?.Values || []), ...(apigRequestCountMetrics?.Values || [])];
+      const requestCountMetricValues = [
+        ...(albRequestCountMetrics?.Values || []), ...(apigRequestCountMetrics?.Values || [])
+      ];
       const totalRequestCount = stats.sum(requestCountMetricValues);
 
       const noNetworkUtilization = totalRequestCount === 0;
@@ -768,7 +789,8 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
           value: 'unused',
           delete: {
             action: 'deleteService',
-            reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and network traffic.'
+            reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and'
+                  + ' network traffic.'
           }
         });
       } else if (maxCpu < 0.8 && maxMemory < 0.8) {
@@ -783,13 +805,17 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
   
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsUtilizationOverrides) {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsUtilizationOverrides
+  ) {
     for (const region of regions) {
       await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
     }
   }
 
-  async deleteService (awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string) {
+  async deleteService (
+    awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ecsClient = new ECS({
       credentials,
@@ -802,7 +828,10 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     });
   }
 
-  async scaleDownFargateService (awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string, cpu: number, memory: number) {
+  async scaleDownFargateService (
+    awsCredentialsProvider: AwsCredentialsProvider, clusterName: string, serviceArn: string, region: string,
+    cpu: number, memory: number
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ecsClient = new ECS({
       credentials,
@@ -814,7 +843,9 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       services: [serviceArn]
     });
     const taskDefinitionArn = serviceResponse?.services?.at(0)?.taskDefinition;
-    const taskDefResponse = await ecsClient.describeTaskDefinition({ taskDefinition: taskDefinitionArn, include: [TaskDefinitionField.TAGS]  });
+    const taskDefResponse = await ecsClient.describeTaskDefinition(
+      { taskDefinition: taskDefinitionArn, include: [TaskDefinitionField.TAGS]  }
+    );
     const taskDefinition: TaskDefinition = taskDefResponse?.taskDefinition;
     const tags = taskDefResponse?.tags;    
 

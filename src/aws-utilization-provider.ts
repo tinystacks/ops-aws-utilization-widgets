@@ -67,26 +67,44 @@ class AwsUtilizationProvider extends BaseProvider {
     }
   }
 
-  async refreshUtilizationData (service: AwsResourceType, credentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsServiceOverrides): Promise<Utilization<string>> {
+  async refreshUtilizationData (
+    service: AwsResourceType, credentialsProvider: AwsCredentialsProvider, regions: string[],
+    overrides?: AwsServiceOverrides
+  ): Promise<Utilization<string>> {
     await this.utilizationClasses[service]?.getUtilization(credentialsProvider, regions, overrides);
     return this.utilizationClasses[service]?.utilization;
   }
 
-  async hardRefresh (credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}) {
+  async doAction (
+    service: AwsResourceType, credentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string,
+    region: string
+  ) {
+    await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceId, region);
+  }
+
+  async hardRefresh (
+    credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}
+  ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
-      this.utilization[service] = await this.refreshUtilizationData(service, credentialsProvider, regions, serviceOverrides);
+      this.utilization[service] = await this.refreshUtilizationData(
+        service, credentialsProvider, regions, serviceOverrides
+      );
       await cache.set(service, this.utilization[service]);
     }
 
     return this.utilization;
   }
 
-  async getUtilization (credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}) {
+  async getUtilization (
+    credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}
+  ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       if (serviceOverrides?.forceRefesh) {
-        this.utilization[service] = await this.refreshUtilizationData(service, credentialsProvider, regions, serviceOverrides);
+        this.utilization[service] = await this.refreshUtilizationData(
+          service, credentialsProvider, regions, serviceOverrides
+        );
         await cache.set(service, this.utilization[service]);
       } else {
         this.utilization[service] = await cache.getOrElse(

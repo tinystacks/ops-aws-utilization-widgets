@@ -21,6 +21,12 @@ export const actionTypeText = {
   [ActionType.SCALE_DOWN]: 'scale down'
 };
 
+export const actionTypeToEnum = {
+  [ActionType.OPTIMIZE.toString()]: ActionType.OPTIMIZE,
+  [ActionType.DELETE.toString()]: ActionType.DELETE,
+  [ActionType.SCALE_DOWN.toString()]: ActionType.SCALE_DOWN
+};
+
 export type Action = {
   action: string,
   reason: string
@@ -75,9 +81,13 @@ export type StabilityStats = {
 /**
  * 
  * @param removeOutliers - default false; Whether to remove outliers from the dataset before running the final stats.
- * @param outlierZScore - default 5; The cutoff Z score (number of standard deviations away from the mean) that is considered an outlier.
- * @param anomalyThreshold - default 0.5; The maximum threshold, as a percentage, of anomalies in the dataset required to perform outlier removal.  If the percentage of outliers in the dataset is higher that this threshold, outliers will not be removed.
- * @param stabilityZScore - default 3; The cutoff Z score (non-inclusive) used to check for stability in the dataset.  If there are values above this, the dataset is considered unstable.
+ * @param outlierZScore - default 5; The cutoff Z score (number of standard deviations away from the mean) that is
+ *                        considered an outlier.
+ * @param anomalyThreshold - default 0.5; The maximum threshold, as a percentage, of anomalies in the dataset required
+ *                           to perform outlier removal.  If the percentage of outliers in the dataset is higher that
+ *                           this threshold, outliers will not be removed.
+ * @param stabilityZScore - default 3; The cutoff Z score (non-inclusive) used to check for stability in the dataset.
+ *                          If there are values above this, the dataset is considered unstable.
  */
 export type StabilityStatsOptions = {
   removeOutliers?: boolean;

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { ActionType, AwsResourceType, Utilization } from '../../types/types.js';
+import { ActionType } from '../../types/types.js';
 import { RecommendationsActionSummary } from './recommendations-action-summary.js';
 import { RecommendationsTable } from './recommendations-table.js';
 import { ConfirmRecommendations } from './confirm-recommendations.js';
+import { UtilizationRecommendationsUiProps } from '../utilization-recommendations-types.js';
 
 enum WizardSteps {
   SUMMARY='summary',
@@ -10,10 +11,8 @@ enum WizardSteps {
   CONFIRM='confirm'
 }
 
-export function UtilizationRecommendationsUi (props: {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
-}) {
-  const { utilization } = props;
+export function UtilizationRecommendationsUi (props: UtilizationRecommendationsUiProps) {
+  const { utilization, onResourcesAction } = props;
   const [wizardStep, setWizardStep] = useState<string>(WizardSteps.SUMMARY);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
   const [actionType, setActionType] = useState<ActionType>(ActionType.DELETE);
@@ -47,7 +46,10 @@ export function UtilizationRecommendationsUi (props: {
       <ConfirmRecommendations
         resourceIds={selectedResourceIds}
         actionType={actionType}
-        onRemoveResource={(resourceId: string) => setSelectedResourceIds(selectedResourceIds.filter((r: string) => r !== resourceId))}
+        onRemoveResource={(resourceId: string) => {
+          setSelectedResourceIds(selectedResourceIds.filter((r: string) => r !== resourceId));
+        }}
+        onResourcesAction={onResourcesAction}
       />);
   }
 

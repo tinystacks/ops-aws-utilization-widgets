@@ -3,7 +3,9 @@ import dayjs from 'dayjs';
 import isNil from 'lodash.isnil';
 import chunk from 'lodash.chunk';
 import * as stats from 'simple-statistics';
-import { DescribeInstanceTypesCommandOutput, DescribeInstancesCommandOutput, EC2, Instance, InstanceTypeInfo, _InstanceType } from '@aws-sdk/client-ec2';
+import {
+  DescribeInstanceTypesCommandOutput, DescribeInstancesCommandOutput, EC2, Instance, InstanceTypeInfo, _InstanceType
+} from '@aws-sdk/client-ec2';
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
@@ -47,6 +49,14 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     this.instanceIds = [];
     this.instances = [];
     this.DEBUG_MODE = enableDebugMode || false;
+  }
+
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'terminateInstance') {
+      await this.terminateInstance(awsCredentialsProvider, resourceId, region);
+    }
   }
 
   private async describeAllInstances (ec2Client: EC2, instanceIds?: string[]): Promise<Instance[]> {
@@ -186,7 +196,9 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     return networkSetting;
   }
 
-  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEc2InstanceUtilizationOverrides) {
+  async getRegionalUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEc2InstanceUtilizationOverrides
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ec2Client = new EC2({
       credentials,
@@ -276,7 +288,8 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
 
       const lowNetworkUtilization = (
         (networkInIsStable && networkOutIsStable) || 
-        (avgNetworkThroughputMb < 5) // Source: https://www.trendmicro.com/cloudoneconformity/knowledge-base/aws/EC2/idle-instance.html
+        // v Source: https://www.trendmicro.com/cloudoneconformity/knowledge-base/aws/EC2/idle-instance.html
+        (avgNetworkThroughputMb < 5) 
       );
       
       if (
@@ -288,7 +301,8 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           value: 'unused',
           delete: {
             action: 'terminateInstance',
-            reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, and network traffic.'
+            reason: 'This EC2 instance appears to be unused based on its CPU utilization, disk IOPS, ' +
+                    'and network traffic.'
           }
         });
       } else {
@@ -301,7 +315,9 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         const currentNetworkThroughputIsDefined = typeof currentNetworkThroughput === 'number';
 
         const instanceTypeNamesInFamily = allInstanceTypes.filter(it => it.startsWith(`${instanceFamily}.`));
-        const cachedInstanceTypes = await cache.getOrElse(instanceFamily, async () => JSON.stringify(await this.getInstanceTypes(instanceTypeNamesInFamily, ec2Client)));
+        const cachedInstanceTypes = await cache.getOrElse(
+          instanceFamily, async () => JSON.stringify(await this.getInstanceTypes(instanceTypeNamesInFamily, ec2Client))
+        );
         const instanceTypesInFamily = JSON.parse(cachedInstanceTypes || '[]');
 
         const smallerInstances = instanceTypesInFamily.filter((it: InstanceTypeInfo) => {
@@ -317,7 +333,8 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
                 availableNetworkThroughput >= minimumNetworkThroughput &&
                 availableNetworkThroughput <= currentNetworkThroughput
               ) :
-              // Best we can do for t2 bustable network definitions is find one that is the same because they're not quantifiable
+              // Best we can do for t2 burstable network defs is find one that's the same because they're not
+              // quantifiable
               currentNetworkThroughput === availableNetworkThroughput
           );
         }).sort((a: InstanceTypeInfo, b: InstanceTypeInfo) => {
@@ -340,7 +357,8 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
             value: 'overAllocated',
             scaleDown: {
               action: 'scaleDownInstance',
-              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}`
+              reason: 'This EC2 instance appears to be over allocated based on its CPU and network utilization. We ' +
+                      `suggest scaling down to a ${targetInstanceType.InstanceType}`
             }
           });
         }
@@ -352,7 +370,9 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEc2InstanceUtilizationOverrides) {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEc2InstanceUtilizationOverrides
+  ) {
     for (const region of regions) {
       await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
     }
@@ -372,7 +392,9 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     // TODO: Remove scenario?
   }
 
-  async scaleDownInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string, instanceType: string) {
+  async scaleDownInstance (
+    awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string, instanceType: string
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const ec2Client = new EC2({
       credentials,

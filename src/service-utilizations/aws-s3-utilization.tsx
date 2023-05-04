@@ -11,8 +11,17 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     super();
   }
 
-  async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput: any){
-    const configurationId = userInput.configurationId || `${bucketName}-tiering-configuration`;
+  async doAction (awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string) {
+    const s3Client = new S3({
+      credentials: await awsCredentialsProvider.getCredentials()
+    });
+    if (actionName === 'enableIntelligientTiering') {
+      await this.enableIntelligientTiering(s3Client, resourceId);
+    }
+  }
+
+  async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput?: any){
+    const configurationId = userInput?.configurationId || `${bucketName}-tiering-configuration`;
    
     return await s3Client.putBucketIntelligentTieringConfiguration({ 
       Bucket: bucketName, 
@@ -35,7 +44,9 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides): Promise<void> {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides?: AwsServiceOverrides
+  ): Promise<void> {
     const region = regions[0];
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials(),
@@ -70,7 +81,9 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       Bucket: bucketName
     });
 
-    if (response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)) {
+    if (
+      response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)
+    ) {
       const res = await s3Client.listBucketIntelligentTieringConfigurations({
         Bucket: bucketName
       });
@@ -94,8 +107,9 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       Bucket: bucketName
     });
 
-    if (response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)) {
-
+    if (
+      response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)
+    ) {
       await s3Client.getBucketLifecycleConfiguration({
         Bucket: bucketName
       }).catch((e) => { 

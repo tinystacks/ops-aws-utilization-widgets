@@ -29,7 +29,9 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
   const numScaleDownChanges = getNumberOfResourcesFromFilteredActions(scaleDownChanges);
   const numOptimizeChanges = getNumberOfResourcesFromFilteredActions(optimizeChanges);
 
-  function actionSummaryStack (actionType: ActionType, icon: JSX.Element, actionLabel: string, numResources: number, description: string) {
+  function actionSummaryStack (
+    actionType: ActionType, icon: JSX.Element, actionLabel: string, numResources: number, description: string
+  ) {
     return (
       <Stack w="100%" p='2'>
         <Flex>
@@ -48,7 +50,9 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
             <Text fontSize='sm' color='gray.500'>{numResources} available</Text>
           </Box>
           <Spacer />
-          <Button colorScheme='purple' size='sm' onClick={() => onContinue(actionType)}>Review <ArrowForwardIcon /></Button>
+          <Button colorScheme='purple' size='sm' onClick={() => onContinue(actionType)}>
+            Review <ArrowForwardIcon />
+          </Button>
         </Flex>
       </Stack>
     );
@@ -56,11 +60,20 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
 
   return (
     <Stack pt="20px" pb="20px" w="100%">
-      {actionSummaryStack(ActionType.DELETE, <DeleteIcon color='gray' />, 'Delete', numDeleteChanges, 'Resources that have had no recent activity.')}
+      {actionSummaryStack(
+        ActionType.DELETE, <DeleteIcon color='gray' />, 'Delete', numDeleteChanges,
+        'Resources that have had no recent activity.'
+      )}
       <hr />
-      {actionSummaryStack(ActionType.SCALE_DOWN, <ArrowDownIcon color='gray' />, 'Scale Down', numScaleDownChanges, 'Resources are recently underutilized.')}
+      {actionSummaryStack(
+        ActionType.SCALE_DOWN, <ArrowDownIcon color='gray' />, 'Scale Down', numScaleDownChanges,
+        'Resources are recently underutilized.'
+      )}
       <hr />
-      {actionSummaryStack(ActionType.OPTIMIZE, <Icon as={TbVectorBezier2} color='gray' />, 'Optimize', numOptimizeChanges, 'Resources that would be more cost effective using an AWS optimization tool.')}
+      {actionSummaryStack(
+        ActionType.OPTIMIZE, <Icon as={TbVectorBezier2} color='gray' />, 'Optimize', numOptimizeChanges,
+        'Resources that would be more cost effective using an AWS optimization tool.'
+      )}
     </Stack>
   );
 }

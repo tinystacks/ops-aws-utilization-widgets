@@ -1,44 +1,44 @@
 import { Widget } from '@tinystacks/ops-model';
 import { ActionType, AwsResourceType, Utilization } from '../types/types.js';
 
-export type UtilizationRecommendationsWidget = Widget & {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
+interface HasActionType {
   actionType: ActionType;
-};
+}
 
+interface HasUtilization {
+  utilization: { [key: AwsResourceType | string]: Utilization<string> };
+}
+
+interface RemovableResource {
+  onRemoveResource: (resourceId: string) => void;
+}
+
+interface HasResourcesAction {
+  onResourcesAction: (resourceIds: string[], actionType: string) => void;
+}
+
+export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction
+export type UtilizationRecommendationsWidget = Widget & HasActionType & HasUtilization;
 export type RecommendationsCallback = (props: RecommendationsOverrides) => void;
 export type RecommendationsOverrides = {
-  refresh: boolean;
+  refresh?: boolean;
+  resourceActions?: {
+    actionType: string,
+    resourceIds: string[]
+  }
 };
-
-export type RecommendationsTableProps = {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
-  actionType: ActionType;
+export type RecommendationsTableProps = HasActionType & HasUtilization & {
   onContinue: (resourceIds: string[]) => void;
 };
-
-export type RecommendationsActionsSummaryProps = Widget & {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
-  deleteLink?: string;
-  optimizeLink?: string;
-  scaleDownLink?: string;
-};
-
-export type RecommendationsActionSummaryProps = {
-  utilization: { [key: AwsResourceType | string]: Utilization<string> };
+export type RecommendationsActionsSummaryProps = Widget & HasUtilization;
+export type RecommendationsActionSummaryProps = HasUtilization & {
   onContinue: (selectedActionType: ActionType) => void;
 };
-
-export type ConfirmSingleRecommendationProps = {
+export type ConfirmSingleRecommendationProps = RemovableResource & HasActionType & HasResourcesAction & {
   resourceId: string;
-  actionType: ActionType;
-  onRemoveResource: (resourceId: string) => void;
 };
-
-export type ConfirmRecommendationsProps = {
-  actionType: ActionType;
+export type ConfirmRecommendationsProps = RemovableResource & HasActionType & HasResourcesAction & {
   resourceIds: string[];
-  onRemoveResource: (resourceId: string) => void;
 };
 
 export type ServiceTableRowProps = {

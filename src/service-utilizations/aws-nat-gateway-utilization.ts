@@ -7,14 +7,29 @@ import { NatGatewayWithRegion } from '../types/types.js';
 import { getAccountId, listAllRegions } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
-// const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
+/**
+ * const DEFAULT_RECOMMENDATION = 'review this NAT Gateway and the Route Tables associated with its VPC. If another' +
+ * 'NAT Gateway exists in the VPC, repoint routes to that gateway and delete this gateway. If this is the only' +
+ * 'NAT Gateway in your VPC and resources depend on network traffic, retain this gateway.';
+*/
 
 type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
-
   constructor () {
     super();
+  }
+
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'deleteNatGateway') {
+      const ec2Client = new EC2({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region
+      });
+      await this.deleteNatGateway(ec2Client, resourceId);
+    }
   }
 
   async deleteNatGateway (ec2Client: EC2, natGatewayId: string) {
@@ -172,6 +187,6 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       this.addData(natGatewayArn, 'region', region);
     }));
     await this.identifyCloudformationStack(credentials);
-    console.log(this.utilization);
+    console.info(this.utilization);
   }
 }

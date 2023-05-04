@@ -30,8 +30,10 @@ export default function ServiceTableRow (props: ServiceTableRowProps) {
             aria-label={isOpen ? 'upCaret' : 'downCaret'}
             rightIcon={isOpen ? <ChevronUpIcon />: <ChevronDownIcon/>}
             size='sm'
+            colorScheme='purple'
+            fontWeight='1px'
           >
-            More Details
+            {isOpen ? 'Hide resources' : 'Show resources'}
           </Button>
         </Td>
       </Tr>

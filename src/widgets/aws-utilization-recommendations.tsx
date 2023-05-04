@@ -1,8 +1,10 @@
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
-import { AwsResourceType, Utilization } from '../types/types.js';
+import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
 import { RecommendationsOverrides, UtilizationRecommendationsWidget } from './utilization-recommendations-types.js';
 import React from 'react';
 import { UtilizationRecommendationsUi } from './utilization-recommendations-ui/utilization-recommendations-ui.js';
+import { filterUtilizationForActionType } from '../utils/utilization.js';
+import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
@@ -35,12 +37,38 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     }
 
     this.utilization = await utilProvider.getUtilization(awsCredsProvider, ['us-east-1']);
+
+    if (overrides?.resourceActions) {
+      const { actionType, resourceIds } = overrides.resourceActions;
+      const resourceIdsSet = new Set<string>(resourceIds);
+      const filteredServices = filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType]);
+      
+      for (const serviceUtil of Object.keys(filteredServices)) {
+        const filteredServiceUtil = Object.keys(filteredServices[serviceUtil])
+          .filter(resId => resourceIdsSet.has(resId));
+        for (const resourceId of filteredServiceUtil) {
+          const resource = filteredServices[serviceUtil][resourceId];
+          for (const scenario of Object.keys(resource.scenarios)) {
+            await utilProvider.doAction(
+              serviceUtil, awsCredsProvider, get(resource.scenarios[scenario], `.${actionType}.action`), resourceId
+            );
+          }
+        }
+      }
+    }
   }
 
-  render () {
+  render (_children: any, overridesCallback?: (overrides: RecommendationsOverrides) => void) {
+    function onResourcesAction (resourceIds: string[], actionType: string) {
+      overridesCallback({
+        resourceActions: { resourceIds, actionType }
+      });
+    }
+
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
+        onResourcesAction={onResourcesAction}
       />
     );
   }

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { Button, Checkbox, HStack, Heading, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr } from '@chakra-ui/react';
+import {
+  Button, Checkbox, HStack, Heading, Stack, Table, TableContainer, Tbody, Td, Th, Thead, Tr
+} from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
 import { Utilization, actionTypeText } from '../../types/types.js';
@@ -65,6 +67,13 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   function resourcesTable (serviceName: string, serviceUtil: Utilization<string>) {
+    const tableHeadersSet = new Set<string>();
+    Object.keys(serviceUtil).forEach(resId =>
+      Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
+    );
+    const tableHeaders = [...tableHeadersSet];
+    const tableHeadersDom = [...tableHeaders].map(th => <Th key={th}>{th}</Th>);
+
     const taskRows = Object.keys(serviceUtil).map(resId => (
       <Tr key={resId}>
         <Td>
@@ -74,12 +83,12 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           />
         </Td>
         <Td>{resId}</Td>
-        {Object.keys(serviceUtil[resId].scenarios).map(s => (
-          <Td key={resId + 'scenario' + s}>{serviceUtil[resId].scenarios[s].value}</Td>
-        ))}
+        {tableHeaders.map(th => 
+          <Td key={resId + 'scenario' + th}>{serviceUtil[resId].scenarios[th]?.value}</Td>
+        )}
       </Tr>
     ));
-
+    
     return (
       <Stack key={serviceName + 'resource-table'}>
         <TableContainer
@@ -92,9 +101,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
               <Tr>
                 <Th></Th>
                 <Th>Resource ID</Th>
-                <Th>Size</Th>
-                <Th>Last Changed</Th>
-                <Th>30-Day Max CPU</Th>
+                {tableHeadersDom}
                 <Th />
               </Tr>
             </Thead>

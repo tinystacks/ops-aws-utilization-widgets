@@ -50,7 +50,10 @@ export class AwsUtilization extends BaseWidget {
     };
   }
   
-  render (_children?: (Widget & { renderedElement: JSX.Element; })[], _overridesCallback?: (overrides: AwsUtilizationOverrides) => void): JSX.Element {
+  render (
+    _children?: (Widget & { renderedElement: JSX.Element; })[],
+    _overridesCallback?: (overrides: AwsUtilizationOverrides) => void
+  ): JSX.Element {
     return (
       <Stack width='100%'>
         <RecommendationOverview utilizations={this.utilization}/>

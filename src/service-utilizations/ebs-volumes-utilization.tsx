@@ -8,10 +8,22 @@ import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 export type ebsVolumesUtilizationScenarios = 'hasAttachedInstances' | 'volumeReadWriteOps';
 
 export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtilizationScenarios> {
-  
   constructor () {
     super();
   }
+
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'deleteEBSVolume') {
+      const ec2Client = new EC2({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region: region
+      });
+      await this.deleteEBSVolume(ec2Client, resourceId);
+    }
+  }
+  
 
   async deleteEBSVolume (ec2Client: EC2, volumeId: string){ 
     await ec2Client.deleteVolume({ 
@@ -19,7 +31,9 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides): Promise<void> {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
+  ): Promise<void> {
     const region = regions[0];
     const ec2Client = new EC2({
       credentials: await awsCredentialsProvider.getCredentials(),

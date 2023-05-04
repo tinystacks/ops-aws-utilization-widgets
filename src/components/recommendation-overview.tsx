@@ -2,11 +2,14 @@ import React from 'react';
 import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
 import { Utilization } from '../types/types.js';
 
-export default function RecommendationOverview (props: { utilizations: { [ serviceName: string ] : Utilization<string> } }) {
+export default function RecommendationOverview (
+  props: { utilizations: { [ serviceName: string ] : Utilization<string> } }
+) {
 
   const { utilizations } = props;
 
-  const { totalRecommendations, totalUnusedResources, totalScalingActions } = getTotalRecommendationValues(utilizations);
+  const { totalRecommendations, totalUnusedResources, totalScalingActions } =
+    getTotalRecommendationValues(utilizations);
 
   const labelStyles = {
     fontFamily: 'monospace',

@@ -17,10 +17,23 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 type AwsCloudwatchLogsUtilizationScenarioTypes = 'retentionInDays' | 'lastEventTime' | 'storedBytes';
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
-
   constructor () {
     super();
   }
+
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'deleteLogGroup') {
+      const cwLogsClient = new CloudWatchLogs({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region
+      });
+
+      await this.deleteLogGroup(cwLogsClient, resourceId);
+    }
+  }
+
 
   async setRetentionPolicy (cwLogsClient: CloudWatchLogs, logGroupName: string, retentionInDays: number) {
     await cwLogsClient.putRetentionPolicy({
@@ -62,7 +75,9 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     });
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: AwsServiceOverrides) {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: AwsServiceOverrides
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     const usedRegions = regions || await listAllRegions(credentials);
     const allLogGroupsPerRegion = await this.getAllLogGroupsPerRegion(credentials, usedRegions);
@@ -131,6 +146,5 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       }));
     }
     await this.identifyCloudformationStack(credentials);
-    console.log(this.utilization);
   }
 }

@@ -1,7 +1,9 @@
 import isEmpty from 'lodash.isempty';
 import { ActionType, Scenarios, Utilization } from '../types/types';
 
-export function filterUtilizationForActionType (utilization: { [service: string]: Utilization<string> }, actionType: ActionType):
+export function filterUtilizationForActionType (
+  utilization: { [service: string]: Utilization<string> }, actionType: ActionType
+):
 { [service: string]: Utilization<string> } {
   const filtered: { [service: string]: Utilization<string> } = {};
 
@@ -15,7 +17,9 @@ export function filterUtilizationForActionType (utilization: { [service: string]
   return filtered;
 }
 
-export function filterServiceForActionType (utilization: { [service: string]: Utilization<string> }, service: string, actionType: ActionType) {
+export function filterServiceForActionType (
+  utilization: { [service: string]: Utilization<string> }, service: string, actionType: ActionType
+) {
   const serviceUtil = utilization[service];
   const actionFilteredServiceUtil = 
     Object.entries(serviceUtil).reduce<Utilization<string>>((aggUtil, [id, resource]) => {

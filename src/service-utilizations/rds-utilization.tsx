@@ -4,9 +4,22 @@ import { AwsServiceOverrides } from '../types/types.js';
 import { RDS, DBInstance } from '@aws-sdk/client-rds';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 
-export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' | 'hasAutoScalingEnabled';
+export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' |
+                                               'hasAutoScalingEnabled';
 
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
+  
+  async doAction (
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+  ): Promise<void> {
+    if (actionName === 'deleteInstance') {
+      const rdsClient = new RDS({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region
+      });
+      await this.deleteInstance(rdsClient, resourceId);
+    }
+  }
   
   constructor () {
     super();
@@ -19,7 +32,9 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
   }
 
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides): Promise<void> {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
+  ): Promise<void> {
     const region = regions[0];
     const rdsClient = new RDS({
       credentials: await awsCredentialsProvider.getCredentials(),

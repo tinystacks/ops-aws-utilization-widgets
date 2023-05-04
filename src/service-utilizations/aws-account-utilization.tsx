@@ -3,20 +3,27 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { CostExplorer } from '@aws-sdk/client-cost-explorer';
 import { Pricing } from '@aws-sdk/client-pricing';
 
-//I think the most relevant apis are the AWS Price List and the AWS Cost Explorer APIs, so we will focus on what actions need to be done to enable these
-
-//enable price list apis -- https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-example-policies.html#example-policy-pe-api 
-//enable cost explorer apis -- https://docs.aws.amazon.com/cost-management/latest/userguide/billing-example-policies.html#example-policy-ce-api
+/**
+ * The most relevant apis are the AWS Price List and AWS Cost Explorer APIs
+ * enable price list apis
+ *  https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/billing-example-policies.html#example-policy-pe-api 
+ * enable cost explorer apis
+ *  https://docs.aws.amazon.com/cost-management/latest/userguide/billing-example-policies.html#example-policy-ce-api
+ */
 
 
 export type awsAccountUtilizationScenarios = 'hasPermissionsForPriceList' | 'hasPermissionsForCostExplorer';
 
 export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtilizationScenarios> {
-  
   constructor () {
     super();
   }
 
+  doAction (
+    _awsCredentialsProvider: AwsCredentialsProvider, _actionName: string, _resourceId: string, _region: string
+  ): void | Promise<void> {
+    throw new Error('Method not implemented.');
+  }
 
   async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[]): Promise<void> {
     const region = regions[0];
