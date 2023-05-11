@@ -12,6 +12,8 @@ const mockAccount = jest.fn();
 const mockListRegions = jest.fn();
 const mockCloudFormation = jest.fn();
 const mockDescribeStackResources = jest.fn();
+const mockCloudWatch = jest.fn();
+const mockGetMetricData = jest.fn();
 
 jest.mock('@aws-sdk/client-cloudwatch-logs', () => {
   const original = jest.requireActual('@aws-sdk/client-cloudwatch-logs');
@@ -35,6 +37,15 @@ jest.mock('@aws-sdk/client-cloudformation', () => {
   }
 });
 
+jest.mock('@aws-sdk/client-cloudwatch', () => {
+  return {
+    CloudWatch: mockCloudWatch
+  }
+});
+
+const TWO_GB_IN_BYTES = 2147483648;
+const ONE_HUNDRED_MB_IN_BYTES = 104857600;
+
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { AwsCredentialsProvider } from "@tinystacks/ops-aws-core-widgets";
 import { AwsCloudwatchLogsUtilization } from "../../src/service-utilizations/aws-cloudwatch-logs-utilization";
@@ -53,6 +64,9 @@ describe('AwsCloudwatchLogsUtilization', () => {
     });
     mockCloudFormation.mockReturnValue({
       describeStackResources: mockDescribeStackResources
+    });
+    mockCloudWatch.mockReturnValue({
+      getMetricData: mockGetMetricData
     });
   });
 
@@ -96,6 +110,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           lastEventTimestamp: new Date()
         }]
       });
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Values: [ ONE_HUNDRED_MB_IN_BYTES, 20 ]
+          }
+        ]
+      });
       
       const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();
       const provider = {
@@ -118,7 +139,8 @@ describe('AwsCloudwatchLogsUtilization', () => {
             value: undefined,
             optimize: {
               action: 'setRetentionPolicy',
-              reason: 'this log group does not have a retention policy'
+              reason: 'this log group does not have a retention policy',
+              monthlySavings: 0
             }
           }
         },
@@ -126,7 +148,9 @@ describe('AwsCloudwatchLogsUtilization', () => {
           resourceId: '/aws/mock-service/mock-resource',
           region: 'us-east-1',
           associatedResourceId: 'mock-resource',
-          stack: 'mock-stack'
+          stack: 'mock-stack',
+          monthlyCost: 0,
+          maxMonthlySavings: 0
         }
       });
     });
@@ -143,6 +167,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
         logStreams: [{
           lastEventTimestamp: Date.now() - (8 * 24 * 60 * 60 * 1000)
         }]
+      });
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Values: [ 0 ]
+          }
+        ]
       });
       
       const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();

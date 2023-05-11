@@ -24,6 +24,10 @@ import {
   AVG_NETWORK_BYTES_OUT
 } from '../constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
+import { Pricing } from '@aws-sdk/client-pricing';
+import { getAccountId, listAllRegions } from '../utils/utils.js';
+import { getInstanceCost } from '../utils/ec2-utils.js';
+import { Arns } from '../types/constants.js';
 
 const cache = cached<string>('ec2-util-cache', {
   backend: {
@@ -40,6 +44,7 @@ type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
 export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2InstanceUtilizationScenarioTypes> {
   instanceIds: string[];
   instances: Instance[];
+  accountId: string;
   DEBUG_MODE: boolean;
 
   constructor (enableDebugMode?: boolean) {
@@ -186,8 +191,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     return networkSetting;
   }
 
-  async getRegionalUtilization (awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEc2InstanceUtilizationOverrides) {
-    const credentials = await awsCredentialsProvider.getCredentials();
+  async getRegionalUtilization (credentials: any, region: string, overrides?: AwsEc2InstanceUtilizationOverrides) {
     const ec2Client = new EC2({
       credentials,
       region
@@ -200,7 +204,11 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       credentials,
       region
     });
-
+    const pricingClient = new Pricing({
+      credentials,
+      region
+    });
+  
     this.instances = await this.describeAllInstances(ec2Client, overrides?.instanceIds);
     
     const instanceIds = this.instances.map(i => i.InstanceId);
@@ -227,6 +235,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     const allInstanceTypes = Object.values(_InstanceType);
 
     for (const instanceId of this.instanceIds) {
+      const instanceArn = Arns.Ec2(region, this.accountId, instanceId);
       const instance = this.instances.find(i => i.InstanceId === instanceId);
       const instanceType = instanceTypes.find(it => it.InstanceType === instance.InstanceType);
       const instanceFamily = instanceType.InstanceType?.split('.')?.at(0);
@@ -278,17 +287,20 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         (networkInIsStable && networkOutIsStable) || 
         (avgNetworkThroughputMb < 5) // Source: https://www.trendmicro.com/cloudoneconformity/knowledge-base/aws/EC2/idle-instance.html
       );
+
+      const cost = await getInstanceCost(pricingClient, instanceType.InstanceType);
       
       if (
         lowCpuUtilization &&
         totalDiskIops === 0 &&
         lowNetworkUtilization
       ) {
-        this.addScenario(instanceId, 'unused', {
+        this.addScenario(instanceArn, 'unused', {
           value: 'unused',
           delete: {
             action: 'terminateInstance',
-            reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, and network traffic.'
+            reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, and network traffic.',
+            monthlySavings: cost
           }
         });
       } else {
@@ -336,26 +348,36 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         const targetInstanceType: InstanceTypeInfo | undefined = smallerInstances?.at(0);
 
         if (targetInstanceType) {
-          this.addScenario(instanceId, 'overAllocated', {
+          const targetInstanceCost = await getInstanceCost(pricingClient, targetInstanceType.InstanceType);
+          const monthlySavings = cost - targetInstanceCost;
+          this.addScenario(instanceArn, 'overAllocated', {
             value: 'overAllocated',
             scaleDown: {
               action: 'scaleDownInstance',
-              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}`
+              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}`,
+              monthlySavings
             }
           });
         }
-
-
       }
+
+      this.addData(instanceArn, 'resourceId', instanceId);
+      this.addData(instanceArn, 'region', region);
+      this.addData(instanceArn, 'monthlyCost', cost);
+      await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEc2InstanceUtilizationOverrides) {
-    for (const region of regions) {
-      await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: AwsEc2InstanceUtilizationOverrides) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    this.accountId = await getAccountId(credentials);
+    const usedRegions = regions || await listAllRegions(credentials);
+    for (const region of usedRegions) {
+      await this.getRegionalUtilization(credentials, region, overrides);
     }
+    this.getEstimatedMaxMonthlySavings();
   }
 
   async terminateInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string) {

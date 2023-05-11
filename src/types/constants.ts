@@ -3,6 +3,9 @@ import { AwsResourceType } from './types.js';
 export const Arns = {
   NatGateway (region: string, accountId: string, natGatewayId: string) {
     return `arn:aws:ec2:${region}:${accountId}:natgateway/${natGatewayId}`;
+  },
+  Ec2 (region: string, accountId: string, instanceId: string) {
+    return `arn:aws:ec2:${region}:${accountId}:instance/${instanceId}`;
   }
 };
 

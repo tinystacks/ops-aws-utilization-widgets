@@ -1,5 +1,3 @@
-import { LogGroup } from '@aws-sdk/client-cloudwatch-logs';
-import { NatGateway } from '@aws-sdk/client-ec2';
 
 export type Data = {
   region: string,
@@ -76,15 +74,6 @@ export type StabilityStatsOptions = {
   anomalyThreshold?: number;
   stabilityZScore?: number;
 };
-
-export type NatGatewayWithRegion = {
-  region: string,
-  natGateway: NatGateway
-}
-
-export type LogGroupsPerRegion = {
-  [ region: string ]: LogGroup[]
-}
 
 export type AwsResourceType = 'Account' |
   'CloudwatchLogs' |

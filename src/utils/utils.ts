@@ -43,7 +43,7 @@ export async function listAllRegions (credentials: any) {
       RegionOptStatusContains: ['ENABLED', 'ENABLED_BY_DEFAULT'],
       NextToken: listRegionsRes?.NextToken
     });
-    regions = [ ...regions, ...listRegionsRes.Regions.map(region => region.RegionName) ];
+    regions = [...regions, ...listRegionsRes.Regions.map(region => region.RegionName)];
   } while (listRegionsRes?.NextToken);
 
   return regions;
@@ -56,4 +56,67 @@ export async function getAccountId (credentials: any) {
   });
 
   return (await stsClient.getCallerIdentity({}))?.Account;
+}
+
+export async function addFullJitter (attempt: number, cap = 5000, base = 3000, min = 3000) {
+  const randomBetween = Math.floor(Math.random() * (Math.min(cap, base * 2 ** attempt) - min + 1) + min);
+  console.log(randomBetween);
+  await new Promise(r => setTimeout(r, randomBetween));
+}
+
+export function rateLimitMap (array: any[], requestsPerSec: number, maxInFlight: number, fn: (...args: any[]) => Promise<void>) {
+  return new Promise((resolve, reject) => {
+    let index = 0;
+    let inFlightCntr = 0;
+    let doneCntr = 0;
+    const launchTimes: number[] = [];
+    const results = new Array(array.length);
+
+    // calculate num requests in last second
+    function calcRequestsInLastSecond () {
+      const now = Date.now();
+      // look backwards in launchTimes to see how many were launched within the last second
+      let cnt = 0;
+      for (let i = launchTimes.length - 1; i >= 0; i--) {
+        if (now - launchTimes[i] < 1000) {
+          ++cnt;
+        } else {
+          break;
+        }
+      }
+      return cnt;
+    }
+
+    function runMore () {
+      while (index < array.length && inFlightCntr < maxInFlight && calcRequestsInLastSecond() < requestsPerSec) {
+        (function (i) {
+          ++inFlightCntr;
+          launchTimes.push(Date.now());
+          fn(array[i]).then((val: any) => {
+            results[i] = val;
+            --inFlightCntr;
+            ++doneCntr;
+            runMore();
+          }, reject);
+        })(index);
+        ++index;
+      }
+      // see if we're done
+      if (doneCntr === array.length) {
+        resolve(results);
+      } else if (launchTimes.length >= requestsPerSec) {
+        // calc how long we have to wait before sending more
+        let delta = 1000 - (Date.now() - launchTimes[launchTimes.length - requestsPerSec]);
+        if (delta >= 0) {
+          setTimeout(runMore, ++delta);
+        }
+      }
+    }
+    runMore();
+  });
+}
+
+export function round (val: number, decimalPlace: number) {
+  const factor = 10 ** decimalPlace;
+  return Math.round(val * factor) / factor;
 }
