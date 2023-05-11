@@ -108,6 +108,14 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             {serviceUtil[resId].scenarios[th]?.value}
           </Td>
         )}
+        <Td
+          key={resId + 'cost/mo'}
+          maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+          overflow='hidden'
+          textOverflow='ellipsis'
+        >
+          {serviceUtil[resId].data.monthlyCost}
+        </Td>
       </Tr>
     ));
     
@@ -124,6 +132,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Th w={CHECKBOX_CELL_MAX_WIDTH}></Th>
                 <Th>Resource ID</Th>
                 {tableHeadersDom}
+                <Th>Cost/Mo</Th>
                 <Th />
               </Tr>
             </Thead>
