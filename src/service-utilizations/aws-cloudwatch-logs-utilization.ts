@@ -2,6 +2,7 @@ import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
+import { ONE_GB_IN_BYTES } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
@@ -19,12 +20,12 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 // problem, we calulcate savings but these savings only work if user is outside of free tier (we can make this assumption)
 // can use listMetrics to find all log groups that are still ingesting data
 
-const ONE_GB_IN_BYTES = 1073741824;
 const ONE_HUNDRED_MB_IN_BYTES = 104857600;
 const NOW = Date.now();
-const threeHoursAgo = NOW - (3 * 60 * 60 * 1000);
+const oneMonthAgo = NOW - (30 * 24 * 60 * 60 * 1000);
 const thirtyDaysAgo = NOW - (30 * 24 * 60 * 60 * 1000);
 const sevenDaysAgo = NOW - (7 * 24 * 60 * 60 * 1000);
+const twoWeeksAgo = NOW - (14 * 24 * 60 * 60 * 1000);
 
 type AwsCloudwatchLogsUtilizationScenarioTypes = 'retentionInDays' | 'lastEventTime' | 'storedBytes';
 
@@ -74,7 +75,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
   }
 
   private async getEstimatedMonthlyIncomingBytes (credentials: any, region: string, logGroupName: string, lastEventTime: number) {
-    if (lastEventTime > threeHoursAgo) {
+    if (!lastEventTime || lastEventTime < twoWeeksAgo) {
       return 0;
     }
 
@@ -83,9 +84,9 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       region
     });
 
-    // average bytes per hour over last 3 hours
+    // average bytes per month over last 3 hours
     const res = await cwClient.getMetricData({
-      StartTime: new Date(threeHoursAgo),
+      StartTime: new Date(oneMonthAgo),
       EndTime: new Date(),
       MetricDataQueries: [
         {
@@ -96,16 +97,16 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
               MetricName: 'IncomingBytes',
               Dimensions: [{ Name: 'LogGroupName', Value: logGroupName }]
             },
-            Period: 60 * 60, // 1 hour
-            Stat: 'Average'
+            Period: 30 * 24 * 12 * 300, // 1 month
+            Stat: 'Sum'
           }
         }
       ]
     });
-    const incomingBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
-    const estimatedMonthlyIncomingBytes = incomingBytes * 24 * 30;
+    const monthlyIncomingBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+    console.log(`${logGroupName}: ${monthlyIncomingBytes}, numValues: ${res.MetricDataResults[0].Values.length}, lastEventTime: ${lastEventTime}`);
 
-    return estimatedMonthlyIncomingBytes;
+    return monthlyIncomingBytes;
   }
 
   private async getLogGroupData (credentials: any, region: string, logGroup: LogGroup) {
@@ -120,7 +121,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     const storedBytesCost = (storedBytes / ONE_GB_IN_BYTES) * 0.03;
     const dataProtectionEnabled = logGroup?.dataProtectionStatus === 'ACTIVATED';
     const dataProtectionCost = dataProtectionEnabled ? storedBytes * 0.12 : 0;
-    const totalStoredBytesCost = storedBytesCost + dataProtectionCost;
+    const monthlyStorageCost = storedBytesCost + dataProtectionCost;
 
     // get data and cost estimate for ingested bytes
     const describeLogStreamsRes = await cwLogsClient.describeLogStreams({
@@ -144,8 +145,8 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     return {
       storedBytes,
       lastEventTime,
-      totalStoredBytesCost,
-      totalCost: logIngestionCost + totalStoredBytesCost,
+      monthlyStorageCost,
+      totalMonthlyCost: logIngestionCost + monthlyStorageCost,
       associatedResourceId
     };
   }
@@ -161,8 +162,8 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         const {
           storedBytes,
           lastEventTime,
-          totalStoredBytesCost,
-          totalCost,
+          monthlyStorageCost,
+          totalMonthlyCost,
           associatedResourceId
         } = await this.getLogGroupData(credentials, region, logGroup);
 
@@ -171,7 +172,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           optimize: {
             action: 'setRetentionPolicy',
             reason: 'this log group does not have a retention policy',
-            monthlySavings: totalStoredBytesCost
+            monthlySavings: monthlyStorageCost
           }
         });
 
@@ -182,7 +183,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             scaleDown: {
               action: 'createExportTask',
               reason: 'this log group has more than 100 MB of stored data',
-              monthlySavings: totalStoredBytesCost
+              monthlySavings: monthlyStorageCost
             }
           });
         }
@@ -193,7 +194,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             delete: {
               action: 'deleteLogGroup',
               reason: 'this log group has not had an event in over 30 days',
-              monthlySavings: totalCost
+              monthlySavings: totalMonthlyCost
             }
           });
         } else if (lastEventTime < sevenDaysAgo) {
@@ -207,7 +208,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         }
         this.addData(logGroupArn, 'resourceId', logGroupName);
         this.addData(logGroupArn, 'region', region);
-        this.addData(logGroupArn, 'monthlyCost', totalCost);
+        this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
         await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
         if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }
