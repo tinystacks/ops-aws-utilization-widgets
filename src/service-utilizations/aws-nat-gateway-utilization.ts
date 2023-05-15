@@ -1,10 +1,10 @@
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import { DescribeNatGatewaysCommandOutput, EC2 } from '@aws-sdk/client-ec2';
+import { DescribeNatGatewaysCommandOutput, EC2, NatGateway } from '@aws-sdk/client-ec2';
+import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
-import { NatGatewayWithRegion } from '../types/types.js';
-import { getAccountId, listAllRegions } from '../utils/utils.js';
+import { getAccountId, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 /**
@@ -16,6 +16,9 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
+  accountId: string;
+  cost: number;
+
   constructor () {
     super();
   }
@@ -38,134 +41,130 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
     });
   }
 
-  private async getAllNatGateways (credentials: any, regions: string[]) {
-    let allNatGateways: NatGatewayWithRegion[] = [];
-    void await Promise.all(regions.map(async (region) => {
-      const ec2Client = new EC2({
-        credentials,
-        region
+  private async getAllNatGateways (credentials: any, region: string) {
+    const ec2Client = new EC2({
+      credentials,
+      region
+    });
+    let allNatGateways: NatGateway[] = [];
+    let describeNatGatewaysRes: DescribeNatGatewaysCommandOutput;
+    do {
+      describeNatGatewaysRes = await ec2Client.describeNatGateways({
+        NextToken: describeNatGatewaysRes?.NextToken
       });
-      let describeNatGatewaysRes: DescribeNatGatewaysCommandOutput;
-      do {
-        describeNatGatewaysRes = await ec2Client.describeNatGateways({
-          NextToken: describeNatGatewaysRes?.NextToken
-        });
-        const natGatewaysWithRegion = describeNatGatewaysRes?.NatGateways?.map((natGateway) => {
-          return {
-            region,
-            natGateway
-          };
-        });
-        allNatGateways = [...allNatGateways, ...natGatewaysWithRegion];
-      } while (describeNatGatewaysRes?.NextToken);
-    }));
+      allNatGateways = [...allNatGateways, ...describeNatGatewaysRes?.NatGateways || []];
+    } while (describeNatGatewaysRes?.NextToken);
+
     return allNatGateways;
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {
-    const credentials = await awsCredentialsProvider.getCredentials();
-    const accountId = await getAccountId(credentials);
-    const usedRegions = regions || await listAllRegions(credentials);
-    const allNatGateways = await this.getAllNatGateways(credentials, usedRegions);
-    void await Promise.all(allNatGateways.map(async (natGateway) => {
-      const region = natGateway.region;
-      const natGatewayId = natGateway.natGateway.NatGatewayId;
-      const natGatewayArn = Arns.NatGateway(region, accountId, natGatewayId);
-      const fiveMinutesAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
-      const cwClient = new CloudWatch({
-        credentials,
-        region
-      });
-      const metricDataRes = await cwClient.getMetricData({
-        MetricDataQueries: [
-          {
-            Id: 'activeConnectionCount',
-            MetricStat: {
-              Metric: {
-                Namespace: 'AWS/NATGateway',
-                MetricName: 'ActiveConnectionCount',
-                Dimensions: [{
-                  Name: 'NatGatewayId',
-                  Value: natGatewayId
-                }]
-              },
-              Period: 5 * 60, // 5 minutes
-              Stat: 'Maximum'
-            }
-          },
-          {
-            Id: 'bytesInFromDestination',
-            MetricStat: {
-              Metric: {
-                Namespace: 'AWS/NATGateway',
-                MetricName: 'BytesInFromDestination',
-                Dimensions: [{
-                  Name: 'NatGatewayId',
-                  Value: natGatewayId
-                }]
-              },
-              Period: 5 * 60, // 5 minutes
-              Stat: 'Sum'
-            }
-          },
-          {
-            Id: 'bytesInFromSource',
-            MetricStat: {
-              Metric: {
-                Namespace: 'AWS/NATGateway',
-                MetricName: 'BytesInFromSource',
-                Dimensions: [{
-                  Name: 'NatGatewayId',
-                  Value: natGatewayId
-                }]
-              },
-              Period: 5 * 60, // 5 minutes
-              Stat: 'Sum'
-            }
-          },
-          {
-            Id: 'bytesOutToDestination',
-            MetricStat: {
-              Metric: {
-                Namespace: 'AWS/NATGateway',
-                MetricName: 'BytesOutToDestination',
-                Dimensions: [{
-                  Name: 'NatGatewayId',
-                  Value: natGatewayId
-                }]
-              },
-              Period: 5 * 60, // 5 minutes
-              Stat: 'Sum'
-            }
-          },
-          {
-            Id: 'bytesOutToSource',
-            MetricStat: {
-              Metric: {
-                Namespace: 'AWS/NATGateway',
-                MetricName: 'BytesOutToSource',
-                Dimensions: [{
-                  Name: 'NatGatewayId',
-                  Value: natGatewayId
-                }]
-              },
-              Period: 5 * 60, // 5 minutes
-              Stat: 'Sum'
-            }
+  private async getNatGatewayMetrics (credentials: any, region: string, natGatewayId: string) {
+    const cwClient = new CloudWatch({
+      credentials,
+      region
+    });
+    const fiveMinutesAgo = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000));
+    const metricDataRes = await cwClient.getMetricData({
+      MetricDataQueries: [
+        {
+          Id: 'activeConnectionCount',
+          MetricStat: {
+            Metric: {
+              Namespace: 'AWS/NATGateway',
+              MetricName: 'ActiveConnectionCount',
+              Dimensions: [{
+                Name: 'NatGatewayId',
+                Value: natGatewayId
+              }]
+            },
+            Period: 5 * 60, // 5 minutes
+            Stat: 'Maximum'
           }
-        ],
-        StartTime: fiveMinutesAgo,
-        EndTime: new Date()
-      });
+        },
+        {
+          Id: 'bytesInFromDestination',
+          MetricStat: {
+            Metric: {
+              Namespace: 'AWS/NATGateway',
+              MetricName: 'BytesInFromDestination',
+              Dimensions: [{
+                Name: 'NatGatewayId',
+                Value: natGatewayId
+              }]
+            },
+            Period: 5 * 60, // 5 minutes
+            Stat: 'Sum'
+          }
+        },
+        {
+          Id: 'bytesInFromSource',
+          MetricStat: {
+            Metric: {
+              Namespace: 'AWS/NATGateway',
+              MetricName: 'BytesInFromSource',
+              Dimensions: [{
+                Name: 'NatGatewayId',
+                Value: natGatewayId
+              }]
+            },
+            Period: 5 * 60, // 5 minutes
+            Stat: 'Sum'
+          }
+        },
+        {
+          Id: 'bytesOutToDestination',
+          MetricStat: {
+            Metric: {
+              Namespace: 'AWS/NATGateway',
+              MetricName: 'BytesOutToDestination',
+              Dimensions: [{
+                Name: 'NatGatewayId',
+                Value: natGatewayId
+              }]
+            },
+            Period: 5 * 60, // 5 minutes
+            Stat: 'Sum'
+          }
+        },
+        {
+          Id: 'bytesOutToSource',
+          MetricStat: {
+            Metric: {
+              Namespace: 'AWS/NATGateway',
+              MetricName: 'BytesOutToSource',
+              Dimensions: [{
+                Name: 'NatGatewayId',
+                Value: natGatewayId
+              }]
+            },
+            Period: 5 * 60, // 5 minutes
+            Stat: 'Sum'
+          }
+        }
+      ],
+      StartTime: fiveMinutesAgo,
+      EndTime: new Date()
+    });
 
-      const results = metricDataRes.MetricDataResults;
+    return metricDataRes.MetricDataResults;
+  }
+
+  private async getRegionalUtilization (credentials: any, region: string) {
+    const allNatGateways = await this.getAllNatGateways(credentials, region);
+
+    const analyzeNatGateway = async (natGateway: NatGateway) => {
+      const natGatewayId = natGateway.NatGatewayId;
+      const natGatewayArn = Arns.NatGateway(region, this.accountId, natGatewayId);
+  
+      const results = await this.getNatGatewayMetrics(credentials, region, natGatewayId);
       const activeConnectionCount = get(results, '[0].Values[0]') as number;
       if (activeConnectionCount === 0) {
         this.addScenario(natGatewayArn, 'activeConnectionCount', {
           value: activeConnectionCount.toString(),
           delete: {
             action: 'deleteNatGateway',
-            reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.'
+            reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.',
+            monthlySavings: this.cost
           }
         });
       }
@@ -179,14 +178,61 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           value: totalThroughput.toString(),
           delete: {
             action: 'deleteNatGateway',
-            reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.'
+            reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.',
+            monthlySavings: this.cost
           }
         });
       }
       this.addData(natGatewayArn, 'resourceId', natGatewayId);
       this.addData(natGatewayArn, 'region', region);
-    }));
-    await this.identifyCloudformationStack(credentials);
-    console.info(this.utilization);
+      this.addData(natGatewayArn, 'monthyCost', this.cost);
+      await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
+    };
+
+    await rateLimitMap(allNatGateways, 6, 6, analyzeNatGateway);
+  }
+
+  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    this.accountId = await getAccountId(credentials);
+    this.cost = await this.getNatGatewayPrice(credentials);
+    const usedRegions = regions || await listAllRegions(credentials);
+    for (const region of usedRegions) {
+      await this.getRegionalUtilization(credentials, region);
+    }
+    this.getEstimatedMaxMonthlySavings();
+  }
+
+  private async getNatGatewayPrice (credentials: any) {
+    const pricingClient = new Pricing({
+      credentials,
+      // global but have to specify region
+      region: 'us-east-1'
+    });
+
+    // const natGatewayId = 'nat-0a6557968578af14d';
+    const res = await pricingClient.getProducts({
+      ServiceCode: 'AmazonEC2',
+      Filters: [
+        {
+          Type: 'TERM_MATCH',
+          Field: 'productFamily',
+          Value: 'NAT Gateway'
+        },
+        {
+          Type: 'TERM_MATCH',
+          Field: 'usageType',
+          Value: 'NatGateway-Hours'
+        }
+      ]
+    });
+    const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
+    const onDemandKeys = Object.keys(onDemandData);
+    const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
+    const priceDimensionsKeys = Object.keys(priceDimensionsData);
+    const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
+
+    // monthly cost
+    return pricePerHour * 24 * 30;
   }
 }

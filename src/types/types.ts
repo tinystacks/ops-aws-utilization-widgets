@@ -1,11 +1,11 @@
-import { LogGroup } from '@aws-sdk/client-cloudwatch-logs';
-import { NatGateway } from '@aws-sdk/client-ec2';
 
 export type Data = {
   region: string,
   resourceId: string,
   associatedResourceId?: string,
-  stack?: string
+  stack?: string,
+  monthlyCost?: number,
+  maxMonthlySavings?: number,
   [ key: string ]: any;
 }
 
@@ -29,7 +29,8 @@ export const actionTypeToEnum = {
 
 export type Action = {
   action: string,
-  reason: string
+  reason: string,
+  monthlySavings?: number
 }
 
 export type Scenario = {
@@ -95,15 +96,6 @@ export type StabilityStatsOptions = {
   anomalyThreshold?: number;
   stabilityZScore?: number;
 };
-
-export type NatGatewayWithRegion = {
-  region: string,
-  natGateway: NatGateway
-}
-
-export type LogGroupsPerRegion = {
-  [ region: string ]: LogGroup[]
-}
 
 export type AwsResourceType = 'Account' |
   'CloudwatchLogs' |
