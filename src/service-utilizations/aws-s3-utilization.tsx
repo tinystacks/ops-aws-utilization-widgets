@@ -99,6 +99,8 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       }
 
     }
+
+    this.addData(bucketName, 'region', region);
   }
 
   async getLifecyclePolicy (s3Client: S3, bucketName: string, region: string) {

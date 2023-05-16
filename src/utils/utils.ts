@@ -5,6 +5,8 @@ import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
 
+
+
 export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
   if (!providers || isEmpty(providers)) {
     throw new Error('No AwsUtilizationProvider provided');
@@ -71,3 +73,12 @@ export async function getAccountId (credentials: any) {
 
   return (await stsClient.getCallerIdentity({}))?.Account;
 }
+
+/*export async function getMetrics(nameSpace: string, metricName: string, dimensionName: string){ 
+
+  const endTime = new Date(Date.now()); 
+  const startTime = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); //90 days ago
+  const period = 86400; //we want 90 datapoints
+
+
+}*/

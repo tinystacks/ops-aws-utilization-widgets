@@ -42,3 +42,27 @@ export function filterServiceForActionType (
     }, {});
   return actionFilteredServiceUtil;
 }
+
+export function getNumberOfResourcesFromFilteredActions (filtered: { [service: string]: Utilization<string> }): number {
+  let total = 0;
+  Object.keys(filtered).forEach((s) => {
+    if (!filtered[s] || isEmpty(filtered[s])) return;
+    total += Object.keys(filtered[s]).length;
+  });
+  return total;
+}
+
+export function getTotalNumberOfResources ( utilization: { [service: string]: Utilization<string> }): number { 
+  let total = 0; 
+  Object.keys(utilization).forEach((service) => {
+    if (!utilization[service] || isEmpty(utilization[service])) return;
+    total += Object.keys(utilization[service]).length;
+  });
+
+  return total;
+}
+
+export function sentenceCase (name: string): string{ 
+  const result = name.replace(/([A-Z])/g, ' $1');
+  return result[0].toUpperCase() + result.substring(1).toLowerCase();
+}

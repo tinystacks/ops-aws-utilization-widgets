@@ -9,6 +9,21 @@ export type Data = {
   [ key: string ]: any;
 }
 
+export type Metrics = { 
+  [ metricName: string ]: Metric
+}
+
+export type Metric = { 
+  yAxisLabel: string, 
+  yLimits?: number, 
+  values: MetricData[]
+}
+
+export type MetricData = { 
+  timestamp?: Date;
+  value: number
+}
+
 export enum ActionType {
   OPTIMIZE='optimize',
   DELETE='delete',
@@ -45,7 +60,8 @@ export type Scenarios<ScenarioTypes extends string> = {
 
 export type Resource<ScenarioTypes extends string> = {
   scenarios: Scenarios<ScenarioTypes>,
-  data: Data
+  data: Data,
+  metrics: Metrics
 }
 
 export type Utilization<ScenarioTypes extends string> = {

@@ -3,16 +3,19 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   Button, HStack, Heading, Stack, Text, Box, useDisclosure, Input, AlertTitle, AlertIcon, Alert, Spacer, Flex
 } from '@chakra-ui/react';
+import { ArrowBackIcon } from '@chakra-ui/icons';
 import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
 import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
 import { actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
+import { RecommendationsInProgress } from './recommendation-inprogress.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const { actionType, resourceIds, onRemoveResource, onResourcesAction, utilization } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
+  const [actionsInProgress, setActionsInProgress] = useState<boolean | undefined>(undefined);
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1);
   
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
@@ -62,6 +65,11 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
         </Stack>
         <Spacer />
         <Box>
+          <Button colorScheme='gray' size='sm' marginRight={'8px'} onClick={() => props.onBack()}> 
+            { <><ArrowBackIcon /> Back </> } 
+          </Button>
+        </Box>
+        <Box>
           <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel} all</Button>
         </Box>
       </Flex>
@@ -95,8 +103,10 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
                     if (confirmationText !== actionType + ' resources') {
                       setError(`Type '${actionType} resources' in the box to continue`);
                     } else {
+                      setActionsInProgress(true);
                       setError(undefined);
                       onResourcesAction(resourceIds, actionType);
+                      
                     }
                   }}
                 >
@@ -111,6 +121,8 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           </ModalBody>
         </ModalContent>
       </Modal>
+      <RecommendationsInProgress 
+        isOpen={actionsInProgress} />
     </Stack>
   );
 }

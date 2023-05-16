@@ -589,7 +589,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
 
     if (targetInstanceType) {
       this.addScenario(service.serviceArn, 'overAllocated', {
-        value: 'overAllocated',
+        value: 'true',
         scaleDown: {
           action: 'scaleDownEc2Service',
           reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU' +
@@ -786,7 +786,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         noNetworkUtilization
       ) {
         this.addScenario(service.serviceArn, 'unused', {
-          value: 'unused',
+          value: 'true',
           delete: {
             action: 'deleteService',
             reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and'

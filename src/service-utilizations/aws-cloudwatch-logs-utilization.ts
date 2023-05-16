@@ -14,7 +14,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 // We could create a priority system, execute alarm rec's first and fail the other actions gracefully, etc.
 // Could also provide an option to export here first then delete
 
-type AwsCloudwatchLogsUtilizationScenarioTypes = 'retentionInDays' | 'lastEventTime' | 'storedBytes';
+type AwsCloudwatchLogsUtilizationScenarioTypes = 'hasRetentionPolicy' | 'lastEventTime' | 'storedBytes';
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
   constructor () {
@@ -93,8 +93,8 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         });
         const retentionInDays = logGroup?.retentionInDays;
         if (!retentionInDays) {
-          this.addScenario(logGroupArn, 'retentionInDays', {
-            value: retentionInDays?.toString(),
+          this.addScenario(logGroupArn, 'hasRetentionPolicy', {
+            value: 'false',
             optimize: {
               action: 'setRetentionPolicy',
               reason: 'this log group does not have a retention policy'
