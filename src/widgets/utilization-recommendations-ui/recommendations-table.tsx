@@ -17,6 +17,7 @@ import { ChevronDownIcon, InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 
 export const CHECKBOX_CELL_MAX_WIDTH = '16px';
 export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
+const RESOURCE_VALUE_MAX_WIDTH = '170px';
 
 export function RecommendationsTable (props: RecommendationsTableProps) {
   const { utilization, actionType, onRefresh } = props;
@@ -90,7 +91,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
     );
     const tableHeaders = [...tableHeadersSet];
     const tableHeadersDom = actionType === ActionType.DELETE  ? [...tableHeaders].map(th =>
-      <Th key={th} maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'>
+      <Th key={th} maxW={RESOURCE_VALUE_MAX_WIDTH} overflow='hidden'>
         {sentenceCase(th)}
       </Th>
     ): undefined;
@@ -113,7 +114,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
         {tableHeaders.map(th => 
           <Td
             key={resId + 'scenario' + th}
-            maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+            maxW={RESOURCE_VALUE_MAX_WIDTH}
             overflow='hidden'
             textOverflow='ellipsis'
           >
@@ -190,6 +191,11 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   function taskRowsForOptimize (serviceName: string, serviceUtil: Utilization<string>){
+    const usd = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    });
+    
     const tableHeadersSet = new Set<string>();
     Object.keys(serviceUtil).forEach(resId =>
       Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
@@ -211,7 +217,27 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           >
             {resId}
           </Td>
-          <Td>
+          <Td
+            key={resId + 'cost/mo'}
+            maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+            overflow='hidden'
+            textOverflow='ellipsis'
+          >
+            {usd.format(serviceUtil[resId].data.monthlyCost)}
+          </Td>
+          <Td
+            key={resId + 'cost/hr'}
+            maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+            overflow='hidden'
+            textOverflow='ellipsis'
+          >
+            {usd.format(serviceUtil[resId].data.hourlyCost)}
+          </Td>
+          <Td
+            maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+            overflow='hidden'
+            textOverflow='ellipsis'
+          >
             <Button
               variant='link'
               onClick={() => {
