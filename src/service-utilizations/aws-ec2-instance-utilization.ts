@@ -27,7 +27,7 @@ import {
 } from '../constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { getAccountId, listAllRegions } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, listAllRegions } from '../utils/utils.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Arns } from '../types/constants.js';
 
@@ -380,6 +380,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'resourceId', instanceId);
       this.addData(instanceArn, 'region', region);
       this.addData(instanceArn, 'monthlyCost', cost);
+      this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
 

@@ -4,7 +4,7 @@ import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
-import { getAccountId, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 /**
@@ -186,6 +186,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       this.addData(natGatewayArn, 'resourceId', natGatewayId);
       this.addData(natGatewayArn, 'region', region);
       this.addData(natGatewayArn, 'monthyCost', this.cost);
+      this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
     };
 

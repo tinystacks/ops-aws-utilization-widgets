@@ -42,12 +42,12 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
         credentials,
         region
       });
-      const stack = await cfnClient.describeStackResources({
+      await cfnClient.describeStackResources({
         PhysicalResourceId: associatedResourceId ? associatedResourceId : resourceId
-      }).then(res => res.StackResources[0].StackId)
-        .catch(() => { return; });
-
-      this.addData(resourceArn, 'stack', stack);
+      }).then((res) => {
+        const stack = res.StackResources[0].StackId;
+        this.addData(resourceArn, 'stack', stack);
+      }).catch(() => { return; });
     }
   }
 

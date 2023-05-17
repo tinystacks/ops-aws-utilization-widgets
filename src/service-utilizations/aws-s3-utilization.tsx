@@ -2,7 +2,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { Bucket, S3 } from '@aws-sdk/client-s3';
 import { AwsServiceOverrides } from '../types/types.js';
-import { listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import _ from 'lodash';
 import { Arns, ONE_GB_IN_BYTES } from '../types/constants.js';
@@ -21,6 +21,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
 
   constructor () {
     super();
+    this.bucketCostData = {};
   }
 
   async doAction (awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string) {
@@ -77,7 +78,9 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       this.addData(bucketArn, 'resourceId', bucketName);
       this.addData(bucketArn, 'region', region);
       if (bucketName in this.bucketCostData) {
-        this.addData(bucketArn, 'monthlyCost', this.bucketCostData[bucketName].monthlyCost);
+        const monthlyCost = this.bucketCostData[bucketName].monthlyCost;
+        this.addData(bucketArn, 'monthlyCost', monthlyCost);
+        this.addData(bucketArn, 'hourlyCost', getHourlyCost(monthlyCost));
       }
     };
 

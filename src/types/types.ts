@@ -4,6 +4,7 @@ export type Data = {
   resourceId: string,
   associatedResourceId?: string,
   stack?: string,
+  hourlyCost?: number,
   monthlyCost?: number,
   maxMonthlySavings?: number,
   [ key: string ]: any;

@@ -49,7 +49,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { listAllRegions } from '../utils/utils.js';
+import { getHourlyCost, listAllRegions } from '../utils/utils.js';
 
 const cache = cached<string>('ecs-util-cache', {
   backend: {
@@ -101,12 +101,14 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
   elbV2Client: ElasticLoadBalancingV2;
   apigClient: ApiGatewayV2;
   pricingClient: Pricing;
+  serviceCosts: { [ service: string ]: number };
   DEBUG_MODE: boolean;
 
   constructor (enableDebugMode?: boolean) {
     super();
     this.serviceArns = [];
     this.services = [];
+    this.serviceCosts = {};
     this.DEBUG_MODE = enableDebugMode || false;
   }
 
@@ -567,6 +569,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     const instanceType = containerInstance.attributes.find(attr => attr.name === 'ecs.instance-type')?.value;
     const monthlyInstanceCost = await getInstanceCost(this.pricingClient, instanceType);
     const monthlyCost = monthlyInstanceCost * numEc2Instances;
+    this.serviceCosts[service.serviceName] = monthlyCost;
 
     return {
       allocatedCpu,
@@ -666,6 +669,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     const memory = allocatedMemory / 1024;
 
     const monthlyCost = this.calculateFargateCost(platform, cpuArch, vcpu, memory, numTasks);
+    this.serviceCosts[service.serviceName] = monthlyCost;
 
     return {
       allocatedCpu,
@@ -900,6 +904,11 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
 
       this.addData(service.serviceArn, 'resourceId', service.serviceName);
       this.addData(service.serviceArn, 'region', region);
+      if (service.serviceName in this.serviceCosts) {
+        const monthlyCost = this.serviceCosts[service.serviceName];
+        this.addData(service.serviceArn, 'monthlyCost', monthlyCost);
+        this.addData(service.serviceArn, 'hourlyCost', getHourlyCost(monthlyCost));
+      }
       await this.identifyCloudformationStack(
         credentials,
         region,

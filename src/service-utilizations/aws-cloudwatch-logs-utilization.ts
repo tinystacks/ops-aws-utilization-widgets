@@ -4,7 +4,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
 import { ONE_GB_IN_BYTES } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
-import { listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 const ONE_HUNDRED_MB_IN_BYTES = 104857600;
@@ -196,7 +196,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         
         if (lastEventTime < thirtyDaysAgo) {
           this.addScenario(logGroupArn, 'lastEventTime', {
-            value: lastEventTime.toString(),
+            value: new Date(lastEventTime).toLocaleString(),
             delete: {
               action: 'deleteLogGroup',
               reason: 'this log group has not had an event in over 30 days',
@@ -205,7 +205,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           });
         } else if (lastEventTime < sevenDaysAgo) {
           this.addScenario(logGroupArn, 'lastEventTime', {
-            value: lastEventTime.toString(),
+            value: new Date(lastEventTime).toLocaleString(),
             optimize: {
               action: '',
               reason: 'this log group has not had an event in over 7 days'
@@ -215,6 +215,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         this.addData(logGroupArn, 'resourceId', logGroupName);
         this.addData(logGroupArn, 'region', region);
         this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
+        this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
         await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
         if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }
@@ -232,5 +233,6 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       await this.getRegionalUtilization(credentials, region, _overrides);
     }
     this.getEstimatedMaxMonthlySavings();
+    console.log(this.utilization);
   }
 }

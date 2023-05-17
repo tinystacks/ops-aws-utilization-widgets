@@ -136,3 +136,7 @@ export function round (val: number, decimalPlace: number) {
   const factor = 10 ** decimalPlace;
   return Math.round(val * factor) / factor;
 }
+
+export function getHourlyCost (monthlyCost: number) {
+  return (monthlyCost / 30) / 24;
+}
