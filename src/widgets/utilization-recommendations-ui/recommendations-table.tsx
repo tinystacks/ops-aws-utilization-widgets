@@ -80,6 +80,10 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   function resourcesTable (serviceName: string, serviceUtil: Utilization<string>) {
+    const usd = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    });
     const tableHeadersSet = new Set<string>();
     Object.keys(serviceUtil).forEach(resId =>
       Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
@@ -126,6 +130,22 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             </Tooltip>            
           </Td>
         )}
+        <Td
+          key={resId + 'cost/mo'}
+          maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+          overflow='hidden'
+          textOverflow='ellipsis'
+        >
+          {usd.format(serviceUtil[resId].data.monthlyCost)}
+        </Td>
+        <Td
+          key={resId + 'cost/hr'}
+          maxW={RESOURCE_PROPERTY_MAX_WIDTH}
+          overflow='hidden'
+          textOverflow='ellipsis'
+        >
+          {usd.format(serviceUtil[resId].data.hourlyCost)}
+        </Td>
         <Td> 
           <Button
             variant='link'
@@ -157,6 +177,8 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Th w={CHECKBOX_CELL_MAX_WIDTH}></Th>
                 <Th>Resource ID</Th>
                 {tableHeadersDom}
+                <Th>Estimated Cost/Mo</Th>
+                <Th>Estimated Cost/Hr</Th>
                 <Th />
               </Tr>
             </Thead>

@@ -3,6 +3,12 @@ import { AwsResourceType } from './types.js';
 export const Arns = {
   NatGateway (region: string, accountId: string, natGatewayId: string) {
     return `arn:aws:ec2:${region}:${accountId}:natgateway/${natGatewayId}`;
+  },
+  Ec2 (region: string, accountId: string, instanceId: string) {
+    return `arn:aws:ec2:${region}:${accountId}:instance/${instanceId}`;
+  },
+  S3 (bucketName: string) {
+    return `arn:aws:s3:::${bucketName}`;
   }
 };
 
@@ -21,3 +27,5 @@ export const AwsResourceTypes: {
   EbsVolume: 'EbsVolume',
   RdsInstance: 'RdsInstance'
 } as const;
+
+export const ONE_GB_IN_BYTES = 1073741824;

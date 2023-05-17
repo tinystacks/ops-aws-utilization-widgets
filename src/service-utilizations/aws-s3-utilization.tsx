@@ -1,14 +1,27 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
-import { S3 } from '@aws-sdk/client-s3';
+import { Bucket, S3 } from '@aws-sdk/client-s3';
 import { AwsServiceOverrides } from '../types/types.js';
+import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import _ from 'lodash';
+import { Arns, ONE_GB_IN_BYTES } from '../types/constants.js';
+
+type S3CostData = {
+  monthlyCost: number,
+  monthlySavings: number
+}
 
 export type s3UtilizationScenarios = 'hasIntelligentTiering' | 'hasLifecyclePolicy';
 
 export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios> {
-  
+  s3Client: S3;
+  cwClient: CloudWatch;
+  bucketCostData: { [ bucketName: string ]: S3CostData };
+
   constructor () {
     super();
+    this.bucketCostData = {};
   }
 
   async doAction (awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string) {
@@ -41,60 +54,72 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         ]
       }
     });
+  }
 
+  async getRegionalUtilization (credentials: any, region: string) {
+    this.s3Client = new S3({
+      credentials,
+      region
+    });
+    this.cwClient = new CloudWatch({
+      credentials,
+      region
+    });
+
+    const allS3Buckets = (await this.s3Client.listBuckets({})).Buckets;
+
+    const analyzeS3Bucket = async (bucket: Bucket) => {
+      const bucketName = bucket.Name;
+      const bucketArn = Arns.S3(bucketName);
+      await this.getLifecyclePolicy(bucketArn, bucketName, region);
+      await this.getIntelligentTieringConfiguration(bucketArn, bucketName, region);
+      
+      // TODO: Change bucketName to bucketArn
+      this.addData(bucketArn, 'resourceId', bucketName);
+      this.addData(bucketArn, 'region', region);
+      if (bucketName in this.bucketCostData) {
+        const monthlyCost = this.bucketCostData[bucketName].monthlyCost;
+        this.addData(bucketArn, 'monthlyCost', monthlyCost);
+        this.addData(bucketArn, 'hourlyCost', getHourlyCost(monthlyCost));
+      }
+    };
+
+    await rateLimitMap(allS3Buckets, 6, 6, analyzeS3Bucket);
   }
 
   async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides?: AwsServiceOverrides
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
   ): Promise<void> {
-    const region = regions[0];
-    const s3Client = new S3({
-      credentials: await awsCredentialsProvider.getCredentials(),
-      region: region
-    });
-
-    const res = await s3Client.listBuckets({});
-
-    const buckets = res.Buckets.map((bucket) => {
-      return bucket.Name;
-    });
-
-
-    const promises: Promise<any>[] = [];
-
-    for (let i = 0; i < buckets.length; ++i) {
-      promises.push(this.getLifecyclePolicy(s3Client, buckets[i], region));
-      promises.push(this.getIntelligentTieringConfiguration(s3Client, buckets[i], region));
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const usedRegions = regions || await listAllRegions(credentials);
+    for (const region of usedRegions) {
+      await this.getRegionalUtilization(credentials, region);
     }
-
-    try{
-      void await Promise.all(promises).catch(e => console.log(e));
-    } catch(e){ 
-      console.error('Error getting utilization for S3', e);
-    }
-
+    this.getEstimatedMaxMonthlySavings();
   }
 
-  async getIntelligentTieringConfiguration (s3Client: S3, bucketName: string, region: string) {
+  async getIntelligentTieringConfiguration (bucketArn: string, bucketName: string, region: string) {
 
-    const response = await s3Client.getBucketLocation({
+    const response = await this.s3Client.getBucketLocation({
       Bucket: bucketName
     });
 
     if (
       response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)
     ) {
-      const res = await s3Client.listBucketIntelligentTieringConfigurations({
+      const res = await this.s3Client.listBucketIntelligentTieringConfigurations({
         Bucket: bucketName
       });
 
       if (!res.IntelligentTieringConfigurationList) {
-        this.addScenario(bucketName, 'hasIntelligentTiering', {
+        const { monthlySavings } = await this.setAndGetBucketCostData(bucketName);
+        this.addScenario(bucketArn, 'hasIntelligentTiering', {
           value: 'false',
           optimize: { 
             action: 'enableIntelligientTiering', 
             isActionable: true,
-            reason: 'Intelligient tiering is not enabled for this bucket'
+            reason: 'Intelligient tiering is not enabled for this bucket',
+            monthlySavings
           }
         });
       }
@@ -104,31 +129,99 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     this.addData(bucketName, 'region', region);
   }
 
-  async getLifecyclePolicy (s3Client: S3, bucketName: string, region: string) {
+  async getLifecyclePolicy (bucketArn: string, bucketName: string, region: string) {
 
-    const response = await s3Client.getBucketLocation({
+    const response = await this.s3Client.getBucketLocation({
       Bucket: bucketName
     });
 
     if (
       response.LocationConstraint === region || (region === 'us-east-1' && response.LocationConstraint === undefined)
     ) {
-      await s3Client.getBucketLifecycleConfiguration({
+      await this.s3Client.getBucketLifecycleConfiguration({
         Bucket: bucketName
-      }).catch((e) => { 
+      }).catch(async (e) => { 
         if(e.Code === 'NoSuchLifecycleConfiguration'){ 
-          this.addScenario(bucketName, 'hasLifecyclePolicy', {
+          await this.setAndGetBucketCostData(bucketName);
+          this.addScenario(bucketArn, 'hasLifecyclePolicy', {
             value: 'false',
             optimize: { 
               action: '', 
               isActionable: false,
-              reason: 'This bucket does not have a lifecycle policy'
+              reason: 'This bucket does not have a lifecycle policy',
+              monthlySavings: 0
             }
           });
         }
       });
     }
     this.addData(bucketName, 'region', region);
+  }
+
+  async setAndGetBucketCostData (bucketName: string) {
+    if (!(bucketName in this.bucketCostData)) {
+      const res = await this.cwClient.getMetricData({
+        StartTime: new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)),
+        EndTime: new Date(),
+        MetricDataQueries: [
+          {
+            Id: 'incomingBytes',
+            MetricStat: {
+              Metric: {
+                Namespace: 'AWS/S3',
+                MetricName: 'BucketSizeBytes',
+                Dimensions: [
+                  { 
+                    Name: 'BucketName', 
+                    Value: bucketName
+                  },
+                  {
+                    Name: 'StorageType',
+                    Value: 'StandardStorage'
+                  }
+                ]
+              },
+              Period: 30 * 24 * 12 * 300, // 1 month
+              Stat: 'Average'
+            }
+          }
+        ]
+      });
+      
+      const bucketBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+      
+      const monthlyCost = (bucketBytes / ONE_GB_IN_BYTES) * 0.022;
+
+      /* TODO: improve estimate 
+      * Based on idea that lower tiers will contain less data
+      * Uses arbitrary percentages to separate amount of data in tiers
+      */
+
+      let totalBytes = bucketBytes;
+      let infrequentlyAccessedBytes = 0.4 * bucketBytes;
+      let archiveInstantAccess = 0.4 * infrequentlyAccessedBytes;
+      let archiveAccess = 0.4 * archiveInstantAccess;
+      const deepArchiveAccess = 0.4 * archiveAccess;
+
+      totalBytes = (totalBytes - infrequentlyAccessedBytes) / ONE_GB_IN_BYTES;
+      infrequentlyAccessedBytes = (infrequentlyAccessedBytes - archiveInstantAccess) / ONE_GB_IN_BYTES;
+      archiveInstantAccess = (archiveInstantAccess - archiveAccess) / ONE_GB_IN_BYTES;
+      archiveAccess = (archiveAccess - deepArchiveAccess) / ONE_GB_IN_BYTES;
+
+      const newMonthlyCost = 
+        (totalBytes * 0.022) +
+        (infrequentlyAccessedBytes * 0.0125) +
+        (archiveInstantAccess * 0.004) +
+        (archiveAccess * 0.0036) +
+        (deepArchiveAccess * 0.00099);
+      
+      this.bucketCostData[bucketName] = {
+        monthlyCost,
+        monthlySavings: monthlyCost - newMonthlyCost
+      };
+    }
+
+    return this.bucketCostData[bucketName];
   }
   
   findActionFromOverrides (_overrides: AwsServiceOverrides){ 

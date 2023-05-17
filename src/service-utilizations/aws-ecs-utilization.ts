@@ -15,7 +15,8 @@ import {
   Service,
   Task,
   TaskDefinition,
-  TaskDefinitionField
+  TaskDefinitionField,
+  DescribeContainerInstancesCommandOutput
 } from '@aws-sdk/client-ecs';
 import {
   CloudWatch,
@@ -46,6 +47,9 @@ import {
 } from '../constants.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
+import { getInstanceCost } from '../utils/ec2-utils.js';
+import { Pricing } from '@aws-sdk/client-pricing';
+import { getHourlyCost, listAllRegions } from '../utils/utils.js';
 
 const cache = cached<string>('ecs-util-cache', {
   backend: {
@@ -96,12 +100,15 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
   cwClient: CloudWatch;
   elbV2Client: ElasticLoadBalancingV2;
   apigClient: ApiGatewayV2;
+  pricingClient: Pricing;
+  serviceCosts: { [ service: string ]: number };
   DEBUG_MODE: boolean;
 
   constructor (enableDebugMode?: boolean) {
     super();
     this.serviceArns = [];
     this.services = [];
+    this.serviceCosts = {};
     this.DEBUG_MODE = enableDebugMode || false;
   }
 
@@ -495,13 +502,14 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     return discreteVales;
   }
 
-  private async checkForEc2ScaleDown (service: Service, maxCpuPercentage: number, maxMemoryPercentage: number) {
+  private async getEc2ContainerInfo (service: Service) {
     const tasks = await this.getAllTasks(service);
     const taskCpu = Number(tasks.at(0)?.cpu);
     const allocatedMemory = Number(tasks.at(0)?.memory);
 
     let allocatedCpu = taskCpu;
     let containerInstance: ContainerInstance;
+    let containerInstanceResponse: DescribeContainerInstancesCommandOutput;
     if (!taskCpu || taskCpu === 0) {
       const containerInstanceTaskGroupObject = tasks.reduce<{
         [containerInstanceArn: string]: {
@@ -530,11 +538,12 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       const largestContainerInstance = containerInstanceTaskGroups.at(0);
       const maxTaskCount = largestContainerInstance.tasks.length;
 
-      const containerInstanceResponse = await this.ecsClient.describeContainerInstances({
+      containerInstanceResponse = await this.ecsClient.describeContainerInstances({
         cluster: service.clusterArn,
-        containerInstances: [largestContainerInstance.containerInstanceArn]
+        containerInstances: containerInstanceTaskGroups.map(taskGroup => taskGroup.containerInstanceArn)
       });
 
+      // largest container instance
       containerInstance = containerInstanceResponse?.containerInstances?.at(0);
 
       const containerInstanceCpuResource = containerInstance.registeredResources?.find(r => r.name === 'CPU');
@@ -545,18 +554,47 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
 
       allocatedCpu = containerInstanceCpu / maxTaskCount;
     } else {
-      const containerInstanceResponse = await this.ecsClient.describeContainerInstances({
+      containerInstanceResponse = await this.ecsClient.describeContainerInstances({
         cluster: service.clusterArn,
-        containerInstances: [tasks.at(0)?.containerInstanceArn]
+        containerInstances: tasks.map(task => task.containerInstanceArn)
       });
       containerInstance = containerInstanceResponse?.containerInstances?.at(0);
     }
 
+    const uniqueEc2Instances = containerInstanceResponse.containerInstances.reduce<Set<string>>((acc, instance) => {
+      acc.add(instance.ec2InstanceId);
+      return acc;
+    }, new Set<string>());
+    const numEc2Instances = uniqueEc2Instances.size;
+    const instanceType = containerInstance.attributes.find(attr => attr.name === 'ecs.instance-type')?.value;
+    const monthlyInstanceCost = await getInstanceCost(this.pricingClient, instanceType);
+    const monthlyCost = monthlyInstanceCost * numEc2Instances;
+    this.serviceCosts[service.serviceName] = monthlyCost;
+
+    return {
+      allocatedCpu,
+      allocatedMemory,
+      containerInstance,
+      instanceType,
+      monthlyCost,
+      numEc2Instances
+    };
+  }
+
+  private async checkForEc2ScaleDown (service: Service, maxCpuPercentage: number, maxMemoryPercentage: number) {
+    const {
+      allocatedCpu,
+      allocatedMemory,
+      containerInstance,
+      instanceType,
+      monthlyCost,
+      numEc2Instances
+    } = await this.getEc2ContainerInfo(service);
+
     const maxConsumedVcpus = (maxCpuPercentage * allocatedCpu) / 1024;
     const maxConsumedMemory = maxMemoryPercentage * allocatedMemory;
     const instanceVcpus = allocatedCpu / 1024;
-
-    const instanceType = containerInstance.attributes.find(attr => attr.name === 'ecs.instance-type')?.value;
+  
     let instanceFamily = instanceType?.split('.')?.at(0);
     if (!instanceFamily) {
       instanceFamily = await this.getInstanceFamilyForContainerInstance(containerInstance);
@@ -588,16 +626,60 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     const targetInstanceType: InstanceTypeInfo | undefined = smallerInstances?.at(0);
 
     if (targetInstanceType) {
+      const targetMonthlyInstanceCost = await getInstanceCost(this.pricingClient, targetInstanceType.InstanceType);
+      const targetMonthlyCost = targetMonthlyInstanceCost * numEc2Instances;
+
       this.addScenario(service.serviceArn, 'overAllocated', {
         value: 'true',
         scaleDown: {
           action: 'scaleDownEc2Service',
           isActionable: false,
-          reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU' +
-                  `and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
+          reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU' + 
+                  `and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`,
+          monthlySavings: monthlyCost - targetMonthlyCost
         }
       });
     }
+  }
+
+  private calculateFargateCost (platform: string, cpuArch: string, vcpu: number, memory: number, numTasks: number) {
+    let monthlyCost = 0;
+    if (platform.toLowerCase() === 'windows') {
+      monthlyCost = (((0.09148 + 0.046) * vcpu) + (0.01005 * memory)) * numTasks * 24 * 30;
+    } else {
+      if (cpuArch === 'x86_64') {
+        monthlyCost = ((0.04048 * vcpu) + (0.004445 * memory)) * numTasks * 24 * 30; 
+      } else {
+        monthlyCost = ((0.03238 * vcpu) + (0.00356 * memory)) * numTasks * 24 * 30;
+      }
+    }
+
+    return monthlyCost;
+  }
+
+  private async getFargateInfo (service: Service) {
+    const tasks = await this.getAllTasks(service);
+    const numTasks = tasks.length;
+    const task = tasks.at(0);
+    const allocatedCpu = Number(task?.cpu);
+    const allocatedMemory = Number(task?.memory);
+
+    const platform = task.platformFamily;
+    const cpuArch = (task.attributes.find(attr => attr.name === 'ecs.cpu-architecture'))?.value || 'x86_64';
+    const vcpu = allocatedCpu / 1024;
+    const memory = allocatedMemory / 1024;
+
+    const monthlyCost = this.calculateFargateCost(platform, cpuArch, vcpu, memory, numTasks);
+    this.serviceCosts[service.serviceName] = monthlyCost;
+
+    return {
+      allocatedCpu,
+      allocatedMemory,
+      platform,
+      cpuArch,
+      numTasks,
+      monthlyCost
+    }; 
   }
 
   private async checkForFargateScaleDown (service: Service, maxCpuPercentage: number, maxMemoryPercentage: number) {
@@ -650,9 +732,14 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       }
     };
 
-    const task = await this.getTask(service);
-    const allocatedCpu = Number(task?.cpu);
-    const allocatedMemory = Number(task?.memory);
+    const {
+      allocatedCpu,
+      allocatedMemory,
+      platform,
+      cpuArch,
+      numTasks,
+      monthlyCost
+    } = await this.getFargateInfo(service);
 
     const maxConsumedCpu = maxCpuPercentage * allocatedCpu;
     const maxConsumedMemory = maxMemoryPercentage * allocatedMemory;
@@ -685,23 +772,29 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     }
     
     if (targetScaleOption) {
+      const targetMonthlyCost = this.calculateFargateCost(
+        platform, 
+        cpuArch, 
+        targetScaleOption.cpu / 1024,
+        targetScaleOption.memory / 1024,
+        numTasks
+      );
+
       this.addScenario(service.serviceArn, 'overAllocated', {
         value: 'overAllocated',
         scaleDown: {
           action: 'scaleDownFargateService',
           isActionable: false,
-          reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.
-                   We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to
-                   ${targetScaleOption.memory} MiB.`
+          reason: 'This ECS service appears to be over allocated based on its CPU, Memory, and network utilization. ' +
+                  `We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to ` +
+                  `${targetScaleOption.memory} MiB.`,
+          monthlySavings: monthlyCost - targetMonthlyCost
         }
       });
     }
   }
 
-  async getRegionalUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, region: string, overrides?: AwsEcsUtilizationOverrides
-  ) {
-    const credentials = await awsCredentialsProvider.getCredentials();
+  async getRegionalUtilization (credentials: any, region: string, overrides?: AwsEcsUtilizationOverrides) {
     this.ecsClient = new ECS({
       credentials,
       region
@@ -719,6 +812,10 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       region
     });
     this.apigClient = new ApiGatewayV2({
+      credentials,
+      region
+    });
+    this.pricingClient = new Pricing({
       credentials,
       region
     });
@@ -787,13 +884,17 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         lowMemoryUtilization &&
         noNetworkUtilization
       ) {
+        const { monthlyCost } = service.launchType === LaunchType.FARGATE ? 
+          await this.getFargateInfo(service) : 
+          await this.getEc2ContainerInfo(service);
         this.addScenario(service.serviceArn, 'unused', {
           value: 'true',
           delete: {
             action: 'deleteService',
             isActionable: true,
             reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and'
-                  + ' network traffic.'
+                  + ' network traffic.',
+            monthlySavings: monthlyCost
           }
         });
       } else if (maxCpu < 0.8 && maxMemory < 0.8) {
@@ -803,17 +904,34 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
           await this.checkForEc2ScaleDown(service, maxCpu, maxMemory);
         }
       }
+
+      this.addData(service.serviceArn, 'resourceId', service.serviceName);
+      this.addData(service.serviceArn, 'region', region);
+      if (service.serviceName in this.serviceCosts) {
+        const monthlyCost = this.serviceCosts[service.serviceName];
+        this.addData(service.serviceArn, 'monthlyCost', monthlyCost);
+        this.addData(service.serviceArn, 'hourlyCost', getHourlyCost(monthlyCost));
+      }
+      await this.identifyCloudformationStack(
+        credentials,
+        region,
+        service.serviceArn,
+        service.serviceName
+      );
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
   
   async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], overrides?: AwsEcsUtilizationOverrides
+    awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: AwsEcsUtilizationOverrides
   ) {
-    for (const region of regions) {
-      await this.getRegionalUtilization(awsCredentialsProvider, region, overrides);
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const usedRegions = regions || await listAllRegions(credentials);
+    for (const region of usedRegions) {
+      await this.getRegionalUtilization(credentials, region, overrides);
     }
+    this.getEstimatedMaxMonthlySavings();
   }
 
   async deleteService (
