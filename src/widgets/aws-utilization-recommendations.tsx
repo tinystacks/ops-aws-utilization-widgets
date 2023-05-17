@@ -1,18 +1,19 @@
+import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
-import { RecommendationsOverrides, UtilizationRecommendationsWidget } from './utilization-recommendations-types.js';
-import React from 'react';
+import { 
+  RecommendationsOverrides, 
+  UtilizationRecommendationsWidget 
+} from '../types/utilization-recommendations-types.js';
 import { UtilizationRecommendationsUi } from './utilization-recommendations-ui/utilization-recommendations-ui.js';
 import { filterUtilizationForActionType } from '../utils/utilization.js';
 import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
-  regions: string[];
   constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
-    this.regions = props.regions || [ 'us-east-1' ];
   }
 
   static fromJson (props: UtilizationRecommendationsWidget) {
@@ -22,8 +23,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
   toJson () {
     return {
       ...super.toJson(),
-      utilization: this.utilization,
-      regions: this.regions
+      utilization: this.utilization
     };
   }
 
@@ -36,10 +36,10 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     const awsCredsProvider = getAwsCredentialsProvider(providers);
     
     if (overrides?.refresh) {
-      await utilProvider.hardRefresh(awsCredsProvider, this.regions);
+      await utilProvider.hardRefresh(awsCredsProvider);
     }
 
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.regions);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceIds } = overrides.resourceActions;
@@ -53,7 +53,10 @@ export class AwsUtilizationRecommendations extends BaseWidget {
           const resource = filteredServices[serviceUtil][resourceId];
           for (const scenario of Object.keys(resource.scenarios)) {
             await utilProvider.doAction(
-              serviceUtil, awsCredsProvider, get(resource.scenarios[scenario], `${actionType}.action`), resourceId,
+              serviceUtil, 
+              awsCredsProvider, 
+              get(resource.scenarios[scenario], `${actionType}.action`), 
+              resourceId,
               get(resource.data, 'region', 'us-east-1')
             );
           }

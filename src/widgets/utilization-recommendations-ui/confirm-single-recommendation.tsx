@@ -3,7 +3,7 @@ import {
   ModalOverlay, useDisclosure
 } from '@chakra-ui/react';
 import React from 'react';
-import { ConfirmSingleRecommendationProps } from '../utilization-recommendations-types.js';
+import { ConfirmSingleRecommendationProps } from '../../types/utilization-recommendations-types.js';
 import { actionTypeText } from '../../types/types.js';
 
 export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationProps) {

@@ -1,15 +1,15 @@
-import { awsAccountUtilization } from './service-utilizations/aws-account-utilization.js';
-import { AwsCloudwatchLogsUtilization } from './service-utilizations/aws-cloudwatch-logs-utilization.js';
-import { AwsNatGatewayUtilization } from './service-utilizations/aws-nat-gateway-utilization.js';
-import { s3Utilization } from './service-utilizations/aws-s3-utilization.js';
-import { ebsVolumesUtilization } from './service-utilizations/ebs-volumes-utilization.js';
-import { rdsInstancesUtilization } from './service-utilizations/rds-utilization.js';
+import { awsAccountUtilization } from './aws-account-utilization.js';
+import { AwsCloudwatchLogsUtilization } from './aws-cloudwatch-logs-utilization.js';
+import { AwsNatGatewayUtilization } from './aws-nat-gateway-utilization.js';
+import { s3Utilization } from './aws-s3-utilization.js';
+import { ebsVolumesUtilization } from './ebs-volumes-utilization.js';
+import { rdsInstancesUtilization } from './rds-utilization.js';
 import HttpError from 'http-errors';
-import { AwsResourceType } from './types/types.js';
-import { AwsResourceTypes } from './types/constants.js';
-import { AwsEc2InstanceUtilization } from './service-utilizations/aws-ec2-instance-utilization.js';
-import { AwsEcsUtilization } from './service-utilizations/aws-ecs-utilization.js';
-import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
+import { AwsResourceType } from '../types/types.js';
+import { AwsResourceTypes } from '../types/constants.js';
+import { AwsEc2InstanceUtilization } from './aws-ec2-instance-utilization.js';
+import { AwsEcsUtilization } from './aws-ecs-utilization.js';
+import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 export class AwsServiceUtilizationFactory {
   static createObject (awsService: AwsResourceType): AwsServiceUtilization<string> {

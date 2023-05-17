@@ -44,7 +44,7 @@ import {
   AVG_MEMORY,
   ALB_REQUEST_COUNT,
   APIG_REQUEST_COUNT
-} from '../constants.js';
+} from '../types/constants.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';

@@ -5,7 +5,7 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
-import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
+import { ConfirmRecommendationsProps } from '../../types/utilization-recommendations-types.js';
 import { actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
 
@@ -87,7 +87,10 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <ModalBody>
             <Text fontSize='xl'>You are about to {actionType} {resourceIds.length} resources.</Text>
             <Text fontSize='xl'>To confirm, type '{actionType} resources' in the input below.</Text>
-            <Text fontSize='xs'> Please note, as we are cleaning up your resources they may still appear as recommendations until the process completes in the background. </Text>
+            <Text fontSize='xs'> 
+              Please note, as we are cleaning up your resources they 
+              may still appear as recommendations until the process completes in the background.
+            </Text>
             <Text pt='1'>Confirm {actionType}</Text>
             <HStack>
               <Input value={confirmationText} onChange={event => setConfirmationText(event.target.value)} />

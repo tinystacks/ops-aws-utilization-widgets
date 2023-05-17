@@ -1,8 +1,8 @@
 import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
-import RecommendationOverview from './components/recommendation-overview.js';
-import { AwsUtilizationOverrides, Utilization } from './types/types.js';
+import RecommendationOverview from '../components/recommendation-overview.js';
+import { AwsUtilizationOverrides, Utilization } from '../types/types.js';
 import { Stack } from '@chakra-ui/react';
 
 type AwsUtilizationType = Widget & {
@@ -28,7 +28,7 @@ export class AwsUtilization extends BaseWidget {
     const { getAwsCredentialsProvider, getAwsUtilizationProvider } = await import(depMap.utils);
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
   }
 
   static fromJson (object: AwsUtilizationType): AwsUtilization {

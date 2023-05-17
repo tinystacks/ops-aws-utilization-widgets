@@ -4,7 +4,7 @@ import { BaseProvider } from '@tinystacks/ops-core';
 import { Provider } from '@tinystacks/ops-model';
 import { AwsResourceType, AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
-import { AwsServiceUtilizationFactory } from './aws-service-utilization-factory.js';
+import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
   backend: {
@@ -17,6 +17,7 @@ type AwsUtilizationProviderType = Provider & {
   utilization?: {
     [key: AwsResourceType | string]: Utilization<string>
   };
+  regions?: string[];
 };
 
 class AwsUtilizationProvider extends BaseProvider {
@@ -28,11 +29,13 @@ class AwsUtilizationProvider extends BaseProvider {
   utilization: {
     [key: AwsResourceType | string]: Utilization<string>
   };
+  regions: string[];
 
   constructor (props: AwsUtilizationProviderType) {
     super(props);
     const { 
-      services
+      services,
+      regions
     } = props;
 
     this.utilizationClasses = {};
@@ -42,10 +45,12 @@ class AwsUtilizationProvider extends BaseProvider {
       'CloudwatchLogs',
       'Ec2Instance',
       'EcsService',
+      'NatGateway',
       'S3Bucket',
       'EbsVolume',
       'RdsInstance'
     ]);
+    this.regions = regions || [ 'us-east-1' ];
   }
 
   static fromJson (props: AwsUtilizationProviderType) {
@@ -68,27 +73,31 @@ class AwsUtilizationProvider extends BaseProvider {
   }
 
   async refreshUtilizationData (
-    service: AwsResourceType, credentialsProvider: AwsCredentialsProvider, regions: string[],
+    service: AwsResourceType, 
+    credentialsProvider: AwsCredentialsProvider,
     overrides?: AwsServiceOverrides
   ): Promise<Utilization<string>> {
-    await this.utilizationClasses[service]?.getUtilization(credentialsProvider, regions, overrides);
+    await this.utilizationClasses[service]?.getUtilization(credentialsProvider, this.regions, overrides);
     return this.utilizationClasses[service]?.utilization;
   }
 
   async doAction (
-    service: AwsResourceType, credentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string,
+    service: AwsResourceType,
+    credentialsProvider: AwsCredentialsProvider,
+    actionName: string,
+    resourceId: string,
     region: string
   ) {
     await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceId, region);
   }
 
   async hardRefresh (
-    credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}
+    credentialsProvider: AwsCredentialsProvider, overrides: AwsUtilizationOverrides = {}
   ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       this.utilization[service] = await this.refreshUtilizationData(
-        service, credentialsProvider, regions, serviceOverrides
+        service, credentialsProvider, serviceOverrides
       );
       await cache.set(service, this.utilization[service]);
     }
@@ -97,19 +106,19 @@ class AwsUtilizationProvider extends BaseProvider {
   }
 
   async getUtilization (
-    credentialsProvider: AwsCredentialsProvider, regions: string[], overrides: AwsUtilizationOverrides = {}
+    credentialsProvider: AwsCredentialsProvider, overrides: AwsUtilizationOverrides = {}
   ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       if (serviceOverrides?.forceRefesh) {
         this.utilization[service] = await this.refreshUtilizationData(
-          service, credentialsProvider, regions, serviceOverrides
+          service, credentialsProvider, serviceOverrides
         );
         await cache.set(service, this.utilization[service]);
       } else {
         this.utilization[service] = await cache.getOrElse(
           service,
-          async () => await this.refreshUtilizationData(service, credentialsProvider, regions, serviceOverrides)
+          async () => await this.refreshUtilizationData(service, credentialsProvider, serviceOverrides)
         );
       }
     }
