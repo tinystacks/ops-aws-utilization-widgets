@@ -1,9 +1,0 @@
-{ 
-      "MetricDataQueries": [{ 
-        "Expression": "SELECT MAX(CPUUtilization) FROM \"AWS/EC2\" WHERE AutoScalingGroupName = 'synth-849087520365-us-east-1-dev-ecsvpcecsvpcnatinstancegroupASG065C3EE8-7MLST10CMWSL'",
-        "Id": "cpuUtilQuery", 
-        "Period": 43200
-      }],
-      "StartTime": "2023-03-28T13:12:58.909Z",
-      "EndTime": "2023-03-28T19:12:58.909Z"
-}
