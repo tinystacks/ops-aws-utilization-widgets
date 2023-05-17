@@ -3,7 +3,7 @@ import { ActionType } from '../../types/types.js';
 import { RecommendationsActionSummary } from './recommendations-action-summary.js';
 import { RecommendationsTable } from './recommendations-table.js';
 import { ConfirmRecommendations } from './confirm-recommendations.js';
-import { UtilizationRecommendationsUiProps } from '../utilization-recommendations-types.js';
+import { UtilizationRecommendationsUiProps } from '../../types/utilization-recommendations-types.js';
 
 enum WizardSteps {
   SUMMARY='summary',
