@@ -8,7 +8,7 @@ import {
 } from '@chakra-ui/react';
 import React from 'react';
 import startCase from 'lodash.startcase';
-import { ServiceTableRowProps } from '../utilization-recommendations-types.js';
+import { ServiceTableRowProps } from '../../types/utilization-recommendations-types.js';
 import { CHECKBOX_CELL_MAX_WIDTH } from './recommendations-table.js';
 
 export default function ServiceTableRow (props: ServiceTableRowProps) {

@@ -4,7 +4,7 @@ import { DeleteIcon, ArrowForwardIcon, ArrowDownIcon } from '@chakra-ui/icons';
 import { TbVectorBezier2 } from 'react-icons/tb/index.js';
 import { filterUtilizationForActionType, getNumberOfResourcesFromFilteredActions } from '../../utils/utilization.js';
 import { ActionType } from '../../types/types.js';
-import { RecommendationsActionSummaryProps } from '../utilization-recommendations-types.js';
+import { RecommendationsActionSummaryProps } from '../../types/utilization-recommendations-types.js';
 import { TbRefresh } from 'react-icons/tb/index.js';
 
 

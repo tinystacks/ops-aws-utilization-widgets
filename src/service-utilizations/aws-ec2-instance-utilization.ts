@@ -24,7 +24,7 @@ import {
   MAX_NETWORK_BYTES_OUT,
   AVG_NETWORK_BYTES_IN,
   AVG_NETWORK_BYTES_OUT
-} from '../constants.js';
+} from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Pricing } from '@aws-sdk/client-pricing';
 import { getAccountId, getHourlyCost, listAllRegions } from '../utils/utils.js';
