@@ -306,7 +306,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         totalDiskIops === 0 &&
         lowNetworkUtilization
       ) {
-        this.addScenario(instanceId, 'unused', {
+        this.addScenario(instanceArn, 'unused', {
           value: 'true',
           delete: {
             action: 'terminateInstance',
