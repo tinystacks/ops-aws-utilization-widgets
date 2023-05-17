@@ -185,7 +185,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       }
       this.addData(natGatewayArn, 'resourceId', natGatewayId);
       this.addData(natGatewayArn, 'region', region);
-      this.addData(natGatewayArn, 'monthyCost', this.cost);
+      this.addData(natGatewayArn, 'monthlyCost', this.cost);
       this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
     };

@@ -118,7 +118,10 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          {usd.format(serviceUtil[resId].data.monthlyCost)}
+          { serviceUtil[resId]?.data?.monthlyCost ?
+            usd.format(serviceUtil[resId].data.monthlyCost) :
+            'Coming soon!'
+          }
         </Td>
         <Td
           key={resId + 'cost/hr'}
@@ -126,7 +129,10 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          {usd.format(serviceUtil[resId].data.hourlyCost)}
+          { serviceUtil[resId]?.data?.hourlyCost ?
+            usd.format(serviceUtil[resId].data.hourlyCost) :
+            'Coming soon!'
+          }
         </Td>
       </Tr>
     ));
