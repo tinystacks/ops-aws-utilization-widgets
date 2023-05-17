@@ -3,6 +3,7 @@ import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton,
   Button, HStack, Heading, Stack, Text, Box, useDisclosure, Input, AlertTitle, AlertIcon, Alert, Spacer, Flex
 } from '@chakra-ui/react';
+import { ArrowBackIcon } from '@chakra-ui/icons';
 import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
 import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
 import { actionTypeText } from '../../types/types.js';
@@ -62,6 +63,11 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
         </Stack>
         <Spacer />
         <Box>
+          <Button colorScheme='gray' size='sm' marginRight={'8px'} onClick={() => props.onBack()}> 
+            { <><ArrowBackIcon /> Back </> } 
+          </Button>
+        </Box>
+        <Box>
           <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel} all</Button>
         </Box>
       </Flex>
@@ -79,8 +85,9 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <ModalHeader>Confirm {actionType}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>You are about to {actionType} {resourceIds.length} resources.</Text>
-            <Text>To confirm, type '{actionType} resources' in the input below.</Text>
+            <Text fontSize='xl'>You are about to {actionType} {resourceIds.length} resources.</Text>
+            <Text fontSize='xl'>To confirm, type '{actionType} resources' in the input below.</Text>
+            <Text fontSize='xs'> Please note, as we are cleaning up your resources they may still appear as recommendations until the process completes in the background. </Text>
             <Text pt='1'>Confirm {actionType}</Text>
             <HStack>
               <Input value={confirmationText} onChange={event => setConfirmationText(event.target.value)} />

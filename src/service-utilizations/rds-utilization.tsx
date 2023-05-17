@@ -95,6 +95,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
         value: 'false',
         delete: { 
           action: 'deleteInstance', 
+          isActionable: true,
           reason: 'This instance does not have any db connections'
         }
       });
@@ -109,6 +110,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
         value: 'false',
         optimize: { 
           action: '', //didnt find an action for this, need to do it in the console
+          isActionable: false,
           reason: 'This instance does not have storage auto-scaling turned on'
         }
       });
@@ -137,6 +139,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
         value: 'true',
         scaleDown: { 
           action: '', 
+          isActionable: false,
           reason: 'This instance has more than half of its allocated storage still available'
         }
       });
@@ -170,6 +173,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
         value: maxCPU.toString(), 
         scaleDown: { 
           action: '', 
+          isActionable: false,
           reason: 'Max CPU Utilization is under 50%'
         }
       }

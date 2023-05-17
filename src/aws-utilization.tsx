@@ -2,39 +2,33 @@ import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
 import RecommendationOverview from './components/recommendation-overview.js';
-import { AwsResourceType, AwsUtilizationOverrides, Utilization } from './types/types.js';
-import { findProvider, getAwsCredentialsProvider } from './utils/utils.js';
+import { AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { Stack } from '@chakra-ui/react';
-import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsUtilizationProvider } from './aws-utilization-provider.js';
 
 type AwsUtilizationType = Widget & {
   utilization: { [ serviceName: string ] : Utilization<string> },
-  awsServices: AwsResourceType[],
-  regions: string[]
+  region: string
 }
 
 export class AwsUtilization extends BaseWidget {
   utilization: { [ serviceName: string ] : Utilization<string> };
-  awsServices: AwsResourceType[];
-  regions: string[];
-  credentialsProvider?: AwsCredentialsProvider;
-  utilizationProvider?: AwsUtilizationProvider;
+  region: string;
 
   constructor (props: AwsUtilizationType) {
     super(props);
-    this.awsServices = props.awsServices;
-    this.regions = props.regions;
+    this.region = props.region || 'us-east-1';
     this.utilization = props.utilization || {};
   }
 
-  async getData (providers?: BaseProvider[], overrides?: AwsUtilizationOverrides): Promise<void> {
-    this.credentialsProvider = getAwsCredentialsProvider(providers);
+  async getData (providers?: BaseProvider[]): Promise<void> {
 
-    this.utilizationProvider = findProvider<AwsUtilizationProvider>(providers, AwsUtilizationProvider.type);
-    this.utilizationProvider?.initServices(this.awsServices);
-    await this.utilizationProvider?.getUtilization(this.credentialsProvider, this.regions, overrides);
-    this.utilization = this.utilizationProvider?.utilization;
+    const depMap = {
+      utils: './utils/utils.js'
+    };
+    const { getAwsCredentialsProvider, getAwsUtilizationProvider } = await import(depMap.utils);
+    const utilProvider = getAwsUtilizationProvider(providers);
+    const awsCredsProvider = getAwsCredentialsProvider(providers);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
   }
 
   static fromJson (object: AwsUtilizationType): AwsUtilization {
@@ -45,8 +39,7 @@ export class AwsUtilization extends BaseWidget {
     return {
       ...super.toJson(),
       utilization: this.utilization,
-      awsServices: this.awsServices,
-      regions: this.regions
+      region: this.region
     };
   }
   

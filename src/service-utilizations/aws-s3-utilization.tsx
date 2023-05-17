@@ -28,7 +28,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials()
     });
-    if (actionName === 'enableIntelligientTiering') {
+    if (actionName === 'enableIntelligientTiering') { 
       await this.enableIntelligientTiering(s3Client, resourceId);
     }
   }
@@ -117,6 +117,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
           value: 'false',
           optimize: { 
             action: 'enableIntelligientTiering', 
+            isActionable: true,
             reason: 'Intelligient tiering is not enabled for this bucket',
             monthlySavings
           }
@@ -124,6 +125,8 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       }
 
     }
+
+    this.addData(bucketName, 'region', region);
   }
 
   async getLifecyclePolicy (bucketArn: string, bucketName: string, region: string) {
@@ -144,6 +147,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
             value: 'false',
             optimize: { 
               action: '', 
+              isActionable: false,
               reason: 'This bucket does not have a lifecycle policy',
               monthlySavings: 0
             }
@@ -151,6 +155,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         }
       });
     }
+    this.addData(bucketName, 'region', region);
   }
 
   async setAndGetBucketCostData (bucketName: string) {

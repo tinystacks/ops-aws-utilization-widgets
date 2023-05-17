@@ -74,6 +74,9 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
   
   }
 
+  //deletes and optimizes working 
+  //scenarios without actions, showing reason instead of action, link to aws console for that resource
+
   findUnusedVolumes (volumes: Volume[]){ 
     volumes.forEach((volume) => { 
       if(!volume.Attachments || volume.Attachments.length === 0){ 
@@ -81,7 +84,8 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
           value: 'false',
           delete: { 
             action: 'deleteEBSVolume', 
-            reason: 'This EBS volume does not have any attahcments'
+            isActionable: true,
+            reason: 'This EBS volume does not have any attachments'
           }
         });
       }
@@ -131,6 +135,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
         value: '0',
         delete: { 
           action: 'deleteEBSVolume', 
+          isActionable: true,
           reason: 'No operations performed on this volume in the last week'
         }
       });

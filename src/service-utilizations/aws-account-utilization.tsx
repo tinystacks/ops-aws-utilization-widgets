@@ -47,6 +47,7 @@ export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtili
           value: 'false',
           optimize: {
             action: '', 
+            isActionable: false,
             reason: 'This user does not have access to the Price List APIs'
           }
         });
@@ -73,6 +74,7 @@ export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtili
           value: 'false',
           optimize: { 
             action: '', 
+            isActionable: false,
             reason: 'This user does not have access to Cost Explorer APIs'
           }
         });

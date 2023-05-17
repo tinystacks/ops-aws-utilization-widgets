@@ -14,7 +14,7 @@ const thirtyDaysAgo = NOW - (30 * 24 * 60 * 60 * 1000);
 const sevenDaysAgo = NOW - (7 * 24 * 60 * 60 * 1000);
 const twoWeeksAgo = NOW - (14 * 24 * 60 * 60 * 1000);
 
-type AwsCloudwatchLogsUtilizationScenarioTypes = 'retentionInDays' | 'lastEventTime' | 'storedBytes';
+type AwsCloudwatchLogsUtilizationScenarioTypes = 'hasRetentionPolicy' | 'lastEventTime' | 'storedBytes';
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
   constructor () {
@@ -31,6 +31,15 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       });
 
       await this.deleteLogGroup(cwLogsClient, resourceId);
+    }
+
+    if(actionName === 'setRetentionPolicy'){ 
+      const cwLogsClient = new CloudWatchLogs({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region
+      });
+
+      await this.setRetentionPolicy(cwLogsClient, resourceId, 90);
     }
   }
 
@@ -161,7 +170,6 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
     const allLogGroups = await this.getAllLogGroups(credentials, region);
 
     const analyzeLogGroup = async (logGroup: LogGroup) => {
-      const logGroupArn = logGroup?.arn;
       const logGroupName = logGroup?.logGroupName;
       const retentionInDays = logGroup?.retentionInDays;
       if (!retentionInDays) {
@@ -173,10 +181,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           associatedResourceId
         } = await this.getLogGroupData(credentials, region, logGroup);
 
-        this.addScenario(logGroupArn, 'retentionInDays', {
+        this.addScenario(logGroupName, 'hasRetentionPolicy', {
           value: retentionInDays?.toString(),
           optimize: {
             action: 'setRetentionPolicy',
+            isActionable: true,
             reason: 'this log group does not have a retention policy',
             monthlySavings: monthlyStorageCost
           }
@@ -184,10 +193,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
 
         // TODO: change limit compared
         if (storedBytes > ONE_HUNDRED_MB_IN_BYTES) {
-          this.addScenario(logGroupArn, 'storedBytes', {
+          this.addScenario(logGroupName, 'storedBytes', {
             value: storedBytes.toString(),
             scaleDown: {
               action: 'createExportTask',
+              isActionable: false,
               reason: 'this log group has more than 100 MB of stored data',
               monthlySavings: monthlyStorageCost
             }
@@ -195,29 +205,31 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         }
         
         if (lastEventTime < thirtyDaysAgo) {
-          this.addScenario(logGroupArn, 'lastEventTime', {
+          this.addScenario(logGroupName, 'lastEventTime', {
             value: new Date(lastEventTime).toLocaleString(),
             delete: {
               action: 'deleteLogGroup',
+              isActionable: true,
               reason: 'this log group has not had an event in over 30 days',
               monthlySavings: totalMonthlyCost
             }
           });
         } else if (lastEventTime < sevenDaysAgo) {
-          this.addScenario(logGroupArn, 'lastEventTime', {
+          this.addScenario(logGroupName, 'lastEventTime', {
             value: new Date(lastEventTime).toLocaleString(),
             optimize: {
+              isActionable: false,
               action: '',
               reason: 'this log group has not had an event in over 7 days'
             }
           });
         }
-        this.addData(logGroupArn, 'resourceId', logGroupName);
-        this.addData(logGroupArn, 'region', region);
-        this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
-        this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
-        await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
-        if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
+        this.addData(logGroupName, 'resourceId', logGroupName);
+        this.addData(logGroupName, 'region', region);
+        this.addData(logGroupName, 'monthlyCost', totalMonthlyCost);
+        this.addData(logGroupName, 'hourlyCost', getHourlyCost(totalMonthlyCost));
+        await this.identifyCloudformationStack(credentials, region, logGroupName, logGroupName, associatedResourceId);
+        if (associatedResourceId) this.addData(logGroupName, 'associatedResourceId', associatedResourceId);
       }
     };
 
