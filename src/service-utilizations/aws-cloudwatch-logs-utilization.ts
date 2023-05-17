@@ -171,6 +171,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
 
     const analyzeLogGroup = async (logGroup: LogGroup) => {
       const logGroupName = logGroup?.logGroupName;
+      const logGroupArn = logGroup?.arn;
       const retentionInDays = logGroup?.retentionInDays;
       if (!retentionInDays) {
         const {
@@ -181,7 +182,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           associatedResourceId
         } = await this.getLogGroupData(credentials, region, logGroup);
 
-        this.addScenario(logGroupName, 'hasRetentionPolicy', {
+        this.addScenario(logGroupArn, 'hasRetentionPolicy', {
           value: retentionInDays?.toString(),
           optimize: {
             action: 'setRetentionPolicy',
@@ -193,7 +194,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
 
         // TODO: change limit compared
         if (storedBytes > ONE_HUNDRED_MB_IN_BYTES) {
-          this.addScenario(logGroupName, 'storedBytes', {
+          this.addScenario(logGroupArn, 'storedBytes', {
             value: storedBytes.toString(),
             scaleDown: {
               action: 'createExportTask',
@@ -205,7 +206,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         }
         
         if (lastEventTime < thirtyDaysAgo) {
-          this.addScenario(logGroupName, 'lastEventTime', {
+          this.addScenario(logGroupArn, 'lastEventTime', {
             value: new Date(lastEventTime).toLocaleString(),
             delete: {
               action: 'deleteLogGroup',
@@ -215,7 +216,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             }
           });
         } else if (lastEventTime < sevenDaysAgo) {
-          this.addScenario(logGroupName, 'lastEventTime', {
+          this.addScenario(logGroupArn, 'lastEventTime', {
             value: new Date(lastEventTime).toLocaleString(),
             optimize: {
               isActionable: false,
@@ -224,12 +225,12 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             }
           });
         }
-        this.addData(logGroupName, 'resourceId', logGroupName);
-        this.addData(logGroupName, 'region', region);
-        this.addData(logGroupName, 'monthlyCost', totalMonthlyCost);
-        this.addData(logGroupName, 'hourlyCost', getHourlyCost(totalMonthlyCost));
-        await this.identifyCloudformationStack(credentials, region, logGroupName, logGroupName, associatedResourceId);
-        if (associatedResourceId) this.addData(logGroupName, 'associatedResourceId', associatedResourceId);
+        this.addData(logGroupArn, 'resourceId', logGroupName);
+        this.addData(logGroupArn, 'region', region);
+        this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
+        this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
+        await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
+        if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }
     };
 

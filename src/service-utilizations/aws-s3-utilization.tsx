@@ -123,10 +123,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
           }
         });
       }
-
     }
-
-    this.addData(bucketName, 'region', region);
   }
 
   async getLifecyclePolicy (bucketArn: string, bucketName: string, region: string) {
@@ -155,7 +152,6 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         }
       });
     }
-    this.addData(bucketName, 'region', region);
   }
 
   async setAndGetBucketCostData (bucketName: string) {
