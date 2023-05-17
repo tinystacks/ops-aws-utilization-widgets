@@ -8,11 +8,11 @@ import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
-  region: string;
+  regions: string[];
   constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
-    this.region = props.region || 'us-east-1';
+    this.regions = props.regions || [ 'us-east-1' ];
   }
 
   static fromJson (props: UtilizationRecommendationsWidget) {
@@ -23,7 +23,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     return {
       ...super.toJson(),
       utilization: this.utilization,
-      region: this.region
+      regions: this.regions
     };
   }
 
@@ -36,10 +36,10 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     const awsCredsProvider = getAwsCredentialsProvider(providers);
     
     if (overrides?.refresh) {
-      await utilProvider.hardRefresh(awsCredsProvider, [this.region]);
+      await utilProvider.hardRefresh(awsCredsProvider, this.regions);
     }
 
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.regions);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceIds } = overrides.resourceActions;
@@ -54,7 +54,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
           for (const scenario of Object.keys(resource.scenarios)) {
             await utilProvider.doAction(
               serviceUtil, awsCredsProvider, get(resource.scenarios[scenario], `${actionType}.action`), resourceId,
-              this.region
+              get(resource.data, 'region', 'us-east-1')
             );
           }
         }

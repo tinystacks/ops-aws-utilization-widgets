@@ -22,7 +22,7 @@ export class AwsServiceUtilizationFactory {
         return new rdsInstancesUtilization();
       case AwsResourceTypes.Account: 
         return new awsAccountUtilization(); 
-      case AwsResourceTypes.NatGatewway: 
+      case AwsResourceTypes.NatGateway: 
         return new AwsNatGatewayUtilization(); 
       case AwsResourceTypes.EbsVolume: 
         return new ebsVolumesUtilization();
