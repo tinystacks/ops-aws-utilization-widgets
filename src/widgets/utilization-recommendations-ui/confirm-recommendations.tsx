@@ -8,14 +8,12 @@ import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js'
 import { ConfirmRecommendationsProps } from '../utilization-recommendations-types.js';
 import { actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
-import { RecommendationsInProgress } from './recommendation-inprogress.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const { actionType, resourceIds, onRemoveResource, onResourcesAction, utilization } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
-  const [actionsInProgress, setActionsInProgress] = useState<boolean | undefined>(undefined);
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1);
   
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
@@ -87,8 +85,9 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <ModalHeader>Confirm {actionType}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>You are about to {actionType} {resourceIds.length} resources.</Text>
-            <Text>To confirm, type '{actionType} resources' in the input below.</Text>
+            <Text fontSize='xl'>You are about to {actionType} {resourceIds.length} resources.</Text>
+            <Text fontSize='xl'>To confirm, type '{actionType} resources' in the input below.</Text>
+            <Text fontSize='xs'> Please note, as we are cleaning up your resources they may still appear as recommendations until the process completes in the background. </Text>
             <Text pt='1'>Confirm {actionType}</Text>
             <HStack>
               <Input value={confirmationText} onChange={event => setConfirmationText(event.target.value)} />
@@ -103,7 +102,6 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
                     if (confirmationText !== actionType + ' resources') {
                       setError(`Type '${actionType} resources' in the box to continue`);
                     } else {
-                      setActionsInProgress(true);
                       setError(undefined);
                       onResourcesAction(resourceIds, actionType);
                     }
@@ -120,8 +118,6 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           </ModalBody>
         </ModalContent>
       </Modal>
-      <RecommendationsInProgress 
-        isOpen={actionsInProgress} />
     </Stack>
   );
 }

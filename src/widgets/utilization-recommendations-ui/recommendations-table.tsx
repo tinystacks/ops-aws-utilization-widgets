@@ -343,17 +343,6 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 </Button>
                 {adjustments}
               </Box>
-              <Box marginTop='20px'>
-                <Button
-                  variant='ghost'
-                  aria-label={'downCaret'}
-                  leftIcon={<ChevronDownIcon/>}
-                  size='lg'
-                  colorScheme='black'
-                >
-                  Usage
-                </Button>
-              </Box>
             </TableContainer>
             <Flex pt='1'>
               <Spacer/>
