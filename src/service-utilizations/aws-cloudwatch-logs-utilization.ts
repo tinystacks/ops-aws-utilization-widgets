@@ -32,6 +32,15 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
 
       await this.deleteLogGroup(cwLogsClient, resourceId);
     }
+
+    if(actionName === 'setRetentionPolicy'){ 
+      const cwLogsClient = new CloudWatchLogs({
+        credentials: await awsCredentialsProvider.getCredentials(),
+        region
+      });
+
+      await this.setRetentionPolicy(cwLogsClient, resourceId, 90);
+    }
   }
 
 
@@ -85,7 +94,6 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
        throttling could still occur in accounts with more log groups, will have to monitor this behavior*/
     for (const region in allLogGroupsPerRegion) {
       void await Promise.all(allLogGroupsPerRegion[region].map(async (logGroup) => {
-        const logGroupArn = logGroup?.arn;
         const logGroupName = logGroup?.logGroupName;
         const cwLogsClient = new CloudWatchLogs({
           credentials,
@@ -93,10 +101,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         });
         const retentionInDays = logGroup?.retentionInDays;
         if (!retentionInDays) {
-          this.addScenario(logGroupArn, 'hasRetentionPolicy', {
+          this.addScenario(logGroupName, 'hasRetentionPolicy', {
             value: 'false',
             optimize: {
               action: 'setRetentionPolicy',
+              isActionable: true,
               reason: 'this log group does not have a retention policy'
             }
           });
@@ -110,18 +119,20 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
           const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
           if (lastEventTime < thirtyDaysAgo) {
-            this.addScenario(logGroupArn, 'lastEventTime', {
+            this.addScenario(logGroupName, 'lastEventTime', {
               value: lastEventTime.toString(),
               delete: {
                 action: 'deleteLogGroup',
+                isActionable: true,
                 reason: 'this log group has not had an event in over 30 days'
               }
             });
           } else if (lastEventTime < sevenDaysAgo) {
-            this.addScenario(logGroupArn, 'lastEventTime', {
+            this.addScenario(logGroupName, 'lastEventTime', {
               value: lastEventTime.toString(),
               optimize: {
                 action: '',
+                isActionable: false,
                 reason: 'this log group has not had an event in over 7 days'
               }
             });
@@ -129,19 +140,20 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
           const storedBytes = logGroup?.storedBytes;
           // TODO: change limit compared
           if (storedBytes > 100) {
-            this.addScenario(logGroupArn, 'storedBytes', {
+            this.addScenario(logGroupName, 'storedBytes', {
               value: storedBytes.toString(),
               scaleDown: {
                 action: 'createExportTask',
+                isActionable: false,
                 reason: 'this log group has more than 100 bytes of stored data'
               }
             });
           }
         }
-        this.addData(logGroupArn, 'resourceId', logGroupName);
-        this.addData(logGroupArn, 'region', region);
+        this.addData(logGroupName, 'resourceId', logGroupName);
+        this.addData(logGroupName, 'region', region);
         if (logGroupName.startsWith('/aws')) {
-          this.addData(logGroupArn, 'associatedResourceId', logGroupName.split('/')[3]);
+          this.addData(logGroupName, 'associatedResourceId', logGroupName.split('/')[3]);
         }
       }));
     }

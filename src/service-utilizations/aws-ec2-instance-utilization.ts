@@ -298,9 +298,10 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         lowNetworkUtilization
       ) {
         this.addScenario(instanceId, 'unused', {
-          value: 'unused',
+          value: 'true',
           delete: {
             action: 'terminateInstance',
+            isActionable: true,
             reason: 'This EC2 instance appears to be unused based on its CPU utilization, disk IOPS, ' +
                     'and network traffic.'
           }
@@ -357,6 +358,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
             value: 'overAllocated',
             scaleDown: {
               action: 'scaleDownInstance',
+              isActionable: false,
               reason: 'This EC2 instance appears to be over allocated based on its CPU and network utilization. We ' +
                       `suggest scaling down to a ${targetInstanceType.InstanceType}`
             }
@@ -366,8 +368,6 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
 
       }
     }
-
-    console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
 
   async getUtilization (

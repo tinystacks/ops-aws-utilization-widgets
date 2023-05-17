@@ -10,7 +10,6 @@ export function RecommendationsInProgress (props: { isOpen: boolean | undefined 
   
   const { isOpen } = props;
   const { onClose } = useDisclosure();
-  //console.error("expecting a popupp: ", isOpen);
 
   return ( 
     isOpen &&

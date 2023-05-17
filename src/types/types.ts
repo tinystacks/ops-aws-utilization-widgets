@@ -44,6 +44,7 @@ export const actionTypeToEnum = {
 
 export type Action = {
   action: string,
+  isActionable: boolean,
   reason: string
 }
 

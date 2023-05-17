@@ -85,7 +85,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
       Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
     );
     const tableHeaders = [...tableHeadersSet];
-    const tableHeadersDom = actionType != ActionType.OPTIMIZE  ? [...tableHeaders].map(th =>
+    const tableHeadersDom = actionType === ActionType.DELETE  ? [...tableHeaders].map(th =>
       <Th key={th} maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'>
         {sentenceCase(th)}
       </Th>
@@ -116,7 +116,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             <Tooltip 
               label={serviceUtil[resId].scenarios[th] ? serviceUtil[resId].scenarios[th][actionType]?.reason : undefined } 
               aria-label='A tooltip'
-              bg='purple.500'
+              bg='purple.400'
               color='white'
             >
               <Box>
@@ -160,7 +160,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Th />
               </Tr>
             </Thead>
-            <Tbody>{actionType != ActionType.OPTIMIZE ? taskRows: taskRowsForOptimize(serviceName, serviceUtil)}</Tbody>
+            <Tbody>{actionType === ActionType.DELETE ? taskRows: taskRowsForOptimize(serviceName, serviceUtil)}</Tbody>
           </Table>
         </TableContainer>
       </Stack>
@@ -219,7 +219,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                       serviceUtil[resId].scenarios[th] && serviceUtil[resId].scenarios[th][actionType]?.reason && (
                         <Tr>
                           <Td w={CHECKBOX_CELL_MAX_WIDTH}>
-                            { isEmpty(serviceUtil[resId].scenarios[th][actionType]?.action) ?  <Checkbox isDisabled/> :  <Checkbox
+                            { ( isEmpty(serviceUtil[resId].scenarios[th][actionType]?.action) || !serviceUtil[resId].scenarios[th][actionType]?.isActionable ) ?  <Checkbox isDisabled/> :  <Checkbox
                               isChecked={checkedResources.includes(resId)}
                               onChange={onResourceCheckChange(resId, serviceName)} /> }
                           </Td>
@@ -295,7 +295,16 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
               </Box>
               <Spacer/>
               <Box marginRight='40px'>
-                <Button colorScheme='orange' size='sm' rightIcon={<ExternalLinkIcon />}> View in AWS </Button>
+                <Button 
+                  colorScheme='orange'
+                  size='sm' 
+                  rightIcon={<ExternalLinkIcon />}
+                  /*onClick={ () => { 
+                    window.open(getAwsLink(sidePanelResourceId, sidePanelService as AwsResourceType, data?.region));
+                  }}*/
+                > 
+                  View in AWS 
+                </Button>
               </Box>
             </Flex>
           </DrawerHeader>

@@ -165,6 +165,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           value: activeConnectionCount.toString(),
           delete: {
             action: 'deleteNatGateway',
+            isActionable: true,
             reason: 'This NAT Gateway has had 0 active connections over the past week. It appears to be unused.'
           }
         });
@@ -179,6 +180,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           value: totalThroughput.toString(),
           delete: {
             action: 'deleteNatGateway',
+            isActionable: true,
             reason: 'This NAT Gateway has had 0 total throughput over the past week. It appears to be unused.'
           }
         });

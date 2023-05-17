@@ -106,7 +106,6 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
                       setActionsInProgress(true);
                       setError(undefined);
                       onResourcesAction(resourceIds, actionType);
-                      
                     }
                   }}
                 >

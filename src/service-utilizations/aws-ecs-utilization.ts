@@ -592,6 +592,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         value: 'true',
         scaleDown: {
           action: 'scaleDownEc2Service',
+          isActionable: false,
           reason: 'The EC2 instances used in this Service\'s cluster appears to be over allocated based on its CPU' +
                   `and Memory utilization.  We suggest scaling down to a ${targetInstanceType.InstanceType}.`
         }
@@ -688,6 +689,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         value: 'overAllocated',
         scaleDown: {
           action: 'scaleDownFargateService',
+          isActionable: false,
           reason: `This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.
                    We suggest scaling the CPU down to ${targetScaleOption.cpu} and the Memory to
                    ${targetScaleOption.memory} MiB.`
@@ -789,6 +791,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
           value: 'true',
           delete: {
             action: 'deleteService',
+            isActionable: true,
             reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and'
                   + ' network traffic.'
           }
