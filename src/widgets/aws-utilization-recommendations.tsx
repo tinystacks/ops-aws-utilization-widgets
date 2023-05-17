@@ -69,10 +69,17 @@ export class AwsUtilizationRecommendations extends BaseWidget {
       });
     }
 
+    function onRefresh () {
+      overridesCallback({
+        refresh: true
+      });
+    }
+
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
         onResourcesAction={onResourcesAction}
+        onRefresh={onRefresh}
       />
     );
   }

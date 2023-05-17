@@ -306,12 +306,13 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         totalDiskIops === 0 &&
         lowNetworkUtilization
       ) {
-        this.addScenario(instanceArn, 'unused', {
-          value: 'unused',
+        this.addScenario(instanceId, 'unused', {
+          value: 'true',
           delete: {
             action: 'terminateInstance',
-            reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, ' +
-                    'and network traffic.',
+            isActionable: true,
+            reason: 'This EC2 instance appears to be unused based on its CPU utilization, disk IOPS, ' +
+                    'and network traffic.', 
             monthlySavings: cost
           }
         });
@@ -369,6 +370,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
             value: 'overAllocated',
             scaleDown: {
               action: 'scaleDownInstance',
+              isActionable: false,
               reason: 'This EC2 instance appears to be over allocated based on its CPU and network utilization.  We ' + 
                       `suggest scaling down to a ${targetInstanceType.InstanceType}`,
               monthlySavings
@@ -383,8 +385,6 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
-
-    console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));
   }
 
   async getUtilization (

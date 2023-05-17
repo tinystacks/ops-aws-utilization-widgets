@@ -2,24 +2,15 @@ import React from 'react';
 import { Box, Button, Flex, Heading, Icon, Spacer, Stack, Text } from '@chakra-ui/react';
 import { DeleteIcon, ArrowForwardIcon, ArrowDownIcon } from '@chakra-ui/icons';
 import { TbVectorBezier2 } from 'react-icons/tb/index.js';
-import { filterUtilizationForActionType } from '../../utils/utilization.js';
-import { ActionType, Utilization } from '../../types/types.js';
-import isEmpty from 'lodash.isempty';
+import { filterUtilizationForActionType, getNumberOfResourcesFromFilteredActions } from '../../utils/utilization.js';
+import { ActionType } from '../../types/types.js';
 import { RecommendationsActionSummaryProps } from '../utilization-recommendations-types.js';
+import { TbRefresh } from 'react-icons/tb/index.js';
 
 
 
 export function RecommendationsActionSummary (props: RecommendationsActionSummaryProps) {
-  const { utilization, onContinue } = props;
-
-  function getNumberOfResourcesFromFilteredActions (filtered: { [service: string]: Utilization<string> }): number {
-    let total = 0;
-    Object.keys(filtered).forEach((s) => {
-      if (!filtered[s] || isEmpty(filtered[s])) return;
-      total += Object.keys(filtered[s]).length;
-    });
-    return total;
-  }
+  const { utilization, onContinue, onRefresh } = props;
 
   const deleteChanges = filterUtilizationForActionType(utilization, ActionType.DELETE);
   const scaleDownChanges = filterUtilizationForActionType(utilization, ActionType.SCALE_DOWN);
@@ -50,13 +41,22 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
           <Box w='150px'>
             <Text fontSize='sm' color='gray.500'>{numResources} available</Text>
           </Box>
-          <Button
-            colorScheme={actionType === ActionType.DELETE ? 'purple' : 'gray'}
+          <Button 
+            colorScheme="purple"
+            variant="outline" 
+            marginRight={'8px'} 
             size='sm'
-            disabled={actionType !== ActionType.DELETE}
-            onClick={() => actionType === ActionType.DELETE ? onContinue(actionType) : undefined}
+            border="0px"
+            onClick={() => onRefresh()}
           >
-            {actionType === ActionType.DELETE ? <>Review <ArrowForwardIcon /></> : <>Coming Soon!</>}
+            <Icon as={TbRefresh} />
+          </Button>
+          <Button
+            colorScheme='purple'
+            size='sm'
+            onClick={() => onContinue(actionType)}
+          >
+            {<>Review <ArrowForwardIcon /></>}
           </Button>
         </Flex>
       </Stack>

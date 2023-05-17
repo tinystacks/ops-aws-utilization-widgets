@@ -12,7 +12,7 @@ enum WizardSteps {
 }
 
 export function UtilizationRecommendationsUi (props: UtilizationRecommendationsUiProps) {
-  const { utilization, onResourcesAction } = props;
+  const { utilization, onResourcesAction, onRefresh } = props;
   const [wizardStep, setWizardStep] = useState<string>(WizardSteps.SUMMARY);
   const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
   const [actionType, setActionType] = useState<ActionType>(ActionType.DELETE);
@@ -21,6 +21,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
     return (
       <RecommendationsActionSummary
         utilization={utilization}
+        onRefresh={onRefresh}
         onContinue={(selectedActionType: ActionType) => {
           setActionType(selectedActionType);
           setWizardStep(WizardSteps.TABLE);
@@ -33,9 +34,17 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
       <RecommendationsTable
         utilization={utilization}
         actionType={actionType}
+        onRefresh={() => { 
+          onRefresh();
+          setWizardStep(WizardSteps.TABLE); //this does nothing
+        }}
         onContinue={(checkedResources) => {
           setWizardStep(WizardSteps.CONFIRM);
           setSelectedResourceIds(checkedResources);
+        }}
+        onBack={() => { 
+          setWizardStep(WizardSteps.SUMMARY);
+          setSelectedResourceIds([]);
         }}
       />
     );
@@ -51,12 +60,15 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
         }}
         onResourcesAction={onResourcesAction}
         utilization={utilization}
+        onBack={() => { 
+          setWizardStep(WizardSteps.TABLE);
+        }}
       />);
   }
-
   return (
     <RecommendationsActionSummary
       utilization={utilization}
+      onRefresh={onRefresh}
       onContinue={(selectedActionType: ActionType) => {
         setActionType(selectedActionType);
         setWizardStep(WizardSteps.TABLE);

@@ -1,6 +1,9 @@
 import React from 'react';
 import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
-import { Utilization } from '../types/types.js';
+import { ActionType, Utilization } from '../types/types.js';
+import { filterUtilizationForActionType, 
+  getNumberOfResourcesFromFilteredActions, 
+  getTotalNumberOfResources } from '../utils/utilization.js';
 
 export default function RecommendationOverview (
   props: { utilizations: { [ serviceName: string ] : Utilization<string> } }
@@ -8,7 +11,7 @@ export default function RecommendationOverview (
 
   const { utilizations } = props;
 
-  const { totalRecommendations, totalUnusedResources, totalScalingActions } =
+  const { totalUnusedResources, totalScalingActions, totalResources } =
     getTotalRecommendationValues(utilizations);
 
   const labelStyles = {
@@ -30,8 +33,8 @@ export default function RecommendationOverview (
   return (
     <SimpleGrid columns={3} spacing={2}>
       <Box p={5}>
-        <Heading style={labelStyles}>{totalRecommendations}</Heading>
-        <Text style={textStyles}>{'recommendations'}</Text>
+        <Heading style={labelStyles}>{totalResources}</Heading>
+        <Text style={textStyles}>{'resources'}</Text>
       </Box>
       <Box p={5}>
         <Heading style={labelStyles}>{totalUnusedResources}</Heading>
@@ -48,36 +51,17 @@ export default function RecommendationOverview (
 }
 
 function getTotalRecommendationValues (utilizations:  { [ serviceName: string ] : Utilization<string> }) { 
-  let totalRecommendations = 0;
-  let totalUnusedResources = 0; 
-  let totalScalingActions = 0;
-  let totalOptimizeActions = 0;
+  const deleteChanges = filterUtilizationForActionType(utilizations, ActionType.DELETE);
+  const scaleDownChanges = filterUtilizationForActionType(utilizations, ActionType.SCALE_DOWN);
 
-  for(const service in utilizations) {
-    const serviceUtilization = utilizations[service];
-    for(const resource in serviceUtilization){
-      const scenarios = serviceUtilization[resource].scenarios;
-      for(const scenario in scenarios){ 
-        if(scenarios[scenario].delete){ 
-          ++totalUnusedResources; 
-          ++totalRecommendations;
-        }
-        if(scenarios[scenario].scaleDown){ 
-          ++totalScalingActions;
-          ++totalRecommendations;
-        }
-        if(scenarios[scenario].optimize){ 
-          ++totalOptimizeActions;
-          ++totalRecommendations;
-        }
-      }
-    }
-  }
+  const totalUnusedResources = getNumberOfResourcesFromFilteredActions(deleteChanges);
+  const totalScalingActions = getNumberOfResourcesFromFilteredActions(scaleDownChanges);
+
+  const totalResources = getTotalNumberOfResources(utilizations);
 
   return { 
-    totalRecommendations, 
     totalUnusedResources, 
     totalScalingActions, 
-    totalOptimizeActions
+    totalResources
   };
 }
