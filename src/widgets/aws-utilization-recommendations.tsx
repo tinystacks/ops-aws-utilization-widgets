@@ -42,21 +42,21 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     this.utilization = await utilProvider.getUtilization(awsCredsProvider);
 
     if (overrides?.resourceActions) {
-      const { actionType, resourceIds } = overrides.resourceActions;
-      const resourceIdsSet = new Set<string>(resourceIds);
+      const { actionType, resourceArns } = overrides.resourceActions;
+      const resourceArnsSet = new Set<string>(resourceArns);
       const filteredServices = filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType]);
       
       for (const serviceUtil of Object.keys(filteredServices)) {
         const filteredServiceUtil = Object.keys(filteredServices[serviceUtil])
-          .filter(resId => resourceIdsSet.has(resId));
-        for (const resourceId of filteredServiceUtil) {
-          const resource = filteredServices[serviceUtil][resourceId];
+          .filter(resArn => resourceArnsSet.has(resArn));
+        for (const resourceArn of filteredServiceUtil) {
+          const resource = filteredServices[serviceUtil][resourceArn];
           for (const scenario of Object.keys(resource.scenarios)) {
             await utilProvider.doAction(
               serviceUtil, 
               awsCredsProvider, 
               get(resource.scenarios[scenario], `${actionType}.action`), 
-              resourceId,
+              resourceArn,
               get(resource.data, 'region', 'us-east-1')
             );
           }
@@ -66,9 +66,9 @@ export class AwsUtilizationRecommendations extends BaseWidget {
   }
 
   render (_children: any, overridesCallback?: (overrides: RecommendationsOverrides) => void) {
-    function onResourcesAction (resourceIds: string[], actionType: string) {
+    function onResourcesAction (resourceArns: string[], actionType: string) {
       overridesCallback({
-        resourceActions: { resourceIds, actionType }
+        resourceActions: { resourceArns, actionType }
       });
     }
 

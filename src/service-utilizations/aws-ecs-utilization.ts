@@ -113,10 +113,10 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
   }
 
   async doAction (
-    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
     if (actionName === 'deleteService') {
-      await this.deleteService(awsCredentialsProvider, resourceId.split('/')[1], resourceId, region);
+      await this.deleteService(awsCredentialsProvider, resourceArn.split('/')[1], resourceArn, region);
     }
   }
 

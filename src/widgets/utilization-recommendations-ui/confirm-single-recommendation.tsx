@@ -7,7 +7,7 @@ import { ConfirmSingleRecommendationProps } from '../../types/utilization-recomm
 import { actionTypeText } from '../../types/types.js';
 
 export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationProps) {
-  const { resourceId, actionType, onRemoveResource, onResourcesAction } = props;
+  const { resourceArn, actionType, onRemoveResource, onResourcesAction } = props;
   // TODO: const { isOpen, onOpen, onClose } = useDisclosure();
   const { isOpen, onClose } = useDisclosure();
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1) + ' now';
@@ -16,7 +16,7 @@ export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationP
     <Stack w="100%" pb='2' pt='2'>
       <Flex>
         <Stack>
-          <Text>{resourceId}</Text>
+          <Text>{resourceArn}</Text>
         </Stack>
         {/* TODO */}
         {/* <Stack>
@@ -27,7 +27,7 @@ export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationP
         <Stack>
           {/* TODO */}
           {/* <Button colorScheme='red' size='sm' onClick={onOpen}>{actionLabel}</Button> */}
-          <Button variant='link' size='sm' onClick={() => onRemoveResource(resourceId)}>
+          <Button variant='link' size='sm' onClick={() => onRemoveResource(resourceArn)}>
             {'Don\'t ' + actionTypeText[actionType]}
           </Button>
         </Stack>
@@ -38,13 +38,13 @@ export function ConfirmSingleRecommendation (props: ConfirmSingleRecommendationP
           <ModalHeader>Confirm {actionType}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text>You are about to {actionType} the resource with id {resourceId}.</Text>
+            <Text>You are about to {actionType} the resource with id {resourceArn}.</Text>
             <Button
               colorScheme='red'
               size='sm'
               onClick={() => {
-                onResourcesAction([resourceId], actionType);
-                onRemoveResource(resourceId);
+                onResourcesAction([resourceArn], actionType);
+                onRemoveResource(resourceArn);
               }}
             >
               {actionLabel}

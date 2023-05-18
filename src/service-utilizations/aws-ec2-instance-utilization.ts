@@ -57,9 +57,10 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
   }
 
   async doAction (
-    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
     if (actionName === 'terminateInstance') {
+      const resourceId = resourceArn.split(':').at(-1);
       await this.terminateInstance(awsCredentialsProvider, resourceId, region);
     }
   }
@@ -405,7 +406,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       credentials,
       region
     });
-
+    
     await ec2Client.terminateInstances({
       InstanceIds: [instanceId]
     });

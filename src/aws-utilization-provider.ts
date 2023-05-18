@@ -85,10 +85,10 @@ class AwsUtilizationProvider extends BaseProvider {
     service: AwsResourceType,
     credentialsProvider: AwsCredentialsProvider,
     actionName: string,
-    resourceId: string,
+    resourceArn: string,
     region: string
   ) {
-    await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceId, region);
+    await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceArn, region);
   }
 
   async hardRefresh (

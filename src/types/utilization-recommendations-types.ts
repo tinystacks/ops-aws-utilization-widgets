@@ -10,11 +10,11 @@ interface HasUtilization {
 }
 
 interface RemovableResource {
-  onRemoveResource: (resourceId: string) => void;
+  onRemoveResource: (resourceArn: string) => void;
 }
 
 interface HasResourcesAction {
-  onResourcesAction: (resourceIds: string[], actionType: string) => void;
+  onResourcesAction: (resourceArns: string[], actionType: string) => void;
 }
 
 interface Refresh {
@@ -30,11 +30,11 @@ export type RecommendationsOverrides = {
   refresh?: boolean;
   resourceActions?: {
     actionType: string,
-    resourceIds: string[]
+    resourceArns: string[]
   }
 };
 export type RecommendationsTableProps = HasActionType & HasUtilization & {
-  onContinue: (resourceIds: string[]) => void;
+  onContinue: (resourceArns: string[]) => void;
   onBack: () => void;
   onRefresh: () => void;
 };
@@ -44,10 +44,10 @@ export type RecommendationsActionSummaryProps = HasUtilization & {
   onRefresh: () => void;
 };
 export type ConfirmSingleRecommendationProps = RemovableResource & HasActionType & HasResourcesAction & {
-  resourceId: string;
+  resourceArn: string;
 };
 export type ConfirmRecommendationsProps = RemovableResource & HasActionType & HasResourcesAction & HasUtilization & {
-  resourceIds: string[];
+  resourceArns: string[];
   onBack: () => void;
 };
 

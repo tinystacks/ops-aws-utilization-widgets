@@ -14,7 +14,7 @@ enum WizardSteps {
 export function UtilizationRecommendationsUi (props: UtilizationRecommendationsUiProps) {
   const { utilization, onResourcesAction, onRefresh } = props;
   const [wizardStep, setWizardStep] = useState<string>(WizardSteps.SUMMARY);
-  const [selectedResourceIds, setSelectedResourceIds] = useState<string[]>([]);
+  const [selectedResourceArns, setSelectedResourceArns] = useState<string[]>([]);
   const [actionType, setActionType] = useState<ActionType>(ActionType.DELETE);
 
   if (wizardStep === WizardSteps.SUMMARY) {
@@ -40,11 +40,11 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
         }}
         onContinue={(checkedResources) => {
           setWizardStep(WizardSteps.CONFIRM);
-          setSelectedResourceIds(checkedResources);
+          setSelectedResourceArns(checkedResources);
         }}
         onBack={() => { 
           setWizardStep(WizardSteps.SUMMARY);
-          setSelectedResourceIds([]);
+          setSelectedResourceArns([]);
         }}
       />
     );
@@ -53,10 +53,10 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
   if (wizardStep === WizardSteps.CONFIRM) {
     return (
       <ConfirmRecommendations
-        resourceIds={selectedResourceIds}
+        resourceArns={selectedResourceArns}
         actionType={actionType}
-        onRemoveResource={(resourceId: string) => {
-          setSelectedResourceIds(selectedResourceIds.filter((r: string) => r !== resourceId));
+        onRemoveResource={(resourceArn: string) => {
+          setSelectedResourceArns(selectedResourceArns.filter((r: string) => r !== resourceArn));
         }}
         onResourcesAction={onResourcesAction}
         utilization={utilization}

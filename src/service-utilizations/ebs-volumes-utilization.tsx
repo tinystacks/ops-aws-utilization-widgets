@@ -13,13 +13,14 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
   }
 
   async doAction (
-    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
     if (actionName === 'deleteEBSVolume') {
       const ec2Client = new EC2({
         credentials: await awsCredentialsProvider.getCredentials(),
         region: region
       });
+      const resourceId = resourceArn.split(':').at(-1);
       await this.deleteEBSVolume(ec2Client, resourceId);
     }
   }
@@ -74,18 +75,15 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
   
   }
 
-  //deletes and optimizes working 
-  //scenarios without actions, showing reason instead of action, link to aws console for that resource
-
   findUnusedVolumes (volumes: Volume[]){ 
     volumes.forEach((volume) => { 
       if(!volume.Attachments || volume.Attachments.length === 0){ 
         this.addScenario(volume.VolumeId, 'hasAttachedInstances', {
           value: 'false',
           delete: { 
-            action: 'deleteEBSVolume', 
+            action: 'deleteEBSVolume',
             isActionable: true,
-            reason: 'This EBS volume does not have any attachments'
+            reason: 'This EBS volume does not have any attahcments'
           }
         });
       }
@@ -134,7 +132,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
       this.addScenario(volumeId, 'volumeReadWriteOps', {
         value: '0',
         delete: { 
-          action: 'deleteEBSVolume', 
+          action: 'deleteEBSVolume',
           isActionable: true,
           reason: 'No operations performed on this volume in the last week'
         }

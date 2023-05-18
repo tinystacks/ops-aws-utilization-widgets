@@ -10,13 +10,14 @@ export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUt
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   
   async doAction (
-    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string, region: string
+    awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
     if (actionName === 'deleteInstance') {
       const rdsClient = new RDS({
         credentials: await awsCredentialsProvider.getCredentials(),
         region
       });
+      const resourceId = resourceArn.split(':').at(-1);
       await this.deleteInstance(rdsClient, resourceId);
     }
   }
