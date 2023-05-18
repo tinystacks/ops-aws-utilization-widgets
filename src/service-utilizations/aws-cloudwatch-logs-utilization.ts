@@ -24,7 +24,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
   async doAction (
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
-    const resourceId = resourceArn.split(':').at(-1);
+    const resourceId = resourceArn.split(':').at(-2);
     if (actionName === 'deleteLogGroup') {
       const cwLogsClient = new CloudWatchLogs({
         credentials: await awsCredentialsProvider.getCredentials(),

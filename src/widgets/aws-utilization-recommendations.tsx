@@ -53,9 +53,9 @@ export class AwsUtilizationRecommendations extends BaseWidget {
           const resource = filteredServices[serviceUtil][resourceArn];
           for (const scenario of Object.keys(resource.scenarios)) {
             await utilProvider.doAction(
-              serviceUtil, 
+              serviceUtil,
               awsCredsProvider, 
-              get(resource.scenarios[scenario], `${actionType}.action`), 
+              get(resource.scenarios[scenario], `${actionType}.action`),
               resourceArn,
               get(resource.data, 'region', 'us-east-1')
             );
