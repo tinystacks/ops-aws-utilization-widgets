@@ -71,4 +71,4 @@ This project is licensed under the [BSD 3-Clause License](LICENSE).
 
 ## Community
 
-Join our discord to have a chat!
+Join our [discord](https://discord.gg/AZZzdGVCNW) to have a chat!
