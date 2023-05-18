@@ -10,7 +10,7 @@ import { actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
-  const { actionType, resourceIds, onRemoveResource, onResourcesAction, utilization } = props;
+  const { actionType, resourceArns, onRemoveResource, onResourcesAction, utilization } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
@@ -19,8 +19,8 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
   const resourceFilteredServices = new Set<string>();
   Object.entries(filteredServices).forEach(([serviceName, serviceUtil]) => {
-    for (const resourceId of resourceIds) {
-      if (Object.hasOwn(serviceUtil, resourceId)) {
+    for (const resourceArn of resourceArns) {
+      if (Object.hasOwn(serviceUtil, resourceArn)) {
         resourceFilteredServices.add(serviceName);
         break;
       }
@@ -34,11 +34,11 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <Text fontSize='sm'>{s}</Text>
         </HStack>
         <Stack pl='5' pr='5'>
-          {resourceIds
+          {resourceArns
             .filter(r => Object.hasOwn(filteredServices[s], r))
-            .map(rid => (
+            .map(rarn => (
               <ConfirmSingleRecommendation
-                resourceId={rid}
+                resourceArn={rarn}
                 actionType={actionType}
                 onRemoveResource={onRemoveResource}
                 onResourcesAction={onResourcesAction}
@@ -85,7 +85,7 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <ModalHeader>Confirm {actionType}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Text fontSize='xl'>You are about to {actionType} {resourceIds.length} resources.</Text>
+            <Text fontSize='xl'>You are about to {actionType} {resourceArns.length} resources.</Text>
             <Text fontSize='xl'>To confirm, type '{actionType} resources' in the input below.</Text>
             <Text fontSize='xs'> 
               Please note, as we are cleaning up your resources they 
@@ -106,7 +106,7 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
                       setError(`Type '${actionType} resources' in the box to continue`);
                     } else {
                       setError(undefined);
-                      onResourcesAction(resourceIds, actionType);
+                      onResourcesAction(resourceArns, actionType);
                     }
                   }}
                 >

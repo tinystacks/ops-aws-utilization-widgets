@@ -24,16 +24,17 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
     this.bucketCostData = {};
   }
 
-  async doAction (awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceId: string) {
+  async doAction (awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string) {
     const s3Client = new S3({
       credentials: await awsCredentialsProvider.getCredentials()
     });
+    const resourceId = resourceArn.split(':').at(-1);
     if (actionName === 'enableIntelligientTiering') { 
       await this.enableIntelligientTiering(s3Client, resourceId);
     }
   }
 
-  async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput?: any){
+  async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput?: any) {
     const configurationId = userInput?.configurationId || `${bucketName}-tiering-configuration`;
    
     return await s3Client.putBucketIntelligentTieringConfiguration({ 

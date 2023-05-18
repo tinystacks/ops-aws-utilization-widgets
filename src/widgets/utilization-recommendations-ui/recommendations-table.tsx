@@ -24,7 +24,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   const [checkedResources, setCheckedResources] = useState<string[]>([]);
   const [checkedServices, setCheckedServices] = useState<string[]>([]);
   const [showSideModal, setShowSideModal] = useState<boolean | undefined>(undefined);
-  const [ sidePanelResourceId, setSidePanelResourceId ] = useState<string | undefined>(undefined);
+  const [ sidePanelResourceArn, setSidePanelResourceArn ] = useState<string | undefined>(undefined);
   const [ sidePanelService, setSidePanelService ] = useState<string | undefined>(undefined);
 
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
@@ -34,9 +34,9 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.checked) {
         const cascadedCheckedResources = [...checkedResources];
-        Object.keys(filteredServices[serviceName]).forEach((resId) => {
-          if (!cascadedCheckedResources.includes(resId)) {
-            cascadedCheckedResources.push(resId);
+        Object.keys(filteredServices[serviceName]).forEach((resArn) => {
+          if (!cascadedCheckedResources.includes(resArn)) {
+            cascadedCheckedResources.push(resArn);
           }
         });
         setCheckedResources(cascadedCheckedResources);
@@ -48,13 +48,13 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
     };
   }
 
-  function onResourceCheckChange (resId: string, serviceName: string) {
+  function onResourceCheckChange (resArn: string, serviceName: string) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
       if (e.target.checked) {
-        setCheckedResources([...checkedResources, resId]);
+        setCheckedResources([...checkedResources, resArn]);
       } else {
         setCheckedServices(checkedServices.filter(s => s !== serviceName));
-        setCheckedResources(checkedResources.filter(id => id !== resId));
+        setCheckedResources(checkedResources.filter(id => id !== resArn));
       }
     };
   }
@@ -86,8 +86,8 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
       currency: 'USD'
     });
     const tableHeadersSet = new Set<string>();
-    Object.keys(serviceUtil).forEach(resId =>
-      Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
+    Object.keys(serviceUtil).forEach(resArn =>
+      Object.keys(serviceUtil[resArn].scenarios).forEach(s => tableHeadersSet.add(s))
     );
     const tableHeaders = [...tableHeadersSet];
     const tableHeadersDom = actionType === ActionType.DELETE  ? [...tableHeaders].map(th =>
@@ -96,12 +96,12 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
       </Th>
     ): undefined;
 
-    const taskRows = Object.keys(serviceUtil).map(resId => (
-      <Tr key={resId}>
+    const taskRows = Object.keys(serviceUtil).map(resArn => (
+      <Tr key={resArn}>
         <Td w={CHECKBOX_CELL_MAX_WIDTH}>
           <Checkbox
-            isChecked={checkedResources.includes(resId)}
-            onChange={onResourceCheckChange(resId, serviceName)}
+            isChecked={checkedResources.includes(resArn)}
+            onChange={onResourceCheckChange(resArn, serviceName)}
           />
         </Td>
         <Td
@@ -109,47 +109,47 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          {resId}
+          {resArn}
         </Td>
         {tableHeaders.map(th => 
           <Td
-            key={resId + 'scenario' + th}
+            key={resArn + 'scenario' + th}
             maxW={RESOURCE_VALUE_MAX_WIDTH}
             overflow='hidden'
             textOverflow='ellipsis'
           >
             <Tooltip 
-              label={serviceUtil[resId].scenarios[th] ? serviceUtil[resId].scenarios[th][actionType]?.reason : undefined } 
+              label={serviceUtil[resArn].scenarios[th] ? serviceUtil[resArn].scenarios[th][actionType]?.reason : undefined } 
               aria-label='A tooltip'
               bg='purple.400'
               color='white'
             >
               <Box>
-                {serviceUtil[resId].scenarios[th]?.value || 'undefined'}
+                {serviceUtil[resArn].scenarios[th]?.value || 'undefined'}
                 {<InfoIcon marginLeft={'8px'} color='black' />}
               </Box>
             </Tooltip>            
           </Td>
         )}
         <Td
-          key={resId + 'cost/mo'}
+          key={resArn + 'cost/mo'}
           maxW={RESOURCE_PROPERTY_MAX_WIDTH}
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          { serviceUtil[resId]?.data?.monthlyCost ?
-            usd.format(serviceUtil[resId].data.monthlyCost) :
+          { serviceUtil[resArn]?.data?.monthlyCost ?
+            usd.format(serviceUtil[resArn].data.monthlyCost) :
             'Coming soon!'
           }
         </Td>
         <Td
-          key={resId + 'cost/hr'}
+          key={resArn + 'cost/hr'}
           maxW={RESOURCE_PROPERTY_MAX_WIDTH}
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          { serviceUtil[resId]?.data?.hourlyCost ?
-            usd.format(serviceUtil[resId].data.hourlyCost) :
+          { serviceUtil[resArn]?.data?.hourlyCost ?
+            usd.format(serviceUtil[resArn].data.hourlyCost) :
             'Coming soon!'
           }
         </Td>
@@ -158,7 +158,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             variant='link'
             onClick={ () => { 
               setShowSideModal(true);
-              setSidePanelResourceId(resId);
+              setSidePanelResourceArn(resArn);
               setSidePanelService(serviceName);
             }}
             size='sm'
@@ -203,41 +203,41 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
     });
     
     const tableHeadersSet = new Set<string>();
-    Object.keys(serviceUtil).forEach(resId =>
-      Object.keys(serviceUtil[resId].scenarios).forEach(s => tableHeadersSet.add(s))
+    Object.keys(serviceUtil).forEach(resArn =>
+      Object.keys(serviceUtil[resArn].scenarios).forEach(s => tableHeadersSet.add(s))
     );
     const tableHeaders = [...tableHeadersSet];
     
-    return Object.keys(serviceUtil).map(resId => (
+    return Object.keys(serviceUtil).map(resArn => (
       <>
-        <Tr key={resId}>
+        <Tr key={resArn}>
           <Td w={CHECKBOX_CELL_MAX_WIDTH}>
             <Checkbox
-              isChecked={checkedResources.includes(resId)}
-              onChange={onResourceCheckChange(resId, serviceName)} />
+              isChecked={checkedResources.includes(resArn)}
+              onChange={onResourceCheckChange(resArn, serviceName)} />
           </Td>
           <Td
             maxW={RESOURCE_PROPERTY_MAX_WIDTH}
             overflow='hidden'
             textOverflow='ellipsis'
           >
-            {resId}
+            {resArn}
           </Td>
           <Td
-            key={resId + 'cost/mo'}
+            key={resArn + 'cost/mo'}
             maxW={RESOURCE_PROPERTY_MAX_WIDTH}
             overflow='hidden'
             textOverflow='ellipsis'
           >
-            {usd.format(serviceUtil[resId].data.monthlyCost)}
+            {usd.format(serviceUtil[resArn].data.monthlyCost)}
           </Td>
           <Td
-            key={resId + 'cost/hr'}
+            key={resArn + 'cost/hr'}
             maxW={RESOURCE_PROPERTY_MAX_WIDTH}
             overflow='hidden'
             textOverflow='ellipsis'
           >
-            {usd.format(serviceUtil[resId].data.hourlyCost)}
+            {usd.format(serviceUtil[resArn].data.hourlyCost)}
           </Td>
           <Td
             maxW={RESOURCE_PROPERTY_MAX_WIDTH}
@@ -248,7 +248,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
               variant='link'
               onClick={() => {
                 setShowSideModal(true);
-                setSidePanelResourceId(resId);
+                setSidePanelResourceArn(resArn);
                 setSidePanelService(serviceName);
               } }
               size='sm'
@@ -270,17 +270,17 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Table size='sm'>
                   <Tbody>
                     {tableHeaders.map(th => 
-                      serviceUtil[resId].scenarios[th] && serviceUtil[resId].scenarios[th][actionType]?.reason && (
+                      serviceUtil[resArn].scenarios[th] && serviceUtil[resArn].scenarios[th][actionType]?.reason && (
                         <Tr>
                           <Td w={CHECKBOX_CELL_MAX_WIDTH}>
-                            { ( isEmpty(serviceUtil[resId].scenarios[th][actionType]?.action) || !serviceUtil[resId].scenarios[th][actionType]?.isActionable ) ?  <Checkbox isDisabled/> :  <Checkbox
-                              isChecked={checkedResources.includes(resId)}
-                              onChange={onResourceCheckChange(resId, serviceName)} /> }
+                            { ( isEmpty(serviceUtil[resArn].scenarios[th][actionType]?.action) || !serviceUtil[resArn].scenarios[th][actionType]?.isActionable ) ?  <Checkbox isDisabled/> :  <Checkbox
+                              isChecked={checkedResources.includes(resArn)}
+                              onChange={onResourceCheckChange(resArn, serviceName)} /> }
                           </Td>
                           <Td
-                            key={resId + 'scenario' + th}
+                            key={resArn + 'scenario' + th}
                           >
-                            { serviceUtil[resId].scenarios[th][actionType]?.reason }
+                            { serviceUtil[resArn].scenarios[th][actionType]?.reason }
                           </Td>
                         </Tr>
                       )
@@ -319,12 +319,12 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
 
   function sidePanel (){ 
     const serviceUtil = sidePanelService && filteredServices[sidePanelService];
-    const data = serviceUtil && serviceUtil[sidePanelResourceId]?.data;
+    const data = serviceUtil && serviceUtil[sidePanelResourceArn]?.data;
 
-    const adjustments = serviceUtil && Object.keys(serviceUtil[sidePanelResourceId]?.scenarios).map(scenario => (
+    const adjustments = serviceUtil && Object.keys(serviceUtil[sidePanelResourceArn]?.scenarios).map(scenario => (
       <Box bg="#EDF2F7" p={2} color="black" marginBottom='8px'> 
         <InfoIcon marginRight={'8px'} />
-        {serviceUtil[sidePanelResourceId].scenarios[scenario][actionType].reason} 
+        {serviceUtil[sidePanelResourceArn].scenarios[scenario][actionType].reason} 
       </Box>
     ));
 
@@ -354,7 +354,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                   size='sm' 
                   rightIcon={<ExternalLinkIcon />}
                   /*onClick={ () => { 
-                    window.open(getAwsLink(sidePanelResourceId, sidePanelService as AwsResourceType, data?.region));
+                    window.open(getAwsLink(sidePanelResourceArn, sidePanelService as AwsResourceType, data?.region));
                   }}*/
                 > 
                   View in AWS 
@@ -373,7 +373,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                       textOverflow='ellipsis'
                       textTransform='none'  
                     >
-                      {sidePanelResourceId}
+                      {data?.resourceId}
                     </Th>
                     <Th maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'> {data?.region}</Th>
                   </Tr>

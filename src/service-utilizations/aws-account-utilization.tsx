@@ -20,7 +20,7 @@ export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtili
   }
 
   doAction (
-    _awsCredentialsProvider: AwsCredentialsProvider, _actionName: string, _resourceId: string, _region: string
+    _awsCredentialsProvider: AwsCredentialsProvider, _actionName: string, _resourceArn: string, _region: string
   ): void | Promise<void> {
     throw new Error('Method not implemented.');
   }
