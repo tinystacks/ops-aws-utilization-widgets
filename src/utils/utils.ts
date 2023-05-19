@@ -76,7 +76,6 @@ export async function getAccountId (credentials: any) {
 
 export async function addFullJitter (attempt: number, cap = 5000, base = 3000, min = 3000) {
   const randomBetween = Math.floor(Math.random() * (Math.min(cap, base * 2 ** attempt) - min + 1) + min);
-  console.log(randomBetween);
   await new Promise(r => setTimeout(r, randomBetween));
 }
 
