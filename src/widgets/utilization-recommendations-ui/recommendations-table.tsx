@@ -270,7 +270,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Table size='sm'>
                   <Tbody>
                     {tableHeaders.map(th => 
-                      serviceUtil[resArn].scenarios[th] && serviceUtil[resArn].scenarios[th][actionType]?.reason && (
+                      serviceUtil[resArn].scenarios[th] && serviceUtil[resArn].scenarios[th][actionType]?.action && (
                         <Tr>
                           <Td w={CHECKBOX_CELL_MAX_WIDTH}>
                             { ( isEmpty(serviceUtil[resArn].scenarios[th][actionType]?.action) || !serviceUtil[resArn].scenarios[th][actionType]?.isActionable ) ?  <Checkbox isDisabled/> :  <Checkbox
@@ -280,7 +280,23 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                           <Td
                             key={resArn + 'scenario' + th}
                           >
-                            { serviceUtil[resArn].scenarios[th][actionType]?.reason }
+                            <Tooltip 
+                              label={
+                                'Estimated ' +
+                                (serviceUtil[resArn].scenarios[th] ?
+                                  usd.format(serviceUtil[resArn].scenarios[th][actionType]?.monthlySavings) :
+                                  usd.format(0)) +
+                                ' savings/mo'
+                              } 
+                              aria-label='A tooltip'
+                              bg='purple.400'
+                              color='white'
+                            >
+                              <Box>
+                                { sentenceCase(serviceUtil[resArn].scenarios[th][actionType]?.action) }
+                                {<InfoIcon marginLeft={'8px'} color='black' />}
+                              </Box>
+                            </Tooltip> 
                           </Td>
                         </Tr>
                       )

@@ -247,6 +247,5 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       await this.getRegionalUtilization(credentials, region, _overrides);
     }
     this.getEstimatedMaxMonthlySavings();
-    console.log(this.utilization);
   }
 }
