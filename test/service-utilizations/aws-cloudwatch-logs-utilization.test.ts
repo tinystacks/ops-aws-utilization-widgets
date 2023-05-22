@@ -43,8 +43,7 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
   }
 });
 
-const TWO_GB_IN_BYTES = 2147483648;
-const ONE_HUNDRED_MB_IN_BYTES = 104857600;
+const TEN_GB_IN_BYTES = 10737418240;
 
 import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
 import { AwsCredentialsProvider } from "@tinystacks/ops-aws-core-widgets";
@@ -113,7 +112,7 @@ describe('AwsCloudwatchLogsUtilization', () => {
       mockGetMetricData.mockResolvedValueOnce({
         MetricDataResults: [
           {
-            Values: [ ONE_HUNDRED_MB_IN_BYTES, 20 ]
+            Values: [ 0 ]
           }
         ]
       });
@@ -135,10 +134,11 @@ describe('AwsCloudwatchLogsUtilization', () => {
 
       expect(cloudwatchLogsUtilization.utilization).toHaveProperty('mock-log-group-arn', {
         scenarios: {
-          retentionInDays: {
+          hasRetentionPolicy: {
             value: undefined,
             optimize: {
               action: 'setRetentionPolicy',
+              isActionable: true,
               reason: 'this log group does not have a retention policy',
               monthlySavings: 0
             }
@@ -149,6 +149,7 @@ describe('AwsCloudwatchLogsUtilization', () => {
           region: 'us-east-1',
           associatedResourceId: 'mock-resource',
           stack: 'mock-stack',
+          hourlyCost: 0,
           monthlyCost: 0,
           maxMonthlySavings: 0
         }
@@ -193,17 +194,20 @@ describe('AwsCloudwatchLogsUtilization', () => {
 
       expect(cloudwatchLogsUtilization.utilization).toHaveProperty('mock-log-group-arn', {
         scenarios: {
-          retentionInDays: {
+          hasRetentionPolicy: {
             value: undefined,
             optimize: {
               action: 'setRetentionPolicy',
-              reason: 'this log group does not have a retention policy'
+              isActionable: true,
+              reason: 'this log group does not have a retention policy',
+              monthlySavings: 0
             }
           },
           lastEventTime: {
-            value: '1680739200000',
+            value: new Date(1680739200000).toLocaleString(),
             optimize: {
               action: '',
+              isActionable: false,
               reason: 'this log group has not had an event in over 7 days'
             }
           }
@@ -211,7 +215,10 @@ describe('AwsCloudwatchLogsUtilization', () => {
         data: {
           resourceId: 'mock-log-group',
           region: 'us-east-1',
-          stack: 'mock-stack'
+          stack: 'mock-stack',
+          hourlyCost: 0,
+          monthlyCost: 0,
+          maxMonthlySavings: 0
         }
       });
     });
@@ -229,6 +236,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           lastEventTimestamp: Date.now() - (31 * 24 * 60 * 60 * 1000)
         }]
       });
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Values: [ 0 ]
+          }
+        ]
+      });
       
       const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();
       const provider = {
@@ -247,25 +261,32 @@ describe('AwsCloudwatchLogsUtilization', () => {
 
       expect(cloudwatchLogsUtilization.utilization).toHaveProperty('mock-log-group-arn', {
         scenarios: {
-          retentionInDays: {
+          hasRetentionPolicy: {
             value: undefined,
             optimize: {
               action: 'setRetentionPolicy',
-              reason: 'this log group does not have a retention policy'
+              isActionable: true,
+              reason: 'this log group does not have a retention policy',
+              monthlySavings: 0
             }
           },
           lastEventTime: {
-            value: '1678752000000',
+            value: new Date(1678752000000).toLocaleString(),
             delete: {
               action: 'deleteLogGroup',
-              reason: 'this log group has not had an event in over 30 days'
+              isActionable: true,
+              reason: 'this log group has not had an event in over 30 days',
+              monthlySavings: 0
             }
           }
         },
         data: {
           resourceId: 'mock-log-group',
           region: 'us-east-1',
-          stack: 'mock-stack'
+          stack: 'mock-stack',
+          hourlyCost: 0,
+          monthlyCost: 0,
+          maxMonthlySavings: 0
         }
       });
     });
@@ -276,13 +297,20 @@ describe('AwsCloudwatchLogsUtilization', () => {
           arn: 'mock-log-group-arn',
           logGroupName: 'mock-log-group',
           retentionInDays: undefined,
-          storedBytes: 101
+          storedBytes: TEN_GB_IN_BYTES
         }]
       });
       mockDescribeLogStreams.mockResolvedValueOnce({
         logStreams: [{
           lastEventTimestamp: Date.now()
         }]
+      });
+      mockGetMetricData.mockResolvedValueOnce({
+        MetricDataResults: [
+          {
+            Values: [ 0 ]
+          }
+        ]
       });
       
       const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();
@@ -302,59 +330,74 @@ describe('AwsCloudwatchLogsUtilization', () => {
 
       expect(cloudwatchLogsUtilization.utilization).toHaveProperty('mock-log-group-arn', {
         scenarios: {
-          retentionInDays: {
+          hasRetentionPolicy: {
             value: undefined,
             optimize: {
               action: 'setRetentionPolicy',
-              reason: 'this log group does not have a retention policy'
+              isActionable: true,
+              reason: 'this log group does not have a retention policy',
+              monthlySavings: 0.3
             }
           },
           storedBytes: {
-            value: '101',
+            value: TEN_GB_IN_BYTES.toString(),
             scaleDown: {
               action: 'createExportTask',
-              reason: 'this log group has more than 100 bytes of stored data'
+              isActionable: false,
+              reason: 'this log group has more than 100 MB of stored data',
+              monthlySavings: 0.3
             }
           }
         },
         data: {
           resourceId: 'mock-log-group',
           region: 'us-east-1',
-          stack: 'mock-stack'
+          stack: 'mock-stack',
+          hourlyCost: (0.3 / 30) / 24,
+          monthlyCost: 0.3,
+          maxMonthlySavings: 0.3
         }
       });
     });
   });
 
-  describe('actions', () => {
+  describe('doAction', () => {
     describe('setRetentionPolicy', () => {
       it('sets retention policy', async () => {
         mockPutRetentionPolicy.mockResolvedValueOnce({});
 
         const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();
-        const cloudwatchLogsClient = new CloudWatchLogs({});
-        await cloudwatchLogsUtilization.setRetentionPolicy(cloudwatchLogsClient, 'mock-log-group', 30);
+        const provider = {
+          getCredentials: mockGetCredentials
+        } as unknown as AwsCredentialsProvider;
+        await cloudwatchLogsUtilization.doAction(provider, 'setRetentionPolicy', 'arn:mock-log-group:*', 'us-east-1');
 
         expect(mockPutRetentionPolicy).toBeCalled();
         expect(mockPutRetentionPolicy).toBeCalledWith({
           logGroupName: 'mock-log-group',
-          retentionInDays: 30
+          retentionInDays: 90
         });
       });
-
+    });
+    
+    describe('deleteLogGroup', () => {
       it('deletes log group', async () => {
         mockDeleteLogGroup.mockResolvedValueOnce({});
 
         const cloudwatchLogsUtilization = new AwsCloudwatchLogsUtilization();
-        const cloudwatchLogsClient = new CloudWatchLogs({});
-        await cloudwatchLogsUtilization.deleteLogGroup(cloudwatchLogsClient, 'mock-log-group');
+        const provider = {
+          getCredentials: mockGetCredentials
+        } as unknown as AwsCredentialsProvider;
+        await cloudwatchLogsUtilization.doAction(provider, 'deleteLogGroup', 'arn:mock-log-group:*', 'us-east-1');
 
         expect(mockDeleteLogGroup).toBeCalled();
         expect(mockDeleteLogGroup).toBeCalledWith({
           logGroupName: 'mock-log-group',
         });
       });
+    });
 
+    describe('createExportTask', () => {
       it('creates export task', async () => {
         mockCreateExportTask.mockResolvedValueOnce({});
 

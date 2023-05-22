@@ -525,6 +525,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         acc[containerInstanceArn].tasks.push(task);
         return acc;
       }, {});
+      console.log(containerInstanceTaskGroupObject);
       const containerInstanceTaskGroups  = Object.values(containerInstanceTaskGroupObject);
       containerInstanceTaskGroups.sort((a, b) => {
         if (a.tasks.length > b.tasks.length) {
@@ -664,7 +665,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     const allocatedCpu = Number(task?.cpu);
     const allocatedMemory = Number(task?.memory);
 
-    const platform = task.platformFamily;
+    const platform = task.platformFamily || '';
     const cpuArch = (task.attributes.find(attr => attr.name === 'ecs.cpu-architecture'))?.value || 'x86_64';
     const vcpu = allocatedCpu / 1024;
     const memory = allocatedMemory / 1024;
