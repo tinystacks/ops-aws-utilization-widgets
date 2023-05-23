@@ -3,9 +3,12 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { RDS, DBInstance } from '@aws-sdk/client-rds';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import { getMetrics } from '../utils/utils.js';
 
 export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' |
                                                'hasAutoScalingEnabled';
+
+const rdsInstanceMetrics = ['DatabaseConnections', 'FreeStorageSpace', 'CPUUtilization'];
 
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   
@@ -69,7 +72,16 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       promises.push(this.getCPUUTilization(cloudWatchClient, dbInstances[i].DBInstanceIdentifier));
     }
 
-    void await Promise.all(promises).catch(e => console.log(e));
+    await Promise.all(promises).catch(e => console.log(e));
+
+    for (let i = 0; i < dbInstances.length; ++i) {
+      rdsInstanceMetrics.forEach(async (metric) => {  
+        const metricData = await getMetrics(cloudWatchClient, 'AWS/RDS', metric,[{ Name: 'DBInstanceIdentifier', Value: dbInstances[i].DBInstanceIdentifier }]);
+        this.addMetric(dbInstances[i].DBInstanceIdentifier , metric, { yAxisLabel: metric, values: metricData.values } );
+      });
+    }
+
+
 
   }
 

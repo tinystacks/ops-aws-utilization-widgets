@@ -27,7 +27,7 @@ import {
 } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { getAccountId, getHourlyCost, listAllRegions } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, getMetrics, listAllRegions } from '../utils/utils.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Arns } from '../types/constants.js';
 
@@ -38,6 +38,7 @@ const cache = cached<string>('ec2-util-cache', {
 });
 
 type AwsEc2InstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
+const AwsEc2InstanceMetrics = ['CPUUtilization', 'NetworkIn'];
 
 type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
   instanceIds: string[];
@@ -384,6 +385,12 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'region', region);
       this.addData(instanceArn, 'monthlyCost', cost);
       this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
+
+      AwsEc2InstanceMetrics.forEach(async (metric) => { 
+        const metricData = await getMetrics(cwClient, 'AWS/EC2', metric, [{ Name: 'InstanceId', Value: instanceId }]);
+        this.addMetric(instanceArn, metric, { yAxisLabel: metric, values: metricData.values } );
+      });
+
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
   }

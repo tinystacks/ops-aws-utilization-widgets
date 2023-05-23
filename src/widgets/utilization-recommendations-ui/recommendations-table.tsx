@@ -14,6 +14,7 @@ import { filterUtilizationForActionType, sentenceCase } from '../../utils/utiliz
 import { RecommendationsTableProps } from '../../types/utilization-recommendations-types.js';
 import { Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerHeader, DrawerBody } from '@chakra-ui/react';
 import { ChevronDownIcon, InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import SidePanelMetrics from './side-panel-usage.js';
 
 export const CHECKBOX_CELL_MAX_WIDTH = '16px';
 export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
@@ -336,6 +337,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   function sidePanel (){ 
     const serviceUtil = sidePanelService && filteredServices[sidePanelService];
     const data = serviceUtil && serviceUtil[sidePanelResourceArn]?.data;
+    const metric = serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics['CPUUtilization'];
 
     const adjustments = serviceUtil && Object.keys(serviceUtil[sidePanelResourceArn]?.scenarios).map(scenario => (
       <Box bg="#EDF2F7" p={2} color="black" marginBottom='8px'> 
@@ -370,7 +372,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                   size='sm' 
                   rightIcon={<ExternalLinkIcon />}
                   /*onClick={ () => { 
-                    window.open(getAwsLink(sidePanelResourceArn, sidePanelService as AwsResourceType, data?.region));
+                    window.open(getAwsLink(data.resourceId || sidePanelResourceArn, sidePanelService as AwsResourceType, data?.region));
                   }}*/
                 > 
                   View in AWS 
@@ -389,7 +391,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                       textOverflow='ellipsis'
                       textTransform='none'  
                     >
-                      {data?.resourceId}
+                      {data?.resourceId || sidePanelResourceArn}
                     </Th>
                     <Th maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'> {data?.region}</Th>
                   </Tr>
@@ -412,6 +414,20 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                   Adjustments
                 </Button>
                 {adjustments}
+              </Box>
+              <Box marginTop='20px'>
+                <Button
+                  variant='ghost'
+                  aria-label={'downCaret'}
+                  leftIcon={<ChevronDownIcon/>}
+                  size='lg'
+                  colorScheme='black'
+                >
+                   Usage
+                </Button>
+              </Box>
+              <Box>
+                {SidePanelMetrics({ metricData: metric })}
               </Box>
             </TableContainer>
             <Flex pt='1'>

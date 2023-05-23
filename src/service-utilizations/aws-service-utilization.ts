@@ -1,6 +1,6 @@
 import { CloudFormation } from '@aws-sdk/client-cloudformation';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { Data, Resource, Scenario, Utilization } from '../types/types';
+import { Data, Metric, Resource, Scenario, Utilization } from '../types/types';
 
 export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
   private _utilization: Utilization<ScenarioTypes>;
@@ -21,7 +21,8 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     if (!(resourceArn in this.utilization)) {
       this.utilization[resourceArn] = {
         scenarios: {},
-        data: {}
+        data: {}, 
+        metrics: {}
       } as Resource<ScenarioTypes>;
     }
     this.utilization[resourceArn].scenarios[scenarioType] = scenario;
@@ -31,6 +32,12 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     // only add data if recommendation exists for resource
     if (resourceArn in this.utilization) {
       this.utilization[resourceArn].data[dataType] = value;
+    }
+  }
+
+  protected addMetric (resourceArn: string, metricName: string, metric: Metric){ 
+    if(resourceArn in this.utilization){ 
+      this.utilization[resourceArn].metrics[metricName] = metric;
     }
   }
 

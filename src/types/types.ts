@@ -21,7 +21,7 @@ export type Metric = {
 }
 
 export type MetricData = { 
-  timestamp?: Date;
+  timestamp?: number;
   value: number
 }
 

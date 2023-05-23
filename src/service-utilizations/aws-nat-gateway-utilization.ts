@@ -4,7 +4,7 @@ import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
-import { getAccountId, getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, getMetrics, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 /**
@@ -14,6 +14,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 */
 
 type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
+const AwsNatGatewayMetrics = ['ActiveConnectionCount', 'BytesInFromDestination'];
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
   accountId: string;
@@ -191,6 +192,14 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       this.addData(natGatewayArn, 'monthlyCost', this.cost);
       this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
+      const cwClient = new CloudWatch({
+        credentials,
+        region
+      });
+      AwsNatGatewayMetrics.forEach(async (metric) => {  
+        const metricData = await getMetrics(cwClient, 'AWS/NATGateway', metric, [{ Name: 'NatGatewayId', Value: natGatewayId }]);
+        this.addMetric(natGatewayArn, metric, { yAxisLabel: metric, values: metricData.values } );
+      });
     };
 
     await rateLimitMap(allNatGateways, 6, 6, analyzeNatGateway);

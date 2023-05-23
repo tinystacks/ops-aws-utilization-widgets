@@ -1,5 +1,9 @@
-//import { cloudwatchLogsGroupToUrl, ecsServiceArnToUrl } from '@tinystacks/ops-aws-core-widgets';
+/*import { 
+  cloudwatchLogsGroupToUrl, 
+  ecsServiceArnToUrl, 
+  cloudwatchLogsGroupArnToUrl } from '@tinystacks/ops-aws-core-widgets';*/
 import isEmpty from 'lodash.isempty';
+//import { AwsResourceTypes } from '../types/constants';
 import { ActionType, Scenarios, Utilization } from '../types/types';
 
 export function filterUtilizationForActionType (
@@ -72,9 +76,11 @@ export function sentenceCase (name: string): string{
 
   switch (resourceType) {
     case AwsResourceTypes.CloudwatchLogs:
-      return cloudwatchLogsGroupToUrl(resourceArn, region || 'us-east-1');
+      return cloudwatchLogsGroupArnToUrl(resourceArn, region || 'us-east-1'); //logGroupArn
     case AwsResourceTypes.EcsService: 
-      return ecsServiceArnToUrl(resourceArn); 
+      return ecsServiceArnToUrl(resourceArn); //servicearn
+    case AwsResourceTypes.Ec2Instance:  //instanceArn
+      return ec2InstanceToUrl(resourceArn, region || 'us-east-1');
     default:
       return undefined; //need to implement the others
   }

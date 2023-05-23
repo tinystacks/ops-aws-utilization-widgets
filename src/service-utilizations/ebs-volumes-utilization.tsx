@@ -4,8 +4,10 @@ import { EC2 } from '@aws-sdk/client-ec2';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Volume } from '@aws-sdk/client-ec2';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import { getMetrics } from '../utils/utils.js';
 
 export type ebsVolumesUtilizationScenarios = 'hasAttachedInstances' | 'volumeReadWriteOps';
+const EbsVolumesMetrics = ['VolumeWriteOps', 'VolumeReadOps'];
 
 export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtilizationScenarios> {
   constructor () {
@@ -70,9 +72,14 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
       promises.push(this.getReadWriteVolume(cloudWatchClient, volumes[i].VolumeId));
     }
 
-    void await Promise.all(promises).catch(e => console.log(e));
+    await Promise.all(promises).catch(e => console.log(e));
 
-  
+    for (let i = 0; i < volumes.length; ++i) {
+      EbsVolumesMetrics.forEach(async (metric) => {  
+        const metricData = await getMetrics(cloudWatchClient, 'AWS/EBS', metric, [{ Name: 'VolumeId', Value: volumes[i].VolumeId }]);
+        this.addMetric(volumes[i].VolumeId , metric, { yAxisLabel: metric, values: metricData.values } );
+      });
+    }
   }
 
   findUnusedVolumes (volumes: Volume[]){ 
