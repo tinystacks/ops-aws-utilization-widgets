@@ -50,6 +50,8 @@ import { AwsServiceOverrides } from '../types/types.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Pricing } from '@aws-sdk/client-pricing';
 import { getHourlyCost, listAllRegions } from '../utils/utils.js';
+import get from 'lodash.get';
+import isEmpty from 'lodash.isempty';
 
 const cache = cached<string>('ecs-util-cache', {
   backend: {
@@ -525,6 +527,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         acc[containerInstanceArn].tasks.push(task);
         return acc;
       }, {});
+      console.log(containerInstanceTaskGroupObject);
       const containerInstanceTaskGroups  = Object.values(containerInstanceTaskGroupObject);
       containerInstanceTaskGroups.sort((a, b) => {
         if (a.tasks.length > b.tasks.length) {
@@ -536,23 +539,29 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       });
       
       const largestContainerInstance = containerInstanceTaskGroups.at(0);
-      const maxTaskCount = largestContainerInstance.tasks.length;
+      const maxTaskCount = get(largestContainerInstance, 'tasks.length') || 0;
 
-      containerInstanceResponse = await this.ecsClient.describeContainerInstances({
-        cluster: service.clusterArn,
-        containerInstances: containerInstanceTaskGroups.map(taskGroup => taskGroup.containerInstanceArn)
-      });
+      const filteredTaskGroups = containerInstanceTaskGroups
+        .filter(taskGroup => !isEmpty(taskGroup.containerInstanceArn));
+      if (isEmpty(filteredTaskGroups)) {
+        return undefined;
+      } else {
+        containerInstanceResponse = await this.ecsClient.describeContainerInstances({
+          cluster: service.clusterArn,
+          containerInstances: containerInstanceTaskGroups.map(taskGroup => taskGroup.containerInstanceArn)
+        });
 
-      // largest container instance
-      containerInstance = containerInstanceResponse?.containerInstances?.at(0);
+        // largest container instance
+        containerInstance = containerInstanceResponse?.containerInstances?.at(0);
 
-      const containerInstanceCpuResource = containerInstance.registeredResources?.find(r => r.name === 'CPU');
-      const containerInstanceCpu = Number(
-        containerInstanceCpuResource?.doubleValue || containerInstanceCpuResource?.integerValue
-        || containerInstanceCpuResource?.longValue
-      );
+        const containerInstanceCpuResource = containerInstance.registeredResources?.find(r => r.name === 'CPU');
+        const containerInstanceCpu = Number(
+          containerInstanceCpuResource?.doubleValue || containerInstanceCpuResource?.integerValue
+          || containerInstanceCpuResource?.longValue
+        );
 
-      allocatedCpu = containerInstanceCpu / maxTaskCount;
+        allocatedCpu = containerInstanceCpu / maxTaskCount;
+      }
     } else {
       containerInstanceResponse = await this.ecsClient.describeContainerInstances({
         cluster: service.clusterArn,
@@ -582,6 +591,11 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
   }
 
   private async checkForEc2ScaleDown (service: Service, maxCpuPercentage: number, maxMemoryPercentage: number) {
+    const info = await this.getEc2ContainerInfo(service);
+    if (!info) {
+      return;
+    }
+
     const {
       allocatedCpu,
       allocatedMemory,
@@ -589,7 +603,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
       instanceType,
       monthlyCost,
       numEc2Instances
-    } = await this.getEc2ContainerInfo(service);
+    } = info;
 
     const maxConsumedVcpus = (maxCpuPercentage * allocatedCpu) / 1024;
     const maxConsumedMemory = maxMemoryPercentage * allocatedMemory;
@@ -664,7 +678,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     const allocatedCpu = Number(task?.cpu);
     const allocatedMemory = Number(task?.memory);
 
-    const platform = task.platformFamily;
+    const platform = task.platformFamily || '';
     const cpuArch = (task.attributes.find(attr => attr.name === 'ecs.cpu-architecture'))?.value || 'x86_64';
     const vcpu = allocatedCpu / 1024;
     const memory = allocatedMemory / 1024;
@@ -884,9 +898,14 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         lowMemoryUtilization &&
         noNetworkUtilization
       ) {
-        const { monthlyCost } = service.launchType === LaunchType.FARGATE ? 
+        const info = service.launchType === LaunchType.FARGATE ? 
           await this.getFargateInfo(service) : 
           await this.getEc2ContainerInfo(service);
+        if (!info) {
+          return;
+        }
+
+        const { monthlyCost } = info;
         this.addScenario(service.serviceArn, 'unused', {
           value: 'true',
           delete: {

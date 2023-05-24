@@ -193,7 +193,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
     };
 
-    await rateLimitMap(allNatGateways, 6, 6, analyzeNatGateway);
+    await rateLimitMap(allNatGateways, 5, 5, analyzeNatGateway);
   }
 
   async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {

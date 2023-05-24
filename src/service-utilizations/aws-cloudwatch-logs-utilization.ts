@@ -235,7 +235,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
       }
     };
 
-    await rateLimitMap(allLogGroups, 6, 6, analyzeLogGroup);
+    await rateLimitMap(allLogGroups, 5, 5, analyzeLogGroup);
   }
 
   async getUtilization (

@@ -35,6 +35,9 @@ const mockGetMetricData = jest.fn();
 const mockGetApis = jest.fn();
 const mockGetIntegrations = jest.fn();
 
+// ec2 utils
+const mockGetInstanceCost = jest.fn();
+
 const mockCache = new MockCache();
 
 jest.mock('cached', () => () => mockCache);
@@ -50,7 +53,8 @@ jest.mock('@aws-sdk/client-ecs', () => {
     ListTasksCommandOutput,
     Service,
     Task,
-    TaskDefinitionField
+    TaskDefinitionField,
+    DescribeContainerInstancesCommandOutput
   } = original;
   return {
     ECS: mockEcs,
@@ -62,7 +66,8 @@ jest.mock('@aws-sdk/client-ecs', () => {
     ListTasksCommandOutput,
     Service,
     Task,
-    TaskDefinitionField
+    TaskDefinitionField,
+    DescribeContainerInstancesCommandOutput
   };
 });
 jest.mock('@aws-sdk/client-ec2', () => {
@@ -102,13 +107,20 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
     MetricDataResult
   };
 });
+jest.mock('../../src/utils/ec2-utils.js', () => {
+  const original = jest.requireActual('../../src/utils/ec2-utils.js');
+  return {
+    ...original,
+    getInstanceCost: mockGetInstanceCost
+  }
+});
 
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsEcsUtilization } from '../../src/service-utilizations/aws-ecs-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
 import fargateTaskDef from '../mocks/FargateTaskDef.json';
-import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
+import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/types/constants.js";
 
 describe('AwsEcsUtilization', () => {
   beforeEach(() => {
@@ -290,11 +302,45 @@ describe('AwsEcsUtilization', () => {
         ]
       });
 
+      mockListTasks.mockResolvedValueOnce({
+        taskArns: ['mock-task']
+      });
+      
+      mockDescribeTasks.mockResolvedValueOnce({
+        tasks: [
+          {
+            cpu: 1024,
+            memory: 4
+          }
+        ]
+      });
+
+      mockDescribeContainerInstances.mockResolvedValueOnce({
+        containerInstances: [
+          {
+            registeredResources: [
+              {
+                name: 'CPU',
+                integerValue: '1024'
+              }
+            ],
+            attributes: [
+              {
+                name: 'ecs.instance-type',
+                value: 't3.medium'
+              }
+            ]
+          }
+        ]
+      });
+
+      mockGetInstanceCost.mockResolvedValueOnce(50);
+
       const ecsUtil = new AwsEcsUtilization(true);
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+      await ecsUtil.getRegionalUtilization(provider.getCredentials(), 'us-east-1', {
           services: [
             {
               clusterArn: 'mock-cluster',
@@ -320,13 +366,20 @@ describe('AwsEcsUtilization', () => {
       expect(mockGetMetricData).toBeCalled();
 
       expect(ecsUtil.utilization).toHaveProperty('mock-service', {
-        data: {},
+        data: {
+          resourceId: 'mock-service',
+          region: 'us-east-1',
+          hourlyCost: (50 / 30) / 24,
+          monthlyCost: 50
+        },
         scenarios: {
           unused: {
-            value: 'unused',
+            value: 'true',
             delete: {
               action: 'deleteService',
-              reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and network traffic.'
+              isActionable: true,
+              reason: 'This ECS service appears to be unused based on its CPU utilizaiton, Memory utilizaiton, and network traffic.',
+              monthlySavings: 50
             }
           }
         }
@@ -398,7 +451,11 @@ describe('AwsEcsUtilization', () => {
         tasks: [
           {
             cpu: 1024,
-            memory: 4
+            memory: 4,
+            attributes: [{
+              name: 'ecs.cpu-architecture',
+              value: 'x86_64'
+            }]
           }
         ]
       });
@@ -407,7 +464,7 @@ describe('AwsEcsUtilization', () => {
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-      await ecsUtil.getRegionalUtilization(provider, 'us-east-1', {
+      await ecsUtil.getRegionalUtilization(provider.getCredentials(), 'us-east-1', {
           services: [
             {
               clusterArn: 'mock-cluster',
@@ -435,14 +492,22 @@ describe('AwsEcsUtilization', () => {
 
       expect(mockGetMetricData).toBeCalled();
 
+      const monthlyCost = 29.158101562500004;
       expect(ecsUtil.utilization).toHaveProperty('mock-service', {
-        data: {},
+        data: {
+          resourceId: 'mock-service',
+          region: 'us-east-1',
+          hourlyCost: (monthlyCost / 30) / 24,
+          monthlyCost
+        },
         scenarios: {
           overAllocated: {
             value: 'overAllocated',
             scaleDown: {
               action: 'scaleDownFargateService',
-              reason: 'This ECS service appears to be over allocated based on its CPU, Memory, and network utilization.  We suggest scaling the CPU down to 512 and the Memory to 2048 MiB.'
+              isActionable: false,
+              reason: 'This ECS service appears to be over allocated based on its CPU, Memory, and network utilization. We suggest scaling the CPU down to 512 and the Memory to 2048 MiB.',
+              monthlySavings: 8.184501562500003
             }
           }
         }
@@ -536,12 +601,16 @@ describe('AwsEcsUtilization', () => {
           }
         ]
       });
+      
       mockDescribeInstanceTypes.mockResolvedValueOnce({
         InstanceTypes: [
           t2Nano,
           t2Micro
         ]
       });
+
+      mockGetInstanceCost.mockResolvedValueOnce(50);
+
       mockCache.getOrElse.mockImplementationOnce((_key, refreshFunction) => {
         return refreshFunction();
       });

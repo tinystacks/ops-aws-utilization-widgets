@@ -9,6 +9,9 @@ const mockAutoScaling = jest.fn();
 const mockDescribeAutoScalingInstances = jest.fn();
 const mockCloudWatch = jest.fn();
 const mockGetMetricData = jest.fn();
+const mockGetInstanceCost = jest.fn();
+const mockTerminateInstances = jest.fn();
+const mockModifyInstanceAttribute = jest.fn();
 
 const mockCache = new MockCache();
 
@@ -37,6 +40,13 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
     MetricDataResult
   };
 });
+jest.mock('../../src/utils/ec2-utils.js', () => {
+  const original = jest.requireActual('../../src/utils/ec2-utils.js');
+  return {
+    ...original,
+    getInstanceCost: mockGetInstanceCost
+  }
+});
 
 const mockInstance1 = {
   InstanceId: 'mock-instance-1',
@@ -51,13 +61,15 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsEc2InstanceUtilization } from '../../src/service-utilizations/aws-ec2-instance-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
-import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/constants";
+import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/types/constants";
 
 describe('AwsEc2InstanceUtilization', () => {
   beforeEach(() => {
     mockEc2.mockReturnValue({
       describeInstances: mockDescribeInstances,
-      describeInstanceTypes: mockDescribeInstanceTypes
+      describeInstanceTypes: mockDescribeInstanceTypes,
+      terminateInstances: mockTerminateInstances,
+      modifyInstanceAttribute: mockModifyInstanceAttribute
     });
     mockAutoScaling.mockReturnValue({
       describeAutoScalingInstances: mockDescribeAutoScalingInstances
@@ -91,7 +103,7 @@ describe('AwsEc2InstanceUtilization', () => {
       const provider = {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
-      await ec2Util.getRegionalUtilization(provider, 'us-east-1', { instanceIds: ['mock-instance-1', 'mock-instance-2'] });
+      await ec2Util.getRegionalUtilization(provider.getCredentials(), 'us-east-1', { instanceIds: ['mock-instance-1', 'mock-instance-2'] });
 
       expect(mockDescribeInstances).toBeCalled();
       expect(mockDescribeInstances).toBeCalledTimes(2);
@@ -123,7 +135,7 @@ describe('AwsEc2InstanceUtilization', () => {
         getCredentials: mockGetCredentials
       } as unknown as AwsCredentialsProvider;
 
-      await ec2Util.getRegionalUtilization(provider, 'us-east-1');
+      await ec2Util.getRegionalUtilization(provider.getCredentials(), 'us-east-1');
       
 
       expect(mockDescribeInstances).toBeCalled();
@@ -180,6 +192,7 @@ describe('AwsEc2InstanceUtilization', () => {
           }
         ]
       });
+      mockGetInstanceCost.mockResolvedValueOnce(50);
 
       const ec2Util = new AwsEc2InstanceUtilization(true);
       const provider = {
@@ -187,7 +200,7 @@ describe('AwsEc2InstanceUtilization', () => {
       } as unknown as AwsCredentialsProvider;
 
       try { 
-        await ec2Util.getRegionalUtilization(provider, 'us-east-1');
+        await ec2Util.getRegionalUtilization(provider.getCredentials(), 'us-east-1');
       } catch (error) {
         console.error(error);
       }
@@ -208,14 +221,22 @@ describe('AwsEc2InstanceUtilization', () => {
 
       expect(mockGetMetricData).toBeCalled();
 
-      expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
-        data: {},
+      expect(ec2Util.utilization).toHaveProperty('arn:aws:ec2:us-east-1:undefined:instance/mock-instance-1', {
+        data: {
+          resourceId: 'mock-instance-1',
+          region: 'us-east-1',
+          hourlyCost: (50 / 30) / 24,
+          monthlyCost: 50,
+          maxMonthlySavings: 50
+        },
         scenarios: {
           unused: {
-            value: 'unused',
+            value: 'true',
             delete: {
               action: 'terminateInstance',
-              reason: 'This EC2 instance appears to be unused based on its CPU utilizaiton, disk IOPS, and network traffic.'
+              isActionable: true,
+              reason: 'This EC2 instance appears to be unused based on its CPU utilization, disk IOPS, and network traffic.',
+              monthlySavings: 50
             }
           }
         }
@@ -279,6 +300,8 @@ describe('AwsEc2InstanceUtilization', () => {
           }
         ]
       });
+      mockGetInstanceCost.mockResolvedValueOnce(50);
+      mockGetInstanceCost.mockResolvedValueOnce(30);
 
       mockCache.getOrElse.mockImplementationOnce((_key, refreshFunction) => {
         return refreshFunction();
@@ -315,18 +338,65 @@ describe('AwsEc2InstanceUtilization', () => {
 
       expect(mockGetMetricData).toBeCalled();
 
-      expect(ec2Util.utilization).toHaveProperty('mock-instance-1', {
-        data: {},
+      expect(ec2Util.utilization).toHaveProperty('arn:aws:ec2:us-east-1:undefined:instance/mock-instance-1', {
+        data: {
+          resourceId: 'mock-instance-1',
+          region: 'us-east-1',
+          hourlyCost: (50 / 30) / 24,
+          monthlyCost: 50,
+          maxMonthlySavings: 20
+        },
         scenarios: {
           overAllocated: {
             value: 'overAllocated',
             scaleDown: {
-              action: 'TODO',
-              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a t2.nano`
+              action: 'scaleDownInstance',
+              isActionable: false,
+              reason: `This EC2 instance appears to be over allocated based on its CPU and network utilization.  We suggest scaling down to a t2.nano`,
+              monthlySavings: 20
             }
           }
         }
       });
+    });
+  });
+
+  describe('doAction', () => {
+    describe('terminateInstance', () => {
+      it('terminates instance', async () => {
+        mockTerminateInstances.mockResolvedValueOnce({});
+
+        const ec2InstanceUtilization = new AwsEc2InstanceUtilization();
+        const provider = {
+          getCredentials: mockGetCredentials
+        } as unknown as AwsCredentialsProvider;
+        await ec2InstanceUtilization.doAction(provider, 'terminateInstance', 'arn:aws:ec2:us-east-1:undefined:instance/mock-instance-1', 'us-east-1');
+
+        expect(mockTerminateInstances).toBeCalled();
+        expect(mockTerminateInstances).toBeCalledWith({
+          InstanceIds: [ 'mock-instance-1' ],
+        });
+      });
+    });
+
+    describe('scaleDownInstance', () => {
+      it('scales down instance', async () => {
+        mockModifyInstanceAttribute.mockResolvedValueOnce({});
+
+        const ec2InstanceUtilization = new AwsEc2InstanceUtilization();
+        const provider = {
+          getCredentials: mockGetCredentials
+        } as unknown as AwsCredentialsProvider;
+        await ec2InstanceUtilization.scaleDownInstance(provider, 'mock-instance-1', 'us-east-1', 't2-nano');
+
+        expect(mockModifyInstanceAttribute).toBeCalled();
+        expect(mockModifyInstanceAttribute).toBeCalledWith({
+          InstanceId: 'mock-instance-1',
+          InstanceType: {
+            Value: 't2-nano'
+          }
+        });
+      })
     });
   });
 });

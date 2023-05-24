@@ -25,7 +25,7 @@
     "test": "jest",
     "test-cov": "jest --coverage",
     "test-file": "jest ./test/service-utilizations/aws-ecs-instance-utilization.test.ts",
-    "test-file-cov": "jest ./testindex.test.ts --coverage",
+    "test-file-cov": "jest ./test/service-utilizations/aws-ec2-instance-utilization.test.ts --coverage",
     "view-test-cov": "jest --coverage || true && open coverage/lcov-report/index.html",
     "prepare": "husky install"
   },
