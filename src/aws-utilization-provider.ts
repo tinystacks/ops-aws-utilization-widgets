@@ -77,8 +77,13 @@ class AwsUtilizationProvider extends BaseProvider {
     credentialsProvider: AwsCredentialsProvider,
     overrides?: AwsServiceOverrides
   ): Promise<Utilization<string>> {
-    await this.utilizationClasses[service]?.getUtilization(credentialsProvider, this.regions, overrides);
-    return this.utilizationClasses[service]?.utilization;
+    try {
+      await this.utilizationClasses[service]?.getUtilization(credentialsProvider, this.regions, overrides);
+      return this.utilizationClasses[service]?.utilization;
+    } catch (e) {
+      console.error(e);
+      return {};
+    }
   }
 
   async doAction (
