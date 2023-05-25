@@ -1,6 +1,6 @@
 import * as stats from 'simple-statistics';
 import { StabilityStats, StabilityStatsOptions } from '../types/types';
-
+import isEmpty from 'lodash.isempty';
 /**
  * 
  * @param dataSet - The data to run stats on.
@@ -14,6 +14,18 @@ export function getStabilityStats (dataSet: number[], options?: StabilityStatsOp
     anomalyThreshold = 0.5,
     stabilityZScore = 3
   } = options || {};
+
+  if (isEmpty(dataSet)) {
+    return {
+      mean: 0,
+      max: 0,
+      maxZScore: 0,
+      standardDeviation: 0,
+      wasFiltered: false,
+      isStable: false
+    };
+  }
+
   let wasFiltered = removeOutliers;
   const mean = stats.mean(dataSet);
   const stdev = stats.standardDeviation(dataSet);
