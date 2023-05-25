@@ -67,9 +67,13 @@ export function getTotalNumberOfResources ( utilization: { [service: string]: Ut
   return total;
 }
 
-export function sentenceCase (name: string): string{ 
-  const result = name.replace(/([A-Z])/g, ' $1');
+export function sentenceCase (name: string): string { 
+  const result = name.replace(/([A-Z][0-9])/g, ' $1');
   return result[0].toUpperCase() + result.substring(1).toLowerCase();
+}
+
+export function splitServiceName (name: string) {
+  return name?.split(/(?=[A-Z])/).join(' ');
 }
 
 /*export function getAwsLink (resourceArn: string, resourceType: AwsResourceType, region?: string){ 

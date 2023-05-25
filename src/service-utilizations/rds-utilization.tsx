@@ -81,8 +81,6 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       });
     }
 
-
-
   }
 
   async getDatabaseConnections (cloudWatchClient: CloudWatch, dbInstanceIdentifier: string){
@@ -194,4 +192,13 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     }
 
   }
+
+  /*async getMetrics (cloudWatchClient: CloudWatch) {
+    Object.keys(this.utilization).forEach((dbInstance) => { 
+      rdsInstanceMetrics.forEach(async (metric) => {  
+        const metricData = await getMetrics(cloudWatchClient, 'AWS/RDS', metric,[{ Name: 'DBInstanceIdentifier', Value: dbInstance }]);
+        this.addMetric(dbInstance , metric, { yAxisLabel: metric, values: metricData.values } );
+      });
+    });
+  }*/
 }

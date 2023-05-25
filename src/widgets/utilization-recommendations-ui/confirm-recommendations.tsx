@@ -15,6 +15,8 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1);
+
+  console.log('actionType: ', actionType);
   
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
   const resourceFilteredServices = new Set<string>();
@@ -34,6 +36,7 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <Text fontSize='sm'>{s}</Text>
         </HStack>
         <Stack pl='5' pr='5'>
+          <Text fontSize='sm'>{'placeholder for action name'}</Text>
           {resourceArns
             .filter(r => Object.hasOwn(filteredServices[s], r))
             .map(rarn => (

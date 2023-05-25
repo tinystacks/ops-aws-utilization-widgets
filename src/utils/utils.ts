@@ -146,9 +146,9 @@ export function getHourlyCost (monthlyCost: number) {
 
 export async function getMetrics (cloudWatchClient: CloudWatch, nameSpace: string, metricName: string, dimensions: Dimension[]){ 
   const endTime = new Date(Date.now()); 
-  const startTime = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); //90 days ago
-  const period = 86400; //we want 90 datapoints
-
+  const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); //7 days ago
+  const period = 43200; 
+  
   const metrics = await cloudWatchClient.getMetricStatistics({ 
     Namespace: nameSpace, 
     MetricName: metricName, 
@@ -162,7 +162,8 @@ export async function getMetrics (cloudWatchClient: CloudWatch, nameSpace: strin
   const values: MetricData[] =  metrics.Datapoints.map(dp => ({ 
     timestamp: dp.Timestamp.getTime(), 
     value: dp.Average
-  }));
+  })).sort((dp1, dp2) => dp1.timestamp - dp2.timestamp);
+
 
   const results: Metric = { 
     yAxisLabel: metrics.Label, 

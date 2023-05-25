@@ -7,9 +7,9 @@ import {
   Checkbox
 } from '@chakra-ui/react';
 import React from 'react';
-import startCase from 'lodash.startcase';
 import { ServiceTableRowProps } from '../../types/utilization-recommendations-types.js';
 import { CHECKBOX_CELL_MAX_WIDTH } from './recommendations-table.js';
+import { splitServiceName } from '../../utils/utilization.js';
 
 export default function ServiceTableRow (props: ServiceTableRowProps) {
   const { serviceUtil, serviceName, children, isChecked, onServiceCheckChange } = props;
@@ -23,7 +23,7 @@ export default function ServiceTableRow (props: ServiceTableRowProps) {
             onChange={onServiceCheckChange}
           />
         </Td>
-        <Td>{startCase(serviceName)}</Td>
+        <Td>{splitServiceName(serviceName)}</Td>
         <Td>{Object.keys(serviceUtil).length}</Td>
         <Td>
           <Button
