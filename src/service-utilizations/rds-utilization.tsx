@@ -89,8 +89,6 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     const priceDimensionsKeys = Object.keys(priceDimensionsData);
     const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
 
-    console.log(res.PriceList.length);
-    console.log(pricePerHour);
     return pricePerHour * 24 * 30;
   }
 

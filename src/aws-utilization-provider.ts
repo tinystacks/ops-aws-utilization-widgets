@@ -34,8 +34,7 @@ class AwsUtilizationProvider extends BaseProvider {
   constructor (props: AwsUtilizationProviderType) {
     super(props);
     const { 
-      services,
-      region
+      services
     } = props;
 
     this.utilizationClasses = {};
@@ -50,7 +49,6 @@ class AwsUtilizationProvider extends BaseProvider {
       'EbsVolume',
       'RdsInstance'
     ]);
-    this.region = region || 'us-east-1';
   }
 
   static fromJson (props: AwsUtilizationProviderType) {
