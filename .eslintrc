@@ -1,6 +1,6 @@
 {
   "env": {
-    "es2021": true
+    "es2022": true
   },
   "extends": [
     "eslint:recommended",
@@ -33,7 +33,12 @@
     "indent": [
       "error",
       2,
-      { "SwitchCase": 1 }
+      {
+        "SwitchCase": 1
+      }
+    ],
+    "max-len": [
+      1, 120
     ],
     "object-curly-spacing": [
       "error",
@@ -82,6 +87,7 @@
       }
     ],
     "import/no-cycle": "error",
-    "no-shadow": "error"
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": ["error"]
   }
 }

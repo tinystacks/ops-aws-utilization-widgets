@@ -1,6 +1,6 @@
 {
   "env": {
-    "es2021": true
+    "es2022": true
   },
   "extends": [
     "eslint:recommended",
@@ -86,6 +86,9 @@
       }
     ],
     "import/no-cycle": "error",
-    "no-shadow": "error"
+    "no-shadow": "off",
+    "@typescript-eslint/no-shadow": [
+      "error"
+    ]
   }
 }

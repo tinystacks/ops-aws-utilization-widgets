@@ -2,3 +2,6 @@ dist
 test-dist
 node_modules
 coverage
+*.tgz
+src/test.ts
+.DS_Store
