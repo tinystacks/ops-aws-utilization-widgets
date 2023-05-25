@@ -4,7 +4,8 @@ import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
-import { getAccountId, getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { AwsServiceOverrides } from '../types/types.js';
+import { getAccountId, getHourlyCost, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 /**
@@ -26,12 +27,12 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
   async doAction (
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
+    const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
     if (actionName === 'deleteNatGateway') {
       const ec2Client = new EC2({
         credentials: await awsCredentialsProvider.getCredentials(),
         region
       });
-      const resourceId = resourceArn.split(':').at(-1);
       await this.deleteNatGateway(ec2Client, resourceId);
     }
   }
@@ -186,25 +187,38 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           }
         });
       }
-      this.addData(natGatewayArn, 'resourceId', natGatewayId);
-      this.addData(natGatewayArn, 'region', region);
-      this.addData(natGatewayArn, 'monthlyCost', this.cost);
-      this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
-      await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
+
+      await this.fillData(
+        natGatewayArn,
+        credentials,
+        region,
+        {
+          resourceId: natGatewayId,
+          region,
+          monthlyCost: this.cost,
+          hourlyCost: getHourlyCost(this.cost)
+        }
+      );
+
+      // this.addData(natGatewayArn, 'resourceId', natGatewayId);
+      // this.addData(natGatewayArn, 'region', region);
+      // this.addData(natGatewayArn, 'monthlyCost', this.cost);
+      // this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
+      // await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
     };
 
     await rateLimitMap(allNatGateways, 5, 5, analyzeNatGateway);
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: any) {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: AwsServiceOverrides
+  ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     this.accountId = await getAccountId(credentials);
-    this.cost = await this.getNatGatewayPrice(credentials);
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
+    this.cost = await this.getNatGatewayPrice(credentials);  
+    for (const region of regions) {
       await this.getRegionalUtilization(credentials, region);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 
   private async getNatGatewayPrice (credentials: any) {

@@ -3,6 +3,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { RDS, DBInstance } from '@aws-sdk/client-rds';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import { Pricing } from '@aws-sdk/client-pricing';
 
 export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' |
                                                'hasAutoScalingEnabled';
@@ -32,10 +33,71 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     });
   }
 
+  // TODO: implement serverless cost?
+  async getRdsInstanceCost (credentials: any, region: string, dbInstance: DBInstance) {
+    const pricingClient = new Pricing({
+      credentials,
+      region: 'us-east-1'
+    });
+
+    let dbEngine = '';
+    // if (dbInstance.Engine === 'aurora-mysql') {
+
+    // } else if (dbInstance.Engine === 'aurora-postgresql') {
+
+    // }
+    if (dbInstance.Engine.startsWith('aurora')) {
+      const parts = dbInstance.Engine.split('-');
+      if (parts[1] === 'mysql') {
+        dbEngine = 'Aurora MySQL';
+      } else {
+        dbEngine = 'Aurora PostgreSQL';
+      }
+    } else {
+      dbEngine = dbInstance.Engine;
+    }
+
+    const res = await pricingClient.getProducts({
+      ServiceCode: 'AmazonRDS',
+      Filters: [
+        {
+          Type: 'TERM_MATCH',
+          Field: 'instanceType',
+          Value: dbInstance.DBInstanceClass
+        },
+        {
+          Type: 'TERM_MATCH',
+          Field: 'regionCode',
+          Value: region
+        },
+        {
+          Type: 'TERM_MATCH',
+          Field: 'databaseEngine',
+          Value: dbEngine
+        },
+        {
+          Type: 'TERM_MATCH',
+          Field: 'deploymentOption',
+          Value: dbInstance.MultiAZ ? 'Multi-AZ' : 'Single-AZ'
+        }
+      ]
+    });
+
+    const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
+    const onDemandKeys = Object.keys(onDemandData);
+    const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
+    const priceDimensionsKeys = Object.keys(priceDimensionsData);
+    const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
+
+    console.log(res.PriceList.length);
+    console.log(pricePerHour);
+    return pricePerHour * 24 * 30;
+  }
 
   async getUtilization (
     awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
   ): Promise<void> {
+    const credentials = await awsCredentialsProvider.getCredentials();
     const region = regions[0];
     const rdsClient = new RDS({
       credentials: await awsCredentialsProvider.getCredentials(),
@@ -43,6 +105,9 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     });
 
     let res = await rdsClient.describeDBInstances({});
+    res.DBInstances.map((instance) => { console.log(JSON.stringify(instance, null, 2)); });
+    const cost = await this.getRdsInstanceCost(credentials, 'us-east-1', res.DBInstances[0]);
+    console.log(cost);
 
     let dbInstances: DBInstance[] = [];
 

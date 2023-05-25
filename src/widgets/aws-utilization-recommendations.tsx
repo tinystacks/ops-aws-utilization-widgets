@@ -11,9 +11,14 @@ import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
+  allRegions?: string[];
+  region?: string;
+
   constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
+    this.allRegions = props.allRegions;
+    this.region = props.region || 'us-east-1';
   }
 
   static fromJson (props: UtilizationRecommendationsWidget) {
@@ -23,7 +28,9 @@ export class AwsUtilizationRecommendations extends BaseWidget {
   toJson () {
     return {
       ...super.toJson(),
-      utilization: this.utilization
+      utilization: this.utilization,
+      allRegions: this.allRegions,
+      region: this.region
     };
   }
 
@@ -31,15 +38,25 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     const depMap = {
       utils: '../utils/utils.js'
     };
-    const { getAwsCredentialsProvider, getAwsUtilizationProvider } = await import(depMap.utils);
+    const { 
+      getAwsCredentialsProvider, 
+      getAwsUtilizationProvider,
+      listAllRegions
+    } = await import(depMap.utils);
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
-    
+    this.allRegions = await listAllRegions(awsCredsProvider);
+
     if (overrides?.refresh) {
-      await utilProvider.hardRefresh(awsCredsProvider);
+      await utilProvider.hardRefresh(awsCredsProvider, this.region);
     }
 
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
+    if (overrides?.region) {
+      this.region = overrides.region;
+      await utilProvider.hardRefresh(awsCredsProvider, this.region);
+    }
+
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.region);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;
@@ -78,11 +95,20 @@ export class AwsUtilizationRecommendations extends BaseWidget {
       });
     }
 
+    function onRegionChange (region: string) {
+      overridesCallback({
+        region
+      });
+    }
+
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
         onResourcesAction={onResourcesAction}
         onRefresh={onRefresh}
+        allRegions={this.allRegions || []}
+        region={this.region}
+        onRegionChange={onRegionChange}
       />
     );
   }

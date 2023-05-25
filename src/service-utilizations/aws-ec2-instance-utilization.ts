@@ -27,7 +27,7 @@ import {
 } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { getAccountId, getHourlyCost, listAllRegions } from '../utils/utils.js';
+import { getAccountId, getHourlyCost } from '../utils/utils.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Arns } from '../types/constants.js';
 
@@ -59,8 +59,8 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
   async doAction (
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
+    const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
     if (actionName === 'terminateInstance') {
-      const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
       await this.terminateInstance(awsCredentialsProvider, resourceId, region);
     }
   }
@@ -380,12 +380,23 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
         }
       }
 
-      this.addData(instanceArn, 'resourceId', instanceId);
-      this.addData(instanceArn, 'region', region);
-      this.addData(instanceArn, 'monthlyCost', cost);
-      this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
-      await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
-      this.getEstimatedMaxMonthlySavings();
+      await this.fillData(
+        instanceArn,
+        credentials,
+        region,
+        {
+          resourceId: instanceId,
+          region,
+          monthlyCost: cost,
+          hourlyCost: getHourlyCost(cost)
+        }
+      );
+
+      // this.addData(instanceArn, 'resourceId', instanceId);
+      // this.addData(instanceArn, 'region', region);
+      // this.addData(instanceArn, 'monthlyCost', cost);
+      // this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
+      // await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
   }
 
@@ -394,10 +405,10 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
   ) {
     const credentials = await awsCredentialsProvider.getCredentials();
     this.accountId = await getAccountId(credentials);
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
+    for (const region of regions) {
       await this.getRegionalUtilization(credentials, region, overrides);
     }
+    // this.getEstimatedMaxMonthlySavings();
   }
 
   async terminateInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string) {

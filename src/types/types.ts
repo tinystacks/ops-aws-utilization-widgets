@@ -74,8 +74,8 @@ export type Utilization<ScenarioTypes extends string> = {
 export type UserInput = { [ key: string ]: any }
 
 export type AwsServiceOverrides = {
-  resourceArn?: string,
-  scenarioType?: string,
+  resourceArn: string,
+  scenarioType: string,
   delete?: boolean,
   scaleDown?: boolean,
   optimize?: boolean,

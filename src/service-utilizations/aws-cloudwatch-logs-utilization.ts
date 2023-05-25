@@ -4,7 +4,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import _ from 'lodash';
 import { ONE_GB_IN_BYTES } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
-import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 const ONE_HUNDRED_MB_IN_BYTES = 104857600;
@@ -226,12 +226,26 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             }
           });
         }
-        this.addData(logGroupArn, 'resourceId', logGroupName);
-        this.addData(logGroupArn, 'region', region);
-        this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
-        this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
-        await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
-        if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
+
+        await this.fillData(
+          logGroupArn,
+          credentials,
+          region,
+          {
+            resourceId: logGroupName,
+            ...(associatedResourceId && { associatedResourceId }),
+            region,
+            monthlyCost: totalMonthlyCost,
+            hourlyCost: getHourlyCost(totalMonthlyCost)
+          }
+        );
+
+        // this.addData(logGroupArn, 'resourceId', logGroupName);
+        // this.addData(logGroupArn, 'region', region);
+        // this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
+        // this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
+        // await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
+        // if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }
     };
 
@@ -239,13 +253,11 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
   }
 
   async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], _overrides?: AwsServiceOverrides
+    awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: AwsServiceOverrides
   ) {
     const credentials = await awsCredentialsProvider.getCredentials();
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
-      await this.getRegionalUtilization(credentials, region, _overrides);
+    for (const region of regions) {
+      await this.getRegionalUtilization(credentials, region, overrides);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 }
