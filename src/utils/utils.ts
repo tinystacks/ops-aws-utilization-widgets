@@ -4,8 +4,6 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
-import { CloudWatch, Dimension } from '@aws-sdk/client-cloudwatch';
-import { Metric, MetricData } from '../types/types.js';
 
 
 
@@ -142,35 +140,4 @@ export function round (val: number, decimalPlace: number) {
 
 export function getHourlyCost (monthlyCost: number) {
   return (monthlyCost / 30) / 24;
-}
-
-export async function getMetrics (cloudWatchClient: CloudWatch, nameSpace: string, metricName: string, dimensions: Dimension[]){ 
-  const endTime = new Date(Date.now()); 
-  const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); //7 days ago
-  const period = 43200; 
-  
-  const metrics = await cloudWatchClient.getMetricStatistics({ 
-    Namespace: nameSpace, 
-    MetricName: metricName, 
-    StartTime: startTime,
-    EndTime: endTime,
-    Period: period,
-    Statistics: ['Average'],
-    Dimensions: dimensions
-  });
-
-  const values: MetricData[] =  metrics.Datapoints.map(dp => ({ 
-    timestamp: dp.Timestamp.getTime(), 
-    value: dp.Average
-  })).sort((dp1, dp2) => dp1.timestamp - dp2.timestamp);
-
-
-  const results: Metric = { 
-    yAxisLabel: metrics.Label, 
-    values: values
-  }; 
-
-  return results;
-
-
 }

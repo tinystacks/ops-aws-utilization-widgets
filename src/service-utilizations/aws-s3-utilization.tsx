@@ -14,6 +14,8 @@ type S3CostData = {
 
 export type s3UtilizationScenarios = 'hasIntelligentTiering' | 'hasLifecyclePolicy';
 
+//const s3Metrics = ['BucketSizeBytes'];
+
 export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios> {
   s3Client: S3;
   cwClient: CloudWatch;

@@ -4,7 +4,7 @@ import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
-import { getAccountId, getHourlyCost, getMetrics, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 
 /**
@@ -192,13 +192,14 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       this.addData(natGatewayArn, 'monthlyCost', this.cost);
       this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
-      const cwClient = new CloudWatch({
-        credentials,
-        region
-      });
-      AwsNatGatewayMetrics.forEach(async (metric) => {  
-        const metricData = await getMetrics(cwClient, 'AWS/NATGateway', metric, [{ Name: 'NatGatewayId', Value: natGatewayId }]);
-        this.addMetric(natGatewayArn, metric, { yAxisLabel: metric, values: metricData.values } );
+      AwsNatGatewayMetrics.forEach(async (metricName) => {  
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          natGatewayArn,
+          'AWS/NATGateway', 
+          metricName, 
+          [{ Name: 'NatGatewayId', Value: natGatewayId }]);
       });
     };
 
@@ -223,7 +224,6 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       region: 'us-east-1'
     });
 
-    // const natGatewayId = 'nat-0a6557968578af14d';
     const res = await pricingClient.getProducts({
       ServiceCode: 'AmazonEC2',
       Filters: [

@@ -1,4 +1,5 @@
 
+
 export type Data = {
   region: string,
   resourceId: string,

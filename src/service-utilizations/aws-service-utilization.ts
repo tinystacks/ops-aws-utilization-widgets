@@ -1,6 +1,7 @@
 import { CloudFormation } from '@aws-sdk/client-cloudformation';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { Data, Metric, Resource, Scenario, Utilization } from '../types/types';
+import { Data, Metric, Resource, Scenario, Utilization, MetricData } from '../types/types';
+import { CloudWatch, Dimension } from '@aws-sdk/client-cloudwatch';
 
 export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
   private _utilization: Utilization<ScenarioTypes>;
@@ -70,6 +71,47 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
       });
       const maxSavingsPerResource = Math.max(...maxSavingsPerScenario);
       this.utilization[resourceArn].data.maxMonthlySavings = maxSavingsPerResource;
+    }
+  }
+
+  protected async getSidePanelMetrics (
+    credentials: AwsCredentialsProvider, region: string, resourceArn: string, 
+    nameSpace: string, metricName: string, dimensions: Dimension[]
+  ){ 
+    
+    if(resourceArn in this.utilization){
+      const cloudWatchClient = new CloudWatch({ 
+        credentials: await credentials.getCredentials(), 
+        region: region
+      }); 
+
+      const endTime = new Date(Date.now()); 
+      const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); //7 days ago
+      const period = 43200; 
+    
+      const metrics = await cloudWatchClient.getMetricStatistics({ 
+        Namespace: nameSpace, 
+        MetricName: metricName, 
+        StartTime: startTime,
+        EndTime: endTime,
+        Period: period,
+        Statistics: ['Average'],
+        Dimensions: dimensions
+      });
+  
+      const values: MetricData[] =  metrics.Datapoints.map(dp => ({ 
+        timestamp: dp.Timestamp.getTime(), 
+        value: dp.Average
+      })).sort((dp1, dp2) => dp1.timestamp - dp2.timestamp);
+  
+  
+      const metricResuls: Metric = { 
+        yAxisLabel: metrics.Label || metricName, 
+        values: values
+      }; 
+
+      this.addMetric(resourceArn , metricName, metricResuls);
+
     }
   }
 

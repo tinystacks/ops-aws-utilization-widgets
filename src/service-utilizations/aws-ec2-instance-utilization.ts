@@ -27,7 +27,7 @@ import {
 } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { getAccountId, getHourlyCost, getMetrics, listAllRegions } from '../utils/utils.js';
+import { getAccountId, getHourlyCost, listAllRegions } from '../utils/utils.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Arns } from '../types/constants.js';
 
@@ -386,9 +386,14 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'monthlyCost', cost);
       this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
 
-      AwsEc2InstanceMetrics.forEach(async (metric) => { 
-        const metricData = await getMetrics(cwClient, 'AWS/EC2', metric, [{ Name: 'InstanceId', Value: instanceId }]);
-        this.addMetric(instanceArn, metric, { yAxisLabel: metric, values: metricData.values } );
+      AwsEc2InstanceMetrics.forEach(async (metricName) => { 
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          instanceArn,
+          'AWS/EC2', 
+          metricName, 
+          [{ Name: 'InstanceId', Value: instanceId }]);
       });
 
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
