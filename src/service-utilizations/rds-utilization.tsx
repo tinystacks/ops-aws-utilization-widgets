@@ -34,6 +34,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
   }
 
   // TODO: implement serverless cost?
+  // TODO: implement i/o optimized cost?
   async getRdsInstanceCost (credentials: any, region: string, dbInstance: DBInstance) {
     const pricingClient = new Pricing({
       credentials,
@@ -83,6 +84,8 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       ]
     });
 
+    console.log(res.PriceList);
+
     const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
     const onDemandKeys = Object.keys(onDemandData);
     const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
@@ -103,7 +106,8 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     });
 
     let res = await rdsClient.describeDBInstances({});
-    res.DBInstances.map((instance) => { console.log(JSON.stringify(instance, null, 2)); });
+    res.DBInstances.forEach(instance => console.log(instance.AllocatedStorage));
+    // res.DBInstances.map((instance) => { console.log(JSON.stringify(instance, null, 2)); });
     const cost = await this.getRdsInstanceCost(credentials, 'us-east-1', res.DBInstances[0]);
     console.log(cost);
 

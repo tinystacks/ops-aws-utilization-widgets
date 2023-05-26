@@ -76,18 +76,18 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
 
   return (
     <Stack pt="20px" pb="20px" w="100%">
-      <Box width="20%" px={4}>
+      <Stack width="20%" pb={3} px={4} align='baseline'>
         <Menu>
           <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
             {regionLabel}
           </MenuButton>
-          <MenuList h={40} sx={{ overflow:'scroll' }}>
+          <MenuList minW="0" w={150} h={40} sx={{ overflow:'scroll' }}>
             {allRegions.map(region => 
               <MenuItem onClick={() => onRegionChange(region)}>{region}</MenuItem>
             )}
           </MenuList>
         </Menu>
-      </Box>
+      </Stack>
       <hr />
       {actionSummaryStack(
         ActionType.DELETE, <DeleteIcon color='gray' />, 'Delete', numDeleteChanges,
