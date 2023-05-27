@@ -15,8 +15,6 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1);
-
-  console.log('actionType: ', actionType);
   
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
   const resourceFilteredServices = new Set<string>();

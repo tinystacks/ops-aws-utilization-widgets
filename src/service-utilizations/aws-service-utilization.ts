@@ -75,13 +75,13 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
   }
 
   protected async getSidePanelMetrics (
-    credentials: AwsCredentialsProvider, region: string, resourceArn: string, 
+    credentials: any, region: string, resourceArn: string, 
     nameSpace: string, metricName: string, dimensions: Dimension[]
   ){ 
     
     if(resourceArn in this.utilization){
       const cloudWatchClient = new CloudWatch({ 
-        credentials: await credentials.getCredentials(), 
+        credentials: credentials, 
         region: region
       }); 
 

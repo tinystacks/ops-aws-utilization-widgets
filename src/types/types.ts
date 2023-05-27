@@ -1,3 +1,4 @@
+import { Tag } from '@aws-sdk/client-ec2';
 
 
 export type Data = {
@@ -9,6 +10,7 @@ export type Data = {
   monthlyCost?: number,
   maxMonthlySavings?: number,
   [ key: string ]: any;
+  tags?: Tag[];
 }
 
 export type Metrics = { 

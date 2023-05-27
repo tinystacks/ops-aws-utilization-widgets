@@ -37,8 +37,9 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
   ): Promise<void> {
     const region = regions[0];
+    const credentials = await awsCredentialsProvider.getCredentials();
     const ec2Client = new EC2({
-      credentials: await awsCredentialsProvider.getCredentials(),
+      credentials: credentials,
       region: region
     });
 
@@ -63,7 +64,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     const promises: Promise<any>[] = [];
     
     const cloudWatchClient = new CloudWatch({ 
-      credentials: await awsCredentialsProvider.getCredentials(), 
+      credentials: credentials, 
       region: region
     }); 
 
@@ -76,7 +77,7 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     for (let i = 0; i < volumes.length; ++i) {
       EbsVolumesMetrics.forEach(async (metricName) => {  
         await this.getSidePanelMetrics(
-          awsCredentialsProvider, 
+          credentials, 
           region, 
           volumes[i].VolumeId,
           'AWS/EBS', 

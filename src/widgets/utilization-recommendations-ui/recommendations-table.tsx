@@ -15,6 +15,7 @@ import { RecommendationsTableProps } from '../../types/utilization-recommendatio
 import { Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerHeader, DrawerBody } from '@chakra-ui/react';
 import { ChevronDownIcon, InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import SidePanelMetrics from './side-panel-usage.js';
+import SidePanelRelatedResources from './side-panel-related-resources.js';
 
 export const CHECKBOX_CELL_MAX_WIDTH = '16px';
 export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
@@ -400,47 +401,36 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                   </Tr>
                 </Tbody>
               </Table>
-              <Box marginTop='20px'>
-                <Button
-                  variant='ghost'
-                  aria-label={'downCaret'}
-                  leftIcon={<ChevronDownIcon/>}
-                  size='lg'
-                  colorScheme='black'
-                >
-                  Adjustments
-                </Button>
-                {adjustments}
-              </Box>
-              <Box marginTop='20px'>
-                <Button
-                  variant='ghost'
-                  aria-label={'downCaret'}
-                  leftIcon={<ChevronDownIcon/>}
-                  size='lg'
-                  colorScheme='black'
-                >
-                   Usage
-                </Button>
-              </Box>
-              <Box>
-                {SidePanelMetrics({ metrics: serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics })}
-              </Box>
-              {  data?.associatedResourceId ? <Box marginTop='20px'>
-                <Button
-                  variant='ghost'
-                  aria-label={'downCaret'}
-                  leftIcon={<ChevronDownIcon/>}
-                  size='lg'
-                  colorScheme='black'
-                >
-                   Related Resources
-                </Button>
-              </Box> : undefined }
-              <Box>
-                { data?.associatedResourceId ? <Heading> { data.associatedResourceId }</Heading> : null }
-              </Box>
             </TableContainer>
+            <Box marginTop='20px'>
+              <Button
+                variant='ghost'
+                aria-label={'downCaret'}
+                leftIcon={<ChevronDownIcon/>}
+                size='lg'
+                colorScheme='black'
+              >
+                  Adjustments
+              </Button>
+              {adjustments}
+            </Box>
+            <Box marginTop='20px'>
+              <Button
+                variant='ghost'
+                aria-label={'downCaret'}
+                leftIcon={<ChevronDownIcon/>}
+                size='lg'
+                colorScheme='black'
+              >
+                   Usage
+              </Button>
+            </Box>
+            <Box>
+              {SidePanelMetrics({ metrics: serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics })}
+            </Box>
+            <Box>
+              {SidePanelRelatedResources({ data: serviceUtil && serviceUtil[sidePanelResourceArn]?.data })}
+            </Box>
             <Flex pt='1'>
               <Spacer/>
               <Spacer/>

@@ -385,8 +385,9 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'region', region);
       this.addData(instanceArn, 'monthlyCost', cost);
       this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
+      this.addData(instanceArn, 'tags', instance.Tags);
 
-      AwsEc2InstanceMetrics.forEach(async (metricName) => { 
+      await AwsEc2InstanceMetrics.forEach(async (metricName) => { 
         await this.getSidePanelMetrics(
           credentials, 
           region, 

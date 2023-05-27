@@ -39,8 +39,9 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
   ): Promise<void> {
     const region = regions[0];
+    const credentials = await awsCredentialsProvider.getCredentials();
     const rdsClient = new RDS({
-      credentials: await awsCredentialsProvider.getCredentials(),
+      credentials: credentials,
       region: region
     });
 
@@ -61,7 +62,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     const promises: Promise<any>[] = [];
     
     const cloudWatchClient = new CloudWatch({ 
-      credentials: await awsCredentialsProvider.getCredentials(), 
+      credentials: credentials, 
       region: region
     }); 
 
@@ -76,7 +77,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     for (let i = 0; i < dbInstances.length; ++i) {
       await rdsInstanceMetrics.forEach(async (metricName) => {  
         await this.getSidePanelMetrics(
-          awsCredentialsProvider, 
+          credentials, 
           region, 
           dbInstances[i].DBInstanceIdentifier,
           'AWS/RDS', 
