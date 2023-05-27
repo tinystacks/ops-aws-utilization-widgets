@@ -34,7 +34,6 @@ export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
           <Text fontSize='sm'>{s}</Text>
         </HStack>
         <Stack pl='5' pr='5'>
-          <Text fontSize='sm'>{'placeholder for action name'}</Text>
           {resourceArns
             .filter(r => Object.hasOwn(filteredServices[s], r))
             .map(rarn => (
