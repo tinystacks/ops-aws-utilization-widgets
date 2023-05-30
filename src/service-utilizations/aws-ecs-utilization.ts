@@ -936,20 +936,6 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
           hourlyCost: getHourlyCost(monthlyCost)
         }
       );
-
-      // this.addData(service.serviceArn, 'resourceId', service.serviceName);
-      // this.addData(service.serviceArn, 'region', region);
-      // if (service.serviceName in this.serviceCosts) {
-      //   const monthlyCost = this.serviceCosts[service.serviceName];
-      //   this.addData(service.serviceArn, 'monthlyCost', monthlyCost);
-      //   this.addData(service.serviceArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      // }
-      // await this.identifyCloudformationStack(
-      //   credentials,
-      //   region,
-      //   service.serviceArn,
-      //   service.serviceName
-      // );
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));

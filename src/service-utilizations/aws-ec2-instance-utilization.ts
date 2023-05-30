@@ -391,12 +391,6 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           hourlyCost: getHourlyCost(cost)
         }
       );
-
-      // this.addData(instanceArn, 'resourceId', instanceId);
-      // this.addData(instanceArn, 'region', region);
-      // this.addData(instanceArn, 'monthlyCost', cost);
-      // this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
-      // await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
     }
   }
 

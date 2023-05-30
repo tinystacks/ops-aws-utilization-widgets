@@ -239,13 +239,6 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             hourlyCost: getHourlyCost(totalMonthlyCost)
           }
         );
-
-        // this.addData(logGroupArn, 'resourceId', logGroupName);
-        // this.addData(logGroupArn, 'region', region);
-        // this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
-        // this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
-        // await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
-        // if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }
     };
 

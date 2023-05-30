@@ -199,12 +199,6 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
           hourlyCost: getHourlyCost(this.cost)
         }
       );
-
-      // this.addData(natGatewayArn, 'resourceId', natGatewayId);
-      // this.addData(natGatewayArn, 'region', region);
-      // this.addData(natGatewayArn, 'monthlyCost', this.cost);
-      // this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
-      // await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
     };
 
     await rateLimitMap(allNatGateways, 5, 5, analyzeNatGateway);

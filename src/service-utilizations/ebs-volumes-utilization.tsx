@@ -141,20 +141,6 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
           hourlyCost: getHourlyCost(monthlyCost)
         }
       );
-
-      // this.addData(volumeArn, 'resourceId', volumeId);
-      // this.addData(volumeArn, 'region', region);
-      // if (volumeArn in this.volumeCosts) {
-      //   const monthlyCost = this.volumeCosts[volumeArn];
-      //   this.addData(volumeArn, 'monthlyCost', monthlyCost);
-      //   this.addData(volumeArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      // }
-      // await this.identifyCloudformationStack(
-      //   credentials, 
-      //   region,
-      //   volumeArn,
-      //   volumeId
-      // );
     };
     await rateLimitMap(volumes, 5, 5, analyzeEbsVolume);
   }

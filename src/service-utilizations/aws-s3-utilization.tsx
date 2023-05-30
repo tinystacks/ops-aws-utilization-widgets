@@ -87,15 +87,6 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
           hourlyCost: getHourlyCost(monthlyCost)
         }
       );
-      
-      // TODO: Change bucketName to bucketArn
-      // this.addData(bucketArn, 'resourceId', bucketName);
-      // this.addData(bucketArn, 'region', region);
-      // if (bucketName in this.bucketCostData) {
-      //   const monthlyCost = this.bucketCostData[bucketName].monthlyCost;
-      //   this.addData(bucketArn, 'monthlyCost', monthlyCost);
-      //   this.addData(bucketArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      // }
     };
 
     await rateLimitMap(allS3Buckets, 5, 5, analyzeS3Bucket);
