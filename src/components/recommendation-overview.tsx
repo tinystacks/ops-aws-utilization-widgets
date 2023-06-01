@@ -43,7 +43,7 @@ export default function RecommendationOverview (
         <Text style={textStyles}>{'unused resources'}</Text>
       </Box>
       <Box p={5}>
-        <Heading style={labelStyles}>{ '$' + totalMonthlySavings}</Heading>
+        <Heading style={labelStyles}>{ totalMonthlySavings }</Heading>
         <Text style={textStyles}>{'potential monthly savings'}</Text>
       </Box>
     </SimpleGrid>
