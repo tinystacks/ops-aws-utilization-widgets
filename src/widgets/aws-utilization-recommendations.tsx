@@ -5,7 +5,9 @@ import {
   RecommendationsOverrides, 
   UtilizationRecommendationsWidget 
 } from '../types/utilization-recommendations-types.js';
-import { UtilizationRecommendationsUi } from './utilization-recommendations-ui/utilization-recommendations-ui.js';
+import { 
+  UtilizationRecommendationsUi 
+} from '../components/utilization-recommendations-ui/utilization-recommendations-ui.js';
 import { filterUtilizationForActionType } from '../utils/utilization.js';
 import get from 'lodash.get';
 

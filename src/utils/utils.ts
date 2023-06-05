@@ -3,8 +3,9 @@ import { STS } from '@aws-sdk/client-sts';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
+import { ParserOptionsArgs, parseStream } from 'fast-csv';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
-
+import { Arns } from '../types/constants.js';
 
 
 export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
@@ -140,4 +141,40 @@ export function round (val: number, decimalPlace: number) {
 
 export function getHourlyCost (monthlyCost: number) {
   return (monthlyCost / 30) / 24;
+}
+
+export function parseStreamSync (
+  stream: NodeJS.ReadableStream, options: ParserOptionsArgs, rowProcessor: (row: any) => any
+) {
+  return new Promise((resolve, reject) => {
+    const data: any[] = [];
+
+    parseStream(stream, options)
+      .on('error', reject)
+      .on('data', (row) => {
+        const obj = rowProcessor(row);
+        if (obj) data.push(obj);
+      })
+      .on('end', () => {
+        resolve(data);
+      });
+  });
+}
+
+export function getArnOrResourceId (awsService: string, resourceId: string, region: string, accountId: string) {
+  if (resourceId.startsWith('arn')) {
+    return resourceId;
+  }
+
+  if (awsService === 'AmazonS3') {
+    return Arns.S3(resourceId);
+  }
+
+  if (resourceId.startsWith('i-')) {
+    return Arns.Ec2(region, accountId, resourceId);
+  } else if (resourceId.startsWith('vol-')) {
+    return Arns.Ebs(region, accountId, resourceId);
+  }
+
+  return resourceId;
 }
