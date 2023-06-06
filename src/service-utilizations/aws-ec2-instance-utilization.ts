@@ -61,7 +61,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
     if (actionName === 'terminateInstance') {
-      const resourceId = resourceArn.split(':').at(-1);
+      const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
       await this.terminateInstance(awsCredentialsProvider, resourceId, region);
     }
   }
@@ -398,6 +398,7 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       });
 
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
+      this.getEstimatedMaxMonthlySavings();
     }
   }
 
@@ -410,7 +411,6 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
     for (const region of usedRegions) {
       await this.getRegionalUtilization(credentials, region, overrides);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 
   async terminateInstance (awsCredentialsProvider: AwsCredentialsProvider, instanceId: string, region: string) {

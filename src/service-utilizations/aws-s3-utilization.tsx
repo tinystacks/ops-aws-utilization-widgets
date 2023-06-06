@@ -89,7 +89,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       }
     };
 
-    await rateLimitMap(allS3Buckets, 6, 6, analyzeS3Bucket);
+    await rateLimitMap(allS3Buckets, 5, 5, analyzeS3Bucket);
   }
 
   async getUtilization (
