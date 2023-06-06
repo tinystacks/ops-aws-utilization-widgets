@@ -75,7 +75,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     await Promise.all(promises).catch(e => console.log(e));
 
     for (let i = 0; i < dbInstances.length; ++i) {
-      await rdsInstanceMetrics.forEach(async (metricName) => {  
+      rdsInstanceMetrics.forEach(async (metricName) => {  
         await this.getSidePanelMetrics(
           credentials, 
           region, 
