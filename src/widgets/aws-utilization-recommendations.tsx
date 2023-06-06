@@ -11,9 +11,13 @@ import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
+  sessionHistory: History[];
+  region: string;
   constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
+    this.region = props.region || 'us-east-1';
+    this.sessionHistory = [];
   }
 
   static fromJson (props: UtilizationRecommendationsWidget) {
@@ -23,7 +27,9 @@ export class AwsUtilizationRecommendations extends BaseWidget {
   toJson () {
     return {
       ...super.toJson(),
-      utilization: this.utilization
+      utilization: this.utilization,
+      sessionHistory: this.sessionHistory,
+      region: this.region
     };
   }
 
@@ -39,7 +45,8 @@ export class AwsUtilizationRecommendations extends BaseWidget {
       await utilProvider.hardRefresh(awsCredsProvider);
     }
 
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
+    this.sessionHistory = await utilProvider.getSessionHistory();
 
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;

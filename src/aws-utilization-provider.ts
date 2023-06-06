@@ -2,11 +2,23 @@ import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import { Provider } from '@tinystacks/ops-model';
-import { AwsResourceType, AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
+import {
+  AwsResourceType,
+  AwsServiceOverrides,
+  AwsUtilizationOverrides,
+  HistoryEvent,
+  Utilization
+} from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
 
-const cache = cached<Utilization<string>>('utilization-cache', {
+const utilizationCache = cached<Utilization<string>>('utilization', {
+  backend: {
+    type: 'memory'
+  }
+});
+
+const sessionHistoryCache = cached<Array<HistoryEvent>>('session-history', {
   backend: {
     type: 'memory'
   }
@@ -104,7 +116,7 @@ class AwsUtilizationProvider extends BaseProvider {
       this.utilization[service] = await this.refreshUtilizationData(
         service, credentialsProvider, serviceOverrides
       );
-      await cache.set(service, this.utilization[service]);
+      await utilizationCache.set(service, this.utilization[service]);
     }
 
     return this.utilization;
@@ -119,9 +131,9 @@ class AwsUtilizationProvider extends BaseProvider {
         this.utilization[service] = await this.refreshUtilizationData(
           service, credentialsProvider, serviceOverrides
         );
-        await cache.set(service, this.utilization[service]);
+        await utilizationCache.set(service, this.utilization[service]);
       } else {
-        this.utilization[service] = await cache.getOrElse(
+        this.utilization[service] = await utilizationCache.getOrElse(
           service,
           async () => await this.refreshUtilizationData(service, credentialsProvider, serviceOverrides)
         );
@@ -129,6 +141,10 @@ class AwsUtilizationProvider extends BaseProvider {
     }
 
     return this.utilization;
+  }
+
+  async getSessionHistory (): Promise<HistoryEvent[]> {
+    return sessionHistoryCache.getOrElse('history', []);
   }
 }
 
