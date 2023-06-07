@@ -10,13 +10,13 @@ import { actionTypeText } from '../../types/types.js';
 import { filterUtilizationForActionType } from '../../utils/utilization.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
-  const { actionType, resourceArns, onRemoveResource, onResourcesAction, utilization } = props;
+  const { actionType, resourceArns, onRemoveResource, onResourcesAction, utilization, sessionHistory } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [confirmationText, setConfirmationText] = useState<string>('');
   const [error, setError] = useState<string | undefined>(undefined);
   const actionLabel = actionTypeText[actionType].charAt(0).toUpperCase() + actionTypeText[actionType].slice(1);
   
-  const filteredServices = filterUtilizationForActionType(utilization, actionType);
+  const filteredServices = filterUtilizationForActionType(utilization, actionType, sessionHistory);
   const resourceFilteredServices = new Set<string>();
   Object.entries(filteredServices).forEach(([serviceName, serviceUtil]) => {
     for (const resourceArn of resourceArns) {

@@ -3,6 +3,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import { Provider } from '@tinystacks/ops-model';
 import {
+  ActionType,
   AwsResourceType,
   AwsServiceOverrides,
   AwsUtilizationOverrides,
@@ -54,7 +55,7 @@ class AwsUtilizationProvider extends BaseProvider {
     this.utilization = {};
     this.initServices(services || [
       'Account',
-      'CloudwatchLogs',
+      //'CloudwatchLogs',
       'Ec2Instance',
       'EcsService',
       'NatGateway',
@@ -102,10 +103,22 @@ class AwsUtilizationProvider extends BaseProvider {
     service: AwsResourceType,
     credentialsProvider: AwsCredentialsProvider,
     actionName: string,
+    actionType: ActionType,
     resourceArn: string,
     region: string
   ) {
+    const event: HistoryEvent = {
+      service,
+      actionType,
+      actionName,
+      resourceArn,
+      region,
+      timestamp: new Date().toISOString()
+    };
+    const history: HistoryEvent[] = await this.getSessionHistory();
+    history.push(event);
     await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceArn, region);
+    await sessionHistoryCache.set('history', history);
   }
 
   async hardRefresh (

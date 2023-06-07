@@ -1,5 +1,5 @@
 import { Widget } from '@tinystacks/ops-model';
-import { ActionType, AwsResourceType, Utilization } from './types.js';
+import { ActionType, AwsResourceType, HistoryEvent, Utilization } from './types.js';
 
 interface HasActionType {
   actionType: ActionType;
@@ -7,6 +7,8 @@ interface HasActionType {
 
 interface HasUtilization {
   utilization: { [key: AwsResourceType | string]: Utilization<string> };
+  sessionHistory: HistoryEvent[];
+
 }
 
 interface RemovableResource {
@@ -23,7 +25,7 @@ interface Refresh {
 
 export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction & Refresh
 export type UtilizationRecommendationsWidget = Widget & HasActionType & HasUtilization & {
-  regions: string[]
+  region: string
 };
 export type RecommendationsCallback = (props: RecommendationsOverrides) => void;
 export type RecommendationsOverrides = {

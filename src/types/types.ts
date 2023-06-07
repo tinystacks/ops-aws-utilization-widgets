@@ -127,8 +127,9 @@ export type AwsResourceType = 'Account' |
 
 export type HistoryEvent = {
   service: AwsResourceType;
+  actionType: ActionType;
   actionName: string;
-  resourceId: string;
+  resourceArn: string;
   region: string;
   timestamp: string;
 }

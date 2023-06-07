@@ -1,6 +1,6 @@
 import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
-import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
+import { AwsResourceType, Utilization, actionTypeToEnum, HistoryEvent } from '../types/types.js';
 import { 
   RecommendationsOverrides, 
   UtilizationRecommendationsWidget 
@@ -11,13 +11,13 @@ import get from 'lodash.get';
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
-  sessionHistory: History[];
+  sessionHistory: HistoryEvent[];
   region: string;
   constructor (props: UtilizationRecommendationsWidget) {
     super(props);
     this.utilization = props.utilization;
     this.region = props.region || 'us-east-1';
-    this.sessionHistory = [];
+    this.sessionHistory = props.sessionHistory || [];
   }
 
   static fromJson (props: UtilizationRecommendationsWidget) {
@@ -47,11 +47,13 @@ export class AwsUtilizationRecommendations extends BaseWidget {
 
     this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
     this.sessionHistory = await utilProvider.getSessionHistory();
+    console.log(' this.sessionHistory: ',  this.sessionHistory);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;
       const resourceArnsSet = new Set<string>(resourceArns);
-      const filteredServices = filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType]);
+      const filteredServices = 
+      filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType], this.sessionHistory);
       
       for (const serviceUtil of Object.keys(filteredServices)) {
         const filteredServiceUtil = Object.keys(filteredServices[serviceUtil])
@@ -63,6 +65,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
               serviceUtil,
               awsCredsProvider, 
               get(resource.scenarios[scenario], `${actionType}.action`),
+              actionTypeToEnum[actionType],
               resourceArn,
               get(resource.data, 'region', 'us-east-1')
             );
@@ -88,6 +91,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
+        sessionHistory={this.sessionHistory}
         onResourcesAction={onResourcesAction}
         onRefresh={onRefresh}
       />

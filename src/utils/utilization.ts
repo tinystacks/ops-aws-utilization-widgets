@@ -1,9 +1,9 @@
 //import { cloudwatchLogsGroupToUrl, ecsServiceArnToUrl } from '@tinystacks/ops-aws-core-widgets';
 import isEmpty from 'lodash.isempty';
-import { ActionType, Scenarios, Utilization } from '../types/types';
+import { ActionType, HistoryEvent, Scenarios, Utilization } from '../types/types.js';
 
 export function filterUtilizationForActionType (
-  utilization: { [service: string]: Utilization<string> }, actionType: ActionType
+  utilization: { [service: string]: Utilization<string> }, actionType: ActionType,  session: HistoryEvent[]
 ):
 { [service: string]: Utilization<string> } {
   const filtered: { [service: string]: Utilization<string> } = {};
@@ -13,17 +13,27 @@ export function filterUtilizationForActionType (
   }
 
   Object.keys(utilization).forEach((service) => {
-    filtered[service] = filterServiceForActionType(utilization, service, actionType);
+    filtered[service] = filterServiceForActionType(utilization, service, actionType, session);
   });
   return filtered;
 }
 
 export function filterServiceForActionType (
-  utilization: { [service: string]: Utilization<string> }, service: string, actionType: ActionType
+  utilization: { [service: string]: Utilization<string> }, service: string, 
+  actionType: ActionType, session: HistoryEvent[]
 ) {
+  const resourcesInProgress = session.map((historyevent) => {
+    return historyevent.resourceArn;
+  });  
+
   const serviceUtil = utilization[service];
   const actionFilteredServiceUtil = 
     Object.entries(serviceUtil).reduce<Utilization<string>>((aggUtil, [id, resource]) => {
+      if(resourcesInProgress.includes(id)){ 
+        console.log('dupeee');
+        delete aggUtil[id];
+        return aggUtil;
+      }
       const filteredScenarios: Scenarios<string> = {};
       Object.entries(resource.scenarios).forEach(([sType, details]) => {
         if (Object.hasOwn(details, actionType)) {
@@ -51,6 +61,21 @@ export function getNumberOfResourcesFromFilteredActions (filtered: { [service: s
     total += Object.keys(filtered[s]).length;
   });
   return total;
+}
+
+export function getNumberOfResourcesInProgress (session: HistoryEvent[]): { [ key in ActionType ]: number } {
+  const result: { [ key in ActionType ]: number } = {
+    [ActionType.OPTIMIZE]: 0,
+    [ActionType.DELETE]: 0,
+    [ActionType.SCALE_DOWN]: 0
+  };  
+
+  session.forEach((historyEvent) => { 
+    result[historyEvent.actionType] ++;
+  });
+
+  return result;
+
 }
 
 export function getTotalNumberOfResources ( utilization: { [service: string]: Utilization<string> }): number { 
@@ -84,16 +109,3 @@ export function sentenceCase (name: string): string{
   const result = name.replace(/([A-Z])/g, ' $1');
   return result[0].toUpperCase() + result.substring(1).toLowerCase();
 }
-
-/*export function getAwsLink (resourceArn: string, resourceType: AwsResourceType, region?: string){ 
-
-  switch (resourceType) {
-    case AwsResourceTypes.CloudwatchLogs:
-      return cloudwatchLogsGroupToUrl(resourceArn, region || 'us-east-1');
-    case AwsResourceTypes.EcsService: 
-      return ecsServiceArnToUrl(resourceArn); 
-    default:
-      return undefined; //need to implement the others
-  }
-
-}*/

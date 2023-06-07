@@ -20,14 +20,14 @@ export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
 const RESOURCE_VALUE_MAX_WIDTH = '170px';
 
 export function RecommendationsTable (props: RecommendationsTableProps) {
-  const { utilization, actionType, onRefresh } = props;
+  const { utilization, actionType, onRefresh, sessionHistory } = props;
   const [checkedResources, setCheckedResources] = useState<string[]>([]);
   const [checkedServices, setCheckedServices] = useState<string[]>([]);
   const [showSideModal, setShowSideModal] = useState<boolean | undefined>(undefined);
   const [ sidePanelResourceArn, setSidePanelResourceArn ] = useState<string | undefined>(undefined);
   const [ sidePanelService, setSidePanelService ] = useState<string | undefined>(undefined);
 
-  const filteredServices = filterUtilizationForActionType(utilization, actionType);
+  const filteredServices = filterUtilizationForActionType(utilization, actionType, sessionHistory);
 
   // #region actions
   function onServiceCheckChange (serviceName: string) {
