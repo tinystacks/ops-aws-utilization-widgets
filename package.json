@@ -7,7 +7,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && npm run types",
     "cleanup": "rm -rf dist || true && rm *.tgz || true",
     "clean-build": "npm ci && npm run cleanup && npm run build",
     "dependency-check": "./node_modules/.bin/depcheck",
@@ -27,7 +27,8 @@
     "test-file": "jest ./test/service-utilizations/aws-ecs-instance-utilization.test.ts",
     "test-file-cov": "jest ./test/service-utilizations/aws-ec2-instance-utilization.test.ts --coverage",
     "view-test-cov": "jest --coverage || true && open coverage/lcov-report/index.html",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "types": "npx typescript-json-schema './src/ops-types.ts' '*' --out ./dist/ops-types.json --required --esModuleInterop"
   },
   "author": "",
   "license": "BSD-3-Clause",
