@@ -14,6 +14,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 */
 
 type AwsNatGatewayUtilizationScenarioTypes = 'activeConnectionCount' | 'totalThroughput';
+const AwsNatGatewayMetrics = ['ActiveConnectionCount', 'BytesInFromDestination'];
 
 export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewayUtilizationScenarioTypes> {
   accountId: string;
@@ -191,6 +192,15 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       this.addData(natGatewayArn, 'monthlyCost', this.cost);
       this.addData(natGatewayArn, 'hourlyCost', getHourlyCost(this.cost));
       await this.identifyCloudformationStack(credentials, region, natGatewayArn, natGatewayId);
+      AwsNatGatewayMetrics.forEach(async (metricName) => {  
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          natGatewayArn,
+          'AWS/NATGateway', 
+          metricName, 
+          [{ Name: 'NatGatewayId', Value: natGatewayId }]);
+      });
     };
 
     await rateLimitMap(allNatGateways, 5, 5, analyzeNatGateway);
@@ -214,7 +224,6 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       region: 'us-east-1'
     });
 
-    // const natGatewayId = 'nat-0a6557968578af14d';
     const res = await pricingClient.getProducts({
       ServiceCode: 'AmazonEC2',
       Filters: [

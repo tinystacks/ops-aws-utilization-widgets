@@ -38,6 +38,7 @@ const cache = cached<string>('ec2-util-cache', {
 });
 
 type AwsEc2InstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
+const AwsEc2InstanceMetrics = ['CPUUtilization', 'NetworkIn'];
 
 type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
   instanceIds: string[];
@@ -384,6 +385,18 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
       this.addData(instanceArn, 'region', region);
       this.addData(instanceArn, 'monthlyCost', cost);
       this.addData(instanceArn, 'hourlyCost', getHourlyCost(cost));
+      this.addData(instanceArn, 'tags', instance.Tags);
+
+      AwsEc2InstanceMetrics.forEach(async (metricName) => { 
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          instanceArn,
+          'AWS/EC2', 
+          metricName, 
+          [{ Name: 'InstanceId', Value: instanceId }]);
+      });
+
       await this.identifyCloudformationStack(credentials, region, instanceArn, instanceId);
       this.getEstimatedMaxMonthlySavings();
     }

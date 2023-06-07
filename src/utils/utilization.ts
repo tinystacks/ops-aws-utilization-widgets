@@ -1,4 +1,3 @@
-//import { cloudwatchLogsGroupToUrl, ecsServiceArnToUrl } from '@tinystacks/ops-aws-core-widgets';
 import isEmpty from 'lodash.isempty';
 import { ActionType, Scenarios, Utilization } from '../types/types';
 
@@ -80,20 +79,11 @@ export function getTotalMonthlySavings (utilization: { [service: string]: Utiliz
   return usd.format(totalSavings);
 }
 
-export function sentenceCase (name: string): string{ 
+export function sentenceCase (name: string): string { 
   const result = name.replace(/([A-Z])/g, ' $1');
   return result[0].toUpperCase() + result.substring(1).toLowerCase();
 }
 
-/*export function getAwsLink (resourceArn: string, resourceType: AwsResourceType, region?: string){ 
-
-  switch (resourceType) {
-    case AwsResourceTypes.CloudwatchLogs:
-      return cloudwatchLogsGroupToUrl(resourceArn, region || 'us-east-1');
-    case AwsResourceTypes.EcsService: 
-      return ecsServiceArnToUrl(resourceArn); 
-    default:
-      return undefined; //need to implement the others
-  }
-
-}*/
+export function splitServiceName (name: string) {
+  return name?.split(/(?=[A-Z])/).join(' ');
+}
