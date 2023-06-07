@@ -55,7 +55,7 @@ class AwsUtilizationProvider extends BaseProvider {
     this.utilization = {};
     this.initServices(services || [
       'Account',
-      //'CloudwatchLogs',
+      'CloudwatchLogs',
       'Ec2Instance',
       'EcsService',
       'NatGateway',
