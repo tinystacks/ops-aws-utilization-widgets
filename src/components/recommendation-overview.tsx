@@ -3,6 +3,7 @@ import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
 import { ActionType, Utilization } from '../types/types.js';
 import { filterUtilizationForActionType, 
   getNumberOfResourcesFromFilteredActions, 
+  getTotalMonthlySavings, 
   getTotalNumberOfResources } from '../utils/utilization.js';
 
 export default function RecommendationOverview (
@@ -11,19 +12,20 @@ export default function RecommendationOverview (
 
   const { utilizations } = props;
 
-  const { totalUnusedResources, totalScalingActions, totalResources } =
+  const { totalUnusedResources, totalMonthlySavings, totalResources } =
     getTotalRecommendationValues(utilizations);
 
   const labelStyles = {
-    fontFamily: 'monospace',
+    fontFamily: 'Inter',
     fontSize: '42px',
-    fontWeight: '500', 
-    lineHeight: '150%'
+    fontWeight: '400', 
+    lineHeight: '150%', 
+    color: '#000000'
   };
 
   const textStyles = {
-    fontFamily: 'monospace',
-    fontSize: '15px',
+    fontFamily: 'Inter',
+    fontSize: '14px',
     fontWeight: '500', 
     lineHeight: '150%', 
     color: 'rgba(0, 0, 0, 0.48)'
@@ -41,8 +43,8 @@ export default function RecommendationOverview (
         <Text style={textStyles}>{'unused resources'}</Text>
       </Box>
       <Box p={5}>
-        <Heading style={labelStyles}>{totalScalingActions}</Heading>
-        <Text style={textStyles}>{'scaling actions'}</Text>
+        <Heading style={labelStyles}>{ totalMonthlySavings }</Heading>
+        <Text style={textStyles}>{'potential monthly savings'}</Text>
       </Box>
     </SimpleGrid>
   );
@@ -52,16 +54,13 @@ export default function RecommendationOverview (
 
 function getTotalRecommendationValues (utilizations:  { [ serviceName: string ] : Utilization<string> }) { 
   const deleteChanges = filterUtilizationForActionType(utilizations, ActionType.DELETE);
-  const scaleDownChanges = filterUtilizationForActionType(utilizations, ActionType.SCALE_DOWN);
-
   const totalUnusedResources = getNumberOfResourcesFromFilteredActions(deleteChanges);
-  const totalScalingActions = getNumberOfResourcesFromFilteredActions(scaleDownChanges);
-
   const totalResources = getTotalNumberOfResources(utilizations);
+  const totalMonthlySavings = getTotalMonthlySavings(utilizations);
 
   return { 
     totalUnusedResources, 
-    totalScalingActions, 
+    totalMonthlySavings, 
     totalResources
   };
 }

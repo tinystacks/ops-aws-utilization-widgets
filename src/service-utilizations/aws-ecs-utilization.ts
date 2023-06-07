@@ -60,6 +60,7 @@ const cache = cached<string>('ecs-util-cache', {
 });
 
 type AwsEcsUtilizationScenarioTypes = 'unused' | 'overAllocated';
+const AwsEcsMetrics = ['CPUUtilization', 'MemoryUtilization'];
 
 type EcsService = {
   clusterArn: string;
@@ -937,6 +938,23 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         service.serviceArn,
         service.serviceName
       );
+
+      AwsEcsMetrics.forEach(async (metricName) => { 
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          service.serviceArn,  
+          'AWS/ECS', 
+          metricName, 
+          [{
+            Name: 'ServiceName',
+            Value: service.serviceName
+          },
+          {
+            Name: 'ClusterName',
+            Value: service.clusterArn?.split('/').pop()
+          }]);
+      });
     }
 
     console.info('this.utilization:\n', JSON.stringify(this.utilization, null, 2));

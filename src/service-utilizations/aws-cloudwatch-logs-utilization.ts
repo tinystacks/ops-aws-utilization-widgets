@@ -15,6 +15,7 @@ const sevenDaysAgo = NOW - (7 * 24 * 60 * 60 * 1000);
 const twoWeeksAgo = NOW - (14 * 24 * 60 * 60 * 1000);
 
 type AwsCloudwatchLogsUtilizationScenarioTypes = 'hasRetentionPolicy' | 'lastEventTime' | 'storedBytes';
+const AwsCloudWatchLogsMetrics = ['IncomingBytes'];
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
   constructor () {
@@ -230,6 +231,15 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         this.addData(logGroupArn, 'region', region);
         this.addData(logGroupArn, 'monthlyCost', totalMonthlyCost);
         this.addData(logGroupArn, 'hourlyCost', getHourlyCost(totalMonthlyCost));
+        AwsCloudWatchLogsMetrics.forEach(async (metricName) => {  
+          await this.getSidePanelMetrics(
+            credentials, 
+            region, 
+            logGroupArn,
+            'AWS/Logs', 
+            metricName, 
+            [{ Name: 'LogGroupName', Value: logGroupName }]);
+        });
         await this.identifyCloudformationStack(credentials, region, logGroupArn, logGroupName, associatedResourceId);
         if (associatedResourceId) this.addData(logGroupArn, 'associatedResourceId', associatedResourceId);
       }

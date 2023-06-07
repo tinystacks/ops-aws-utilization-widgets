@@ -7,6 +7,8 @@ import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' |
                                                'hasAutoScalingEnabled';
 
+const rdsInstanceMetrics = ['DatabaseConnections', 'FreeStorageSpace', 'CPUUtilization'];
+
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   
   async doAction (
@@ -37,8 +39,9 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
   ): Promise<void> {
     const region = regions[0];
+    const credentials = await awsCredentialsProvider.getCredentials();
     const rdsClient = new RDS({
-      credentials: await awsCredentialsProvider.getCredentials(),
+      credentials: credentials,
       region: region
     });
 
@@ -59,7 +62,7 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
     const promises: Promise<any>[] = [];
     
     const cloudWatchClient = new CloudWatch({ 
-      credentials: await awsCredentialsProvider.getCredentials(), 
+      credentials: credentials, 
       region: region
     }); 
 
@@ -69,7 +72,19 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
       promises.push(this.getCPUUTilization(cloudWatchClient, dbInstances[i].DBInstanceIdentifier));
     }
 
-    void await Promise.all(promises).catch(e => console.log(e));
+    await Promise.all(promises).catch(e => console.log(e));
+
+    for (let i = 0; i < dbInstances.length; ++i) {
+      rdsInstanceMetrics.forEach(async (metricName) => {  
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          dbInstances[i].DBInstanceIdentifier,
+          'AWS/RDS', 
+          metricName, 
+          [{ Name: 'DBInstanceIdentifier', Value: dbInstances[i].DBInstanceIdentifier }]);
+      });
+    }
 
   }
 

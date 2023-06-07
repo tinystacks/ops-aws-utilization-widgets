@@ -1,22 +1,28 @@
 import React from 'react';
+import get from 'lodash.get';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
 import { 
-  RecommendationsOverrides, 
-  UtilizationRecommendationsWidget 
+  RecommendationsOverrides,
+  HasActionType,
+  HasUtilization
 } from '../types/utilization-recommendations-types.js';
-import { UtilizationRecommendationsUi } from './utilization-recommendations-ui/utilization-recommendations-ui.js';
+import {
+  UtilizationRecommendationsUi
+} from './utilization-recommendations-ui/utilization-recommendations-ui.js';
 import { filterUtilizationForActionType } from '../utils/utilization.js';
-import get from 'lodash.get';
+import { AwsUtilizationRecommendations as AwsUtilizationRecommendationsType } from '../ops-types.js';
+
+export type AwsUtilizationRecommendationsProps = AwsUtilizationRecommendationsType & HasActionType & HasUtilization;
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
-  constructor (props: UtilizationRecommendationsWidget) {
+  constructor (props: AwsUtilizationRecommendationsProps) {
     super(props);
     this.utilization = props.utilization;
   }
 
-  static fromJson (props: UtilizationRecommendationsWidget) {
+  static fromJson (props: AwsUtilizationRecommendationsProps) {
     return new AwsUtilizationRecommendations(props);
   }
 
