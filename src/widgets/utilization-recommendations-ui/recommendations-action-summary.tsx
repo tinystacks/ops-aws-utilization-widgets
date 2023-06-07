@@ -21,8 +21,6 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
   const numOptimizeChanges = getNumberOfResourcesFromFilteredActions(optimizeChanges);
 
   const inProgressActions = getNumberOfResourcesInProgress(sessionHistory);
-  console.log('sessionHistory: ', sessionHistory);
-  console.log(inProgressActions); 
 
   function actionSummaryStack (
     actionType: ActionType, icon: JSX.Element, actionLabel: string, 

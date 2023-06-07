@@ -30,7 +30,6 @@ export function filterServiceForActionType (
   const actionFilteredServiceUtil = 
     Object.entries(serviceUtil).reduce<Utilization<string>>((aggUtil, [id, resource]) => {
       if(resourcesInProgress.includes(id)){ 
-        console.log('dupeee');
         delete aggUtil[id];
         return aggUtil;
       }

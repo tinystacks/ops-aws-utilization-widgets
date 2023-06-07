@@ -47,7 +47,6 @@ export class AwsUtilizationRecommendations extends BaseWidget {
 
     this.utilization = await utilProvider.getUtilization(awsCredsProvider, [this.region]);
     this.sessionHistory = await utilProvider.getSessionHistory();
-    console.log(' this.sessionHistory: ',  this.sessionHistory);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;
