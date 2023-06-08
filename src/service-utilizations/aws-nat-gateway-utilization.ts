@@ -31,7 +31,7 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         credentials: await awsCredentialsProvider.getCredentials(),
         region
       });
-      const resourceId = resourceArn.split(':').at(-1);
+      const resourceId = resourceArn.split('/')[1];
       await this.deleteNatGateway(ec2Client, resourceId);
     }
   }
