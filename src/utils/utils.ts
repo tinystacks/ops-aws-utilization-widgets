@@ -5,8 +5,6 @@ import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
 import { ParserOptionsArgs, parseStream } from 'fast-csv';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
-import { Arns } from '../types/constants.js';
-
 
 export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
   if (!providers || isEmpty(providers)) {
@@ -159,22 +157,4 @@ export function parseStreamSync (
         resolve(data);
       });
   });
-}
-
-export function getArnOrResourceId (awsService: string, resourceId: string, region: string, accountId: string) {
-  if (resourceId.startsWith('arn')) {
-    return resourceId;
-  }
-
-  if (awsService === 'AmazonS3') {
-    return Arns.S3(resourceId);
-  }
-
-  if (resourceId.startsWith('i-')) {
-    return Arns.Ec2(region, accountId, resourceId);
-  } else if (resourceId.startsWith('vol-')) {
-    return Arns.Ebs(region, accountId, resourceId);
-  }
-
-  return resourceId;
 }

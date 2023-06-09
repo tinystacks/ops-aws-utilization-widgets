@@ -124,9 +124,3 @@ export type AwsResourceType = 'Account' |
   'S3Bucket' |
   'EbsVolume' |
   'RdsInstance';
-
-export type CostPerResourceReport = {
-  resourceCosts: { [ resourceId: string ]: number };
-  hasCostReportDefinition: boolean,
-  hasCostReport: boolean
-};

@@ -948,7 +948,6 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     for (const region of regions) {
       await this.getRegionalUtilization(credentials, region, overrides);
     }
-    console.log(this.utilization);
   }
 
   async deleteService (

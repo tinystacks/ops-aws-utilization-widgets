@@ -6,18 +6,28 @@ import {
   AwsResourceType, 
   AwsServiceOverrides, 
   AwsUtilizationOverrides, 
-  CostPerResourceReport, 
   Utilization 
 } from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
-import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3';
-import { CostAndUsageReportService, ReportDefinition } from '@aws-sdk/client-cost-and-usage-report-service';
-import { createUnzip } from 'zlib';
-import { Readable } from 'stream';
-import { getArnOrResourceId, parseStreamSync } from './utils/utils.js';
-import isEmpty from 'lodash.isempty';
+import { CostAndUsageReportService } from '@aws-sdk/client-cost-and-usage-report-service';
+import { parseStreamSync } from './utils/utils.js';
 import { STS } from '@aws-sdk/client-sts';
+import { CostReport } from './types/cost-and-usage-types.js';
+import { 
+  auditCostReport, 
+  fillServiceCosts, 
+  getArnOrResourceId, 
+  getReadableResourceReportFromS3, 
+  getReportDefinition, 
+  getServiceForResource 
+} from './utils/cost-and-usage-utils.js';
+import { CostExplorer } from '@aws-sdk/client-cost-explorer';
+import { S3 } from '@aws-sdk/client-s3';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { createUnzip } from 'browserify-zlib';
+import dayjs from 'dayjs';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
   backend: {
@@ -125,7 +135,6 @@ class AwsUtilizationProvider extends BaseProvider {
   async getUtilization (
     credentialsProvider: AwsCredentialsProvider, region: string, overrides: AwsUtilizationOverrides = {}
   ) {
-    console.log(this.utilization);
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       if (serviceOverrides?.forceRefesh) {
@@ -147,95 +156,112 @@ class AwsUtilizationProvider extends BaseProvider {
   // if describeReportDefinitions is empty, we need to tell users to create a report
   // if list objects is empty we need to tell users a report has not been generated yet
   // do we want to show only resources with the accountId associated with the provided credentials?
-  async getCostPerResource (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
-    const report: CostPerResourceReport = {
-      resourceCosts: {},
+  // async getCostPerResource (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
+
+  // TODO: continue to audit that productName matches service returned by getCostAndUsage
+  async getCostReport (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
+    // const depMap = {
+    //   zlib: 'zlib'
+    // };
+    // const { createUnzip } = await import(depMap.zlib);
+
+    const costReport: CostReport = {
+      report: {},
       hasCostReportDefinition: false,
       hasCostReport: false
     };
     const credentials = await awsCredentialsProvider.getCredentials();
-    const costClient = new CostAndUsageReportService({
+    const curClient = new CostAndUsageReportService({
+      credentials,
+      region: 'us-east-1'
+    });
+    const stsClient = new STS({
       credentials,
       region
     });
-    const stsClient = new STS({
+    const costExplorerClient = new CostExplorer({
       credentials,
       region
     });
 
     const accountId = (await stsClient.getCallerIdentity({})).Account;
 
-    const reportsRes = await costClient.describeReportDefinitions({});
-    if (isEmpty(reportsRes.ReportDefinitions)) return report; 
-    else report.hasCostReportDefinition = true;
-    // prefer monthly report
-    let reportDefinition: ReportDefinition;
-    reportDefinition = reportsRes.ReportDefinitions.find((def) => {
-      return def.AdditionalSchemaElements.includes('RESOURCES') && def.TimeUnit === 'MONTHLY';
-    });
-    if (!reportDefinition) {
-      reportDefinition = reportsRes.ReportDefinitions.find((def) => {
-        return def.AdditionalSchemaElements.includes('RESOURCES'); 
-      });
+    const now = dayjs();
+
+    await fillServiceCosts(costExplorerClient, costReport, accountId, region, now);
+    const costExplorerServices = new Set(Object.keys(costReport.report));
+
+    const reportDefinition = await getReportDefinition(curClient);
+    if (!reportDefinition) return costReport;
+    else costReport.hasCostReportDefinition = true;
+
+    const {
+      S3Region,
+      S3Bucket,
+      S3Prefix,
+      TimeUnit
+    } = reportDefinition;
+
+    // DAILY
+    let toMonthlyFactor = 30;
+    if (TimeUnit === 'HOURLY') {
+      toMonthlyFactor = 24 * 30;
+    } else if (TimeUnit === 'MONTHLY') {
+      const mtdDays = now.diff(now.startOf('month'), 'days');
+      toMonthlyFactor = 30 / mtdDays;
     }
 
-    const s3Region = reportDefinition.S3Region;
-    const bucket = reportDefinition.S3Bucket;
     const s3Client = new S3({
       credentials,
-      region: s3Region
+      region: S3Region
     });
-    let listObjectsRes: ListObjectsV2CommandOutput;
-    do {
-      listObjectsRes = await s3Client.listObjectsV2({
-        Bucket: bucket,
-        Prefix: reportsRes.ReportDefinitions[0].S3Prefix,
-        ContinuationToken: listObjectsRes?.NextContinuationToken
-      });
-    } while (listObjectsRes?.NextContinuationToken);
-   
-    if (isEmpty(listObjectsRes?.Contents)) return report;
-    else report.hasCostReport = true;
+    const resourceReportZip = await getReadableResourceReportFromS3(s3Client, S3Bucket, S3Prefix);
+    if (!resourceReportZip) return costReport;
+    else costReport.hasCostReport = true;
 
-    // ordered by serialized dates so most recent report should be last
-    const reportObjects = listObjectsRes.Contents.filter((reportObject) => {
-      return reportObject.Key.endsWith('.csv.gz');
-    });
-    const s3ReportObject = reportObjects.at(-1);
-    const key = s3ReportObject.Key;
-    const res = await s3Client.getObject({
-      Bucket: bucket,
-      Key: key
-    });
-    const costReportZip = res.Body as Readable;
-    const costReport = costReportZip.pipe(createUnzip());
-    /*
-     * usage accountId index 9
-     * resourceId index 17
-     * blended cost index 25
-     * region index 104
-     */ 
-    let factor = 1;
-    if (reportDefinition.TimeUnit === 'DAILY') factor = 30;
-    else if (reportDefinition.TimeUnit === 'HOURLY') factor = 24 * 30;
-    await parseStreamSync(costReport, { headers: true }, (row) => {
+    const resourceReport = resourceReportZip.pipe(createUnzip());
+    await parseStreamSync(resourceReport, { headers: true }, (row) => {
+      // if (row['lineItem/ResourceId'].includes('secretsmanager')) {
+      //   console.log(row['lineItem/UsageType'])
+      // }
       const resourceId = getArnOrResourceId(
         row['lineItem/ProductCode'],
         row['lineItem/ResourceId'],
         region,
         accountId
       );
-      const blendedCost = row['lineItem/BlendedCost'];
-      if (resourceId && row['product/region'] === region && row['lineItem/UsageAccountId'] === accountId) {
-        if (resourceId in report.resourceCosts) {
-          report.resourceCosts[resourceId] += (Number(blendedCost) * factor);
+      if (
+        resourceId && 
+        (row['product/region'] === region || row['product/region'] === 'global') && 
+        row['lineItem/UsageAccountId'] === accountId
+      ) {
+        const service = getServiceForResource(resourceId, row['product/ProductName']);
+        const cost = 
+          row['reservation/EffectiveCost'] ? 
+            Number(row['reservation/EffectiveCost']) + Number(row['lineItem/BlendedCost']) : 
+            Number(row['lineItem/BlendedCost']);
+        const monthlyCostEstimate = cost * toMonthlyFactor;
+        if (service in costReport.report) {
+          if (resourceId in costReport.report[service].resourceCosts) {
+            costReport.report[service].resourceCosts[resourceId] += monthlyCostEstimate;
+          } else {
+            costReport.report[service].resourceCosts[resourceId] = monthlyCostEstimate;
+          }
+          if (!costExplorerServices.has(service)) {
+            costReport.report[service].serviceCost += monthlyCostEstimate;
+          }
         } else {
-          report.resourceCosts[resourceId] = (Number(blendedCost) * factor);
+          costReport.report[service] = {
+            serviceCost: 0,
+            resourceCosts: {}
+          };
         }
       }
     });
 
-    return report;
+    auditCostReport(costReport);
+
+    return costReport;
   }
 }
 
