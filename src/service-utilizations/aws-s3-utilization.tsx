@@ -1,10 +1,10 @@
+import get from 'lodash.get';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { Bucket, S3 } from '@aws-sdk/client-s3';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import _ from 'lodash';
 import { Arns, ONE_GB_IN_BYTES } from '../types/constants.js';
 
 type S3CostData = {
@@ -189,7 +189,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         ]
       });
       
-      const bucketBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+      const bucketBytes = get(res, 'MetricDataResults[0].Values[0]', 0);
       
       const monthlyCost = (bucketBytes / ONE_GB_IN_BYTES) * 0.022;
 

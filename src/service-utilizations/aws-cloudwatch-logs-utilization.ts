@@ -1,7 +1,7 @@
+import get from 'lodash.get';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import _ from 'lodash';
 import { ONE_GB_IN_BYTES } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
@@ -116,7 +116,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         }
       ]
     });
-    const monthlyIncomingBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+    const monthlyIncomingBytes = get(res, 'MetricDataResults[0].Values[0]', 0);
 
     return monthlyIncomingBytes;
   }
