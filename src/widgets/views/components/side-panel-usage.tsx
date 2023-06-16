@@ -9,7 +9,7 @@ import {
 } from '@chakra-ui/react';
 import { Line } from 'react-chartjs-2';
 import React from 'react';
-import { Metrics, Metric } from '../../types/types';
+import { Metrics, Metric } from '../../../types/types';
 import isEmpty from 'lodash.isempty';
 import {
   TooltipItem, TooltipModel

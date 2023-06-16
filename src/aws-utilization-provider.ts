@@ -1,10 +1,10 @@
 import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { BaseProvider } from '@tinystacks/ops-core';
-import { AwsResourceType, AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
+import { Provider } from '@tinystacks/ops-core';
+import { AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
-import { AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
+import { AwsResourceType, AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
   backend: {
@@ -18,7 +18,7 @@ type AwsUtilizationProviderProps = AwsUtilizationProviderType & {
   };
 };
 
-class AwsUtilizationProvider extends BaseProvider {
+class AwsUtilizationProvider extends Provider {
   static type = 'AwsUtilizationProvider';
   services: AwsResourceType[];
   utilizationClasses: {
@@ -85,7 +85,7 @@ class AwsUtilizationProvider extends BaseProvider {
   }
 
   async doAction (
-    service: AwsResourceType,
+    service: AwsResourceType | string,
     credentialsProvider: AwsCredentialsProvider,
     actionName: string,
     resourceArn: string,

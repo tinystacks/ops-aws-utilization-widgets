@@ -5,11 +5,11 @@ import { s3Utilization } from './aws-s3-utilization.js';
 import { ebsVolumesUtilization } from './ebs-volumes-utilization.js';
 import { rdsInstancesUtilization } from './rds-utilization.js';
 import HttpError from 'http-errors';
-import { AwsResourceType } from '../types/types.js';
 import { AwsResourceTypes } from '../types/constants.js';
 import { AwsEc2InstanceUtilization } from './aws-ec2-instance-utilization.js';
 import { AwsEcsUtilization } from './aws-ecs-utilization.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
+import { AwsResourceType } from '../ops-types.js';
 
 export class AwsServiceUtilizationFactory {
   static createObject (awsService: AwsResourceType): AwsServiceUtilization<string> {

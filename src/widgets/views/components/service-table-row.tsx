@@ -7,9 +7,9 @@ import {
   Checkbox
 } from '@chakra-ui/react';
 import React from 'react';
-import { ServiceTableRowProps } from '../../types/utilization-recommendations-types.js';
+import { ServiceTableRowProps } from '../../../types/utilization-recommendations-types.js';
 import { CHECKBOX_CELL_MAX_WIDTH } from './recommendations-table.js';
-import { splitServiceName } from '../../utils/utilization.js';
+import { splitServiceName } from '../../../utils/utilization.js';
 
 export default function ServiceTableRow (props: ServiceTableRowProps) {
   const { serviceUtil, serviceName, children, isChecked, onServiceCheckChange } = props;

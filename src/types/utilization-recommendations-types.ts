@@ -1,5 +1,6 @@
 import { Widget } from '@tinystacks/ops-model';
-import { ActionType, AwsResourceType, Utilization } from './types.js';
+import { ActionType, Utilization } from './types.js';
+import { AwsResourceType } from '../ops-types.js';
 
 export type HasActionType = {
   actionType: ActionType;

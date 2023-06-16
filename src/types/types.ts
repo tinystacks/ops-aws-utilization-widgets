@@ -117,13 +117,3 @@ export type StabilityStatsOptions = {
   anomalyThreshold?: number;
   stabilityZScore?: number;
 };
-
-export type AwsResourceType = 'Account' |
-  'CloudwatchLogs' |
-  'AutoscalingGroup' |
-  'Ec2Instance' |
-  'EcsService' |
-  'NatGateway' |
-  'S3Bucket' |
-  'EbsVolume' |
-  'RdsInstance';

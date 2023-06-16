@@ -9,9 +9,9 @@ import { TbRefresh } from 'react-icons/tb/index.js';
 
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
-import { Utilization, actionTypeText, ActionType } from '../../types/types.js';
-import { filterUtilizationForActionType, sentenceCase, splitServiceName } from '../../utils/utilization.js';
-import { RecommendationsTableProps } from '../../types/utilization-recommendations-types.js';
+import { Utilization, actionTypeText, ActionType } from '../../../types/types.js';
+import { filterUtilizationForActionType, sentenceCase, splitServiceName } from '../../../utils/utilization.js';
+import { RecommendationsTableProps } from '../../../types/utilization-recommendations-types.js';
 import { Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerHeader, DrawerBody } from '@chakra-ui/react';
 import { ChevronDownIcon, InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
 import SidePanelMetrics from './side-panel-usage.js';

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
-import { ActionType, Utilization } from '../types/types.js';
+import { ActionType, Utilization } from '../../../types/index.js';
 import { filterUtilizationForActionType, 
   getNumberOfResourcesFromFilteredActions, 
   getTotalMonthlySavings, 
-  getTotalNumberOfResources } from '../utils/utilization.js';
+  getTotalNumberOfResources } from '../../../utils/index.js';
 
 export default function RecommendationOverview (
   props: { utilizations: { [ serviceName: string ] : Utilization<string> } }

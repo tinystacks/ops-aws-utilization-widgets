@@ -2,6 +2,15 @@
   "name": "@tinystacks/ops-aws-utilization-widgets",
   "version": "0.0.8",
   "main": "dist/index.js",
+  "exports": {
+    "./dist/ops-types.json": "./dist/ops-types.json",
+    "./package.json": "./package.json",
+    ".": {
+      "node": "./dist/node.js",
+      "browser": "./dist/browser.js",
+      "default": "./dist/index.js"
+    }
+  },
   "type": "module",
   "files": [
     "dist"
