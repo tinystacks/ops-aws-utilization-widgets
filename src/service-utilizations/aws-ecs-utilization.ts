@@ -528,7 +528,6 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         acc[containerInstanceArn].tasks.push(task);
         return acc;
       }, {});
-      console.log(containerInstanceTaskGroupObject);
       const containerInstanceTaskGroups  = Object.values(containerInstanceTaskGroupObject);
       containerInstanceTaskGroups.sort((a, b) => {
         if (a.tasks.length > b.tasks.length) {
@@ -966,7 +965,7 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     for (const region of regions) {
       await this.getRegionalUtilization(credentials, region, overrides);
     }
-    console.log(this.utilization);
+
   }
 
   async deleteService (

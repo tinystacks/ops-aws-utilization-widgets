@@ -111,7 +111,6 @@ class AwsUtilizationProvider extends BaseProvider {
   async getUtilization (
     credentialsProvider: AwsCredentialsProvider, region: string, overrides: AwsUtilizationOverrides = {}
   ) {
-    console.log(this.utilization);
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       if (serviceOverrides?.forceRefesh) {
