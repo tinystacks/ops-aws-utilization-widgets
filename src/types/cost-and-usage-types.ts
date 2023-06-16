@@ -12,9 +12,11 @@
 //   hasCostReport: boolean
 // };
 
+export type ResourceCosts = { [ resourceId: string ]: number };
+
 export type ServiceInformation = {
   serviceCost: number,
-  resourceCosts: { [ resourceId: string ]: number },
+  resourceCosts: ResourceCosts,
   details?: string,
   displayName?: string
 };
@@ -89,4 +91,16 @@ export const serviceNamesMap: { [ key: string ]: string } = {
   cloudwatch: 'AmazonCloudWatch',
   logs: 'AmazonCloudWatch',
   codebuild: 'CodeBuild'
+};
+
+export type ServiceCostTableRow = {
+  service: string;
+  numResources: number;
+  cost: number;
+};
+
+export type AccountIdSelector = {
+  accountId: string;
+  allAccountIds: string[];
+  onAccountIdChange: (accountId: string) => void;
 };

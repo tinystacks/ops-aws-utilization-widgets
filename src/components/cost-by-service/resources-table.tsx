@@ -11,19 +11,34 @@ import {
   Tooltip,
   Box
 } from '@chakra-ui/react';
+import { ResourceCosts } from '../../types/cost-and-usage-types.js';
+import { useTableHeaderSorting } from './table-sorting.js';
+
+type ResourceCostTableRow = {
+  resourceId: string;
+  cost: number;
+}
 
 type ResourcesTableProps = {
   service: string;
-  resourceCosts: { [resourceId: string]: number };
+  resourceCosts: ResourceCosts;
 };
 
-export default function ResourcesTable (props: ResourcesTableProps) {
+export function ResourcesTable (props: ResourcesTableProps) {
   const { service, resourceCosts } = props;
-
   const usd = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD'
   });
+
+  const tableData: ResourceCostTableRow[] = Object.keys(resourceCosts).map(resourceId => (
+    {
+      resourceId,
+      cost: resourceCosts[resourceId]
+    }
+  ));
+
+  const { handleHeaderClick, sortDataTable } = useTableHeaderSorting(tableData, { column: 'cost', order: 'desc' });
 
   return (
     <Stack key={service + 'resource-table'} maxHeight='500px'>
@@ -36,39 +51,35 @@ export default function ResourcesTable (props: ResourcesTableProps) {
         <Table variant='simple'>
           <Thead bgColor='gray.50'>
             <Tr>
-              <Th>Resource ID</Th>
-              <Th>Cost/Mo</Th>
+              <Th onClick={() => handleHeaderClick('resourceId')}>Resource ID</Th>
+              <Th onClick={() => handleHeaderClick('cost')}>Cost/Mo</Th>
               <Th />
             </Tr>
           </Thead>
           <Tbody>
-            {Object.keys(resourceCosts)
-              .sort()
-              .map((resourceId) => {
-                return (
-                  <Tr key={resourceId}>
-                    <Td
-                      maxW='500px'
+            {sortDataTable().map(row => (
+              <Tr key={row['resourceId']}>
+                <Td
+                  maxW='500px'
+                >
+                  <Tooltip 
+                    label={row['resourceId']}
+                    placement='bottom-start'
+                    aria-label='A tooltip'
+                    bg='purple.400'
+                    color='white'
+                  >
+                    <Box
+                      overflow='hidden'
+                      textOverflow='ellipsis'
                     >
-                      <Tooltip 
-                        label={resourceId}
-                        placement='bottom-start'
-                        aria-label='A tooltip'
-                        bg='purple.400'
-                        color='white'
-                      >
-                        <Box
-                          overflow='hidden'
-                          textOverflow='ellipsis'
-                        >
-                          {resourceId}
-                        </Box>
-                      </Tooltip>    
-                    </Td>
-                    <Td>{usd.format(resourceCosts[resourceId])}</Td>
-                  </Tr>
-                );
-              })}
+                      {row['resourceId']}
+                    </Box>
+                  </Tooltip>    
+                </Td>
+                <Td>{usd.format(row['cost'])}</Td>
+              </Tr>
+            ))}
           </Tbody>
         </Table>
       </TableContainer>

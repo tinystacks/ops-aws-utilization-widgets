@@ -12,7 +12,6 @@ import { AwsServiceUtilization } from './service-utilizations/aws-service-utiliz
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
 import { CostAndUsageReportService } from '@aws-sdk/client-cost-and-usage-report-service';
 import { parseStreamSync } from './utils/utils.js';
-import { STS } from '@aws-sdk/client-sts';
 import { CostReport } from './types/cost-and-usage-types.js';
 import { 
   auditCostReport, 
@@ -153,18 +152,9 @@ class AwsUtilizationProvider extends BaseProvider {
     return this.utilization;
   }
 
-  // if describeReportDefinitions is empty, we need to tell users to create a report
-  // if list objects is empty we need to tell users a report has not been generated yet
-  // do we want to show only resources with the accountId associated with the provided credentials?
-  // async getCostPerResource (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
-
+  
   // TODO: continue to audit that productName matches service returned by getCostAndUsage
-  async getCostReport (awsCredentialsProvider: AwsCredentialsProvider, region: string) {
-    // const depMap = {
-    //   zlib: 'zlib'
-    // };
-    // const { createUnzip } = await import(depMap.zlib);
-
+  async getCostReport (awsCredentialsProvider: AwsCredentialsProvider, region: string, accountId: string) {
     const costReport: CostReport = {
       report: {},
       hasCostReportDefinition: false,
@@ -175,16 +165,10 @@ class AwsUtilizationProvider extends BaseProvider {
       credentials,
       region: 'us-east-1'
     });
-    const stsClient = new STS({
-      credentials,
-      region
-    });
     const costExplorerClient = new CostExplorer({
       credentials,
       region
     });
-
-    const accountId = (await stsClient.getCallerIdentity({})).Account;
 
     const now = dayjs();
 
@@ -202,7 +186,7 @@ class AwsUtilizationProvider extends BaseProvider {
       TimeUnit
     } = reportDefinition;
 
-    // DAILY
+    // init is DAILY
     let toMonthlyFactor = 30;
     if (TimeUnit === 'HOURLY') {
       toMonthlyFactor = 24 * 30;
@@ -221,9 +205,6 @@ class AwsUtilizationProvider extends BaseProvider {
 
     const resourceReport = resourceReportZip.pipe(createUnzip());
     await parseStreamSync(resourceReport, { headers: true }, (row) => {
-      // if (row['lineItem/ResourceId'].includes('secretsmanager')) {
-      //   console.log(row['lineItem/UsageType'])
-      // }
       const resourceId = getArnOrResourceId(
         row['lineItem/ProductCode'],
         row['lineItem/ResourceId'],

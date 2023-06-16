@@ -1,19 +1,25 @@
 import React from 'react';
 import { ChevronUpIcon, ChevronDownIcon, InfoIcon } from '@chakra-ui/icons';
 import { useDisclosure, Tr, Td, Button, Box, Tooltip } from '@chakra-ui/react';
-import { ServiceInformation } from '../../types/cost-and-usage-types.js';
+import { ResourceCosts, ServiceCostTableRow } from '../../types/cost-and-usage-types.js';
 import isEmpty from 'lodash.isempty';
-import ResourcesTable from './resources-table.js';
+import { ResourcesTable } from './resources-table.js';
 
 type ServiceRowProps = {
-  service: string;
-  serviceInformation: ServiceInformation;
+  row: ServiceCostTableRow;
+  resourceCosts: ResourceCosts;
+  details?: string;
 };
 
-export default function ServiceRow (props: ServiceRowProps) {
+export function ServiceRow (props: ServiceRowProps) {
   const {
-    service,
-    serviceInformation: { serviceCost, resourceCosts, details }
+    row: {
+      service,
+      numResources,
+      cost
+    },
+    resourceCosts,
+    details
   } = props;
   const { isOpen, onToggle } = useDisclosure();
 
@@ -42,8 +48,8 @@ export default function ServiceRow (props: ServiceRowProps) {
             service
           )}
         </Td>
-        <Td>{Object.keys(resourceCosts).length}</Td>
-        <Td>{usd.format(serviceCost)}</Td>
+        <Td>{numResources.toString()}</Td>
+        <Td>{usd.format(cost)}</Td>
         <Td>
           <Button
             variant='link'
@@ -62,9 +68,9 @@ export default function ServiceRow (props: ServiceRowProps) {
         <Td colSpan={4}>
           {isEmpty(resourceCosts) ? (
             'No resources found for this service'
-          ) : (
-            <ResourcesTable service={service} resourceCosts={resourceCosts} />
-          )}
+          ) : 
+            <ResourcesTable service={service} resourceCosts={resourceCosts}></ResourcesTable>
+          }
         </Td>
       </Tr>
     </React.Fragment>
