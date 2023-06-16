@@ -200,19 +200,14 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       * Uses arbitrary percentages to separate amount of data in tiers
       */
 
-      let totalBytes = bucketBytes;
-      let infrequentlyAccessedBytes = 0.4 * bucketBytes;
-      let archiveInstantAccess = 0.4 * infrequentlyAccessedBytes;
-      let archiveAccess = 0.4 * archiveInstantAccess;
-      const deepArchiveAccess = 0.4 * archiveAccess;
-
-      totalBytes = (totalBytes - infrequentlyAccessedBytes) / ONE_GB_IN_BYTES;
-      infrequentlyAccessedBytes = (infrequentlyAccessedBytes - archiveInstantAccess) / ONE_GB_IN_BYTES;
-      archiveInstantAccess = (archiveInstantAccess - archiveAccess) / ONE_GB_IN_BYTES;
-      archiveAccess = (archiveAccess - deepArchiveAccess) / ONE_GB_IN_BYTES;
+      const frequentlyAccessedBytes = (0.5 * bucketBytes) / ONE_GB_IN_BYTES;
+      const infrequentlyAccessedBytes = (0.25 * bucketBytes) / ONE_GB_IN_BYTES;
+      const archiveInstantAccess = (0.1 * bucketBytes) / ONE_GB_IN_BYTES;
+      const archiveAccess = (0.1 * bucketBytes) / ONE_GB_IN_BYTES;
+      const deepArchiveAccess = (0.05 * bucketBytes) / ONE_GB_IN_BYTES;
 
       const newMonthlyCost = 
-        (totalBytes * 0.022) +
+        (frequentlyAccessedBytes * 0.022) +
         (infrequentlyAccessedBytes * 0.0125) +
         (archiveInstantAccess * 0.004) +
         (archiveAccess * 0.0036) +
