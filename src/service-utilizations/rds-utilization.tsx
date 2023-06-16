@@ -35,6 +35,8 @@ type RdsMetrics = {
 export type rdsInstancesUtilizationScenarios = 'hasDatabaseConnections' | 'cpuUtilization' | 'shouldScaleDownStorage' |
                                                'hasAutoScalingEnabled';
 
+const rdsInstanceMetrics = ['DatabaseConnections', 'FreeStorageSpace', 'CPUUtilization'];
+
 export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesUtilizationScenarios> {
   private instanceCosts: { [instanceId: string]: RdsCosts };
   private rdsClient: RDS;
@@ -439,6 +441,16 @@ export class rdsInstancesUtilization extends AwsServiceUtilization<rdsInstancesU
         region: this.region,
         monthlyCost,
         hourlyCost: getHourlyCost(monthlyCost)
+      });
+
+      rdsInstanceMetrics.forEach(async (metricName) => {  
+        await this.getSidePanelMetrics(
+          credentials, 
+          this.region, 
+          dbInstanceId,
+          'AWS/RDS', 
+          metricName, 
+          [{ Name: 'DBInstanceIdentifier', Value: dbInstanceId }]);
       });
     }
   }

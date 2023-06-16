@@ -8,6 +8,7 @@ import { Arns } from '../types/constants.js';
 import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
 
 export type ebsVolumesUtilizationScenarios = 'hasAttachedInstances' | 'volumeReadWriteOps';
+const EbsVolumesMetrics = ['VolumeWriteOps', 'VolumeReadOps'];
 
 export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtilizationScenarios> {
   accountId: string;
@@ -141,7 +142,18 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
           hourlyCost: getHourlyCost(monthlyCost)
         }
       );
+
+      EbsVolumesMetrics.forEach(async (metricName) => {  
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          volumeId,
+          'AWS/EBS', 
+          metricName, 
+          [{ Name: 'VolumeId', Value: volumeId }]);
+      });
     };
+    
     await rateLimitMap(volumes, 5, 5, analyzeEbsVolume);
   }
 

@@ -1,11 +1,11 @@
 import { Widget } from '@tinystacks/ops-model';
 import { ActionType, AwsResourceType, Utilization } from './types.js';
 
-interface HasActionType {
+export type HasActionType = {
   actionType: ActionType;
 }
 
-interface HasUtilization {
+export type HasUtilization = {
   utilization: { [key: AwsResourceType | string]: Utilization<string> };
 }
 
@@ -21,14 +21,13 @@ interface Refresh {
   onRefresh: () => void;
 }
 
-interface Regions {
+export interface Regions {
   onRegionChange: (region: string) => void;
   allRegions: string[];
   region: string;
 }
 
 export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction & Refresh & Regions;
-export type UtilizationRecommendationsWidget = Widget & HasActionType & HasUtilization & Regions
 export type RecommendationsCallback = (props: RecommendationsOverrides) => void;
 export type RecommendationsOverrides = {
   refresh?: boolean;

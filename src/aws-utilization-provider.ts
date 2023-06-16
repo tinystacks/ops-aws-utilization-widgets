@@ -1,10 +1,10 @@
 import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
-import { Provider } from '@tinystacks/ops-model';
 import { AwsResourceType, AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
+import { AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
   backend: {
@@ -12,8 +12,7 @@ const cache = cached<Utilization<string>>('utilization-cache', {
   }
 });
 
-type AwsUtilizationProviderType = Provider & {
-  services?: AwsResourceType[];
+type AwsUtilizationProviderProps = AwsUtilizationProviderType & {
   utilization?: {
     [key: AwsResourceType | string]: Utilization<string>
   };
@@ -31,7 +30,7 @@ class AwsUtilizationProvider extends BaseProvider {
   };
   region: string;
 
-  constructor (props: AwsUtilizationProviderType) {
+  constructor (props: AwsUtilizationProviderProps) {
     super(props);
     const { 
       services
@@ -51,11 +50,11 @@ class AwsUtilizationProvider extends BaseProvider {
     ]);
   }
 
-  static fromJson (props: AwsUtilizationProviderType) {
+  static fromJson (props: AwsUtilizationProviderProps) {
     return new AwsUtilizationProvider(props);
   }
 
-  toJson (): AwsUtilizationProviderType {
+  toJson (): AwsUtilizationProviderProps {
     return {
       ...super.toJson(),
       services: this.services,

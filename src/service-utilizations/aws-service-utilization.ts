@@ -1,6 +1,7 @@
 import { CloudFormation } from '@aws-sdk/client-cloudformation';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { Data, Resource, Scenario, Utilization } from '../types/types';
+import { Data, Metric, Resource, Scenario, Utilization, MetricData } from '../types/types';
+import { CloudWatch, Dimension } from '@aws-sdk/client-cloudwatch';
 
 export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
   private _utilization: Utilization<ScenarioTypes>;
@@ -24,7 +25,8 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     if (!(resourceArn in this.utilization)) {
       this.utilization[resourceArn] = {
         scenarios: {},
-        data: {}
+        data: {}, 
+        metrics: {}
       } as Resource<ScenarioTypes>;
     }
     this.utilization[resourceArn].scenarios[scenarioType] = scenario;
@@ -53,6 +55,12 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     // only add data if recommendation exists for resource
     if (resourceArn in this.utilization) {
       this.utilization[resourceArn].data[dataType] = value;
+    }
+  }
+
+  protected addMetric (resourceArn: string, metricName: string, metric: Metric){ 
+    if(resourceArn in this.utilization){ 
+      this.utilization[resourceArn].metrics[metricName] = metric;
     }
   }
 
@@ -86,6 +94,47 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
       });
       const maxSavingsForResource = Math.max(...maxSavingsPerScenario);
       this.addData(resourceArn, 'maxMonthlySavings', maxSavingsForResource);
+    }
+  }
+
+  protected async getSidePanelMetrics (
+    credentials: any, region: string, resourceArn: string, 
+    nameSpace: string, metricName: string, dimensions: Dimension[]
+  ){ 
+    
+    if(resourceArn in this.utilization){
+      const cloudWatchClient = new CloudWatch({ 
+        credentials: credentials, 
+        region: region
+      }); 
+
+      const endTime = new Date(Date.now()); 
+      const startTime = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000); //7 days ago
+      const period = 43200; 
+    
+      const metrics = await cloudWatchClient.getMetricStatistics({ 
+        Namespace: nameSpace, 
+        MetricName: metricName, 
+        StartTime: startTime,
+        EndTime: endTime,
+        Period: period,
+        Statistics: ['Average'],
+        Dimensions: dimensions
+      });
+  
+      const values: MetricData[] =  metrics.Datapoints.map(dp => ({ 
+        timestamp: dp.Timestamp.getTime(), 
+        value: dp.Average
+      })).sort((dp1, dp2) => dp1.timestamp - dp2.timestamp);
+  
+  
+      const metricResuls: Metric = { 
+        yAxisLabel: metrics.Label || metricName, 
+        values: values
+      }; 
+
+      this.addMetric(resourceArn , metricName, metricResuls);
+
     }
   }
 
