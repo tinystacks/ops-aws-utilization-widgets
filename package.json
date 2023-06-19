@@ -17,6 +17,7 @@
   ],
   "scripts": {
     "build": "tsc && npm run types",
+    "build-tests": "tsc --project tsconfig.test.json",
     "cleanup": "rm -rf dist || true && rm *.tgz || true",
     "clean-build": "npm ci && npm run cleanup && npm run build",
     "dependency-check": "./node_modules/.bin/depcheck",
@@ -31,20 +32,24 @@
     "publish-local": "npm run prerelease; npm publish --tag local --@tinystacks:registry=http://local-npm-registry:4873",
     "qa": "npm run lint && npm run test-cov",
     "setup-test-lint": "node ./scripts/setup-test-lint.cjs",
-    "test": "jest",
-    "test-cov": "jest --coverage",
-    "test-file": "jest ./test/service-utilizations/aws-ecs-instance-utilization.test.ts",
-    "test-file-cov": "jest ./test/service-utilizations/aws-ec2-instance-utilization.test.ts --coverage",
-    "view-test-cov": "jest --coverage || true && open coverage/lcov-report/index.html",
+    "test": "npx jest",
+    "test-cov": "npx jest --coverage",
+    "test-file": "npx jest ./test/service-utilizations/aws-ec2-instance-utilization.test.ts",
+    "test-file-cov": "npx jest ./test/service-utilizations/aws-ec2-instance-utilization.test.ts --coverage",
+    "view-test-cov": "npx jest --coverage || true && open coverage/lcov-report/index.html",
     "prepare": "husky install",
     "types": "npx typescript-json-schema './src/ops-types.ts' '*' --out ./dist/ops-types.json --required --esModuleInterop"
   },
   "author": "",
   "license": "BSD-3-Clause",
   "devDependencies": {
+    "@babel/cli": "^7.22.5",
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "@jest/globals": "^29.5.0",
     "@types/cached": "^6.0.0",
     "@types/http-errors": "^2.0.1",
-    "@types/jest": "^29.4.0",
+    "@types/jest": "^29.5.2",
     "@types/lodash.chunk": "^4.2.7",
     "@types/lodash.get": "^4.4.7",
     "@types/lodash.isempty": "^4.4.7",
@@ -52,7 +57,9 @@
     "@types/lodash.isplainobject": "^4.0.7",
     "@types/lodash.join": "^4.0.7",
     "@types/lodash.startcase": "^4.4.7",
-    "@types/node": "^18.11.18",
+    "@types/node": "^20.3.1",
+    "@types/react": "^18.2.12",
+    "@types/react-dom": "^18.2.5",
     "@typescript-eslint/eslint-plugin": "^5.49.0",
     "@typescript-eslint/parser": "^5.49.0",
     "depcheck": "^1.4.3",
@@ -61,12 +68,13 @@
     "eslint-plugin-tsdoc": "^0.2.17",
     "eslint-plugin-unused-imports": "^2.0.0",
     "husky": "^8.0.3",
-    "jest": "^29.4.1",
+    "jest": "^29.5.0",
     "jest-environment-jsdom": "^29.5.0",
+    "jest-extended": "^4.0.0",
     "lodash.isempty": "^4.4.0",
-    "ts-jest": "^29.0.5",
+    "ts-jest": "^29.1.0",
     "ts-jest-resolver": "^2.0.1",
-    "typescript": "^4.9.4"
+    "typescript": "^5.1.3"
   },
   "dependencies": {
     "@aws-sdk/client-account": "^3.347.1",
@@ -103,6 +111,7 @@
     "lodash.isempty": "4.x",
     "lodash.isnil": "4.x",
     "lodash.sortby": "4.x",
-    "react": "18.x"
+    "react": "18.x",
+    "react-dom": "18.x"
   }
 }

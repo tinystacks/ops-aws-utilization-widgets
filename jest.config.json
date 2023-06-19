@@ -1,9 +1,10 @@
 {
   "preset": "ts-jest",
+  "resolver": "ts-jest-resolver",
 	"testPathIgnorePatterns": [".d.ts", ".js"],
 	"verbose": true,
 	"roots": ["<rootDir>/test", "<rootDir>/src"],
-	"collectCoverageFrom": ["src/**/*.ts", "src/**/*.tsx"],
+	"collectCoverageFrom": ["src/**/*.ts[x]"],
 	"coveragePathIgnorePatterns": ["src/index.ts"],
   "coverageProvider": "v8",
 	"coverageThreshold": {
@@ -14,22 +15,19 @@
 			"statements": 90
 		}
 	},
-  "extensionsToTreatAsEsm": [".ts", ".tsx"],
+  "extensionsToTreatAsEsm": [".ts", ".tsx", ".jsx"],
   "globals": {
     "NODE_ENV": "test"
   },
   "moduleNameMapper": {
     "^(\\.{1,2}/.*)\\.js$": "$1"
   },
-  "testEnvironment": "jest-environment-jsdom",
+  "testEnvironment": "node",
   "transform": {
-    "^.+\\.[jt]s": ["ts-jest", {
-      "tsconfig": "tsconfig.test.json",
-      "isolatedModules": true,
-      "useESM": true
-    }]
+    "^.+\\.js$": "babel-jest",
+    "^.+\\.ts$": "ts-jest"
   },
   "transformIgnorePatterns": [
-    "\\/node_modules\\/(?!((@tinystacks|@aws-sdk|uuid)\\/))"
+    "\\/node_modules\\/(?!((@tinystacks\\/|react-markdown|chakra-ui-markdown-renderer)))"
   ]
 }

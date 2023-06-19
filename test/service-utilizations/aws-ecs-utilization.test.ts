@@ -30,6 +30,7 @@ const mockDescribeTargetGroups = jest.fn();
 
 // CloudWatch
 const mockGetMetricData = jest.fn();
+const mockGetMetricStatistics = jest.fn();
 
 // ApiGatewayV2
 const mockGetApis = jest.fn();
@@ -143,8 +144,10 @@ describe('AwsEcsUtilization', () => {
     mockElbV2.mockReturnValue({
       describeTargetGroups: mockDescribeTargetGroups
     })
+    mockGetMetricStatistics.mockResolvedValue({ Datapoints: [] });
     mockCloudWatch.mockReturnValue({
-      getMetricData: mockGetMetricData
+      getMetricData: mockGetMetricData,
+      getMetricStatistics: mockGetMetricStatistics
     });
     mockApiGatewayV2.mockReturnValue({
       getApis: mockGetApis,

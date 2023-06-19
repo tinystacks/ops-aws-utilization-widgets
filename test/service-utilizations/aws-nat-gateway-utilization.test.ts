@@ -7,6 +7,7 @@ const mockGetCallerIdentity = jest.fn();
 const mockDescribeNatGateways = jest.fn();
 const mockDeleteNatGateway = jest.fn();
 const mockGetMetricData = jest.fn();
+const mockGetMetricStatistics = jest.fn();
 const mockGetCredentials = jest.fn();
 const mockListRegions = jest.fn();
 const mockDescribeStackResources = jest.fn();
@@ -66,8 +67,10 @@ describe('AwsNatGatewayUtilization', () => {
       describeNatGateways: mockDescribeNatGateways,
       deleteNatGateway: mockDeleteNatGateway
     });
+    mockGetMetricStatistics.mockResolvedValue({ Datapoints: [] });
     mockCloudWatch.mockReturnValue({
-      getMetricData: mockGetMetricData
+      getMetricData: mockGetMetricData,
+      getMetricStatistics: mockGetMetricStatistics
     });
     mockAccount.mockReturnValue({
       listRegions: mockListRegions

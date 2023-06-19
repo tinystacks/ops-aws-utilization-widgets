@@ -14,6 +14,7 @@ const mockCloudFormation = jest.fn();
 const mockDescribeStackResources = jest.fn();
 const mockCloudWatch = jest.fn();
 const mockGetMetricData = jest.fn();
+const mockGetMetricStatistics = jest.fn();
 
 jest.mock('@aws-sdk/client-cloudwatch-logs', () => {
   const original = jest.requireActual('@aws-sdk/client-cloudwatch-logs');
@@ -64,8 +65,10 @@ describe('AwsCloudwatchLogsUtilization', () => {
     mockCloudFormation.mockReturnValue({
       describeStackResources: mockDescribeStackResources
     });
+    mockGetMetricStatistics.mockResolvedValue({ Datapoints: [] });
     mockCloudWatch.mockReturnValue({
-      getMetricData: mockGetMetricData
+      getMetricData: mockGetMetricData,
+      getMetricStatistics: mockGetMetricStatistics
     });
   });
 

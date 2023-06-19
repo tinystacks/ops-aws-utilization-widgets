@@ -39,6 +39,10 @@
         "SwitchCase": 1
       }
     ],
+    "max-len": [
+      1,
+      120
+    ],
     "object-curly-spacing": [
       "error",
       "always"
@@ -86,6 +90,7 @@
       }
     ],
     "import/no-cycle": "error",
+    "import/no-unused-modules": "error",
     "no-shadow": "off",
     "@typescript-eslint/no-shadow": [
       "error"

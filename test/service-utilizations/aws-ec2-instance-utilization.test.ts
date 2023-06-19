@@ -1,4 +1,4 @@
-import { MockCache } from "../mocks/MockCache";
+import { MockCache } from '../mocks/MockCache';
 jest.useFakeTimers();
 jest.setSystemTime(new Date('2023-04-14T00:00:00.000Z'));
 const mockGetCredentials = jest.fn();
@@ -9,6 +9,7 @@ const mockAutoScaling = jest.fn();
 const mockDescribeAutoScalingInstances = jest.fn();
 const mockCloudWatch = jest.fn();
 const mockGetMetricData = jest.fn();
+const mockGetMetricStatistics = jest.fn();
 const mockGetInstanceCost = jest.fn();
 const mockTerminateInstances = jest.fn();
 const mockModifyInstanceAttribute = jest.fn();
@@ -61,7 +62,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsEc2InstanceUtilization } from '../../src/service-utilizations/aws-ec2-instance-utilization';
 import t2Micro from '../mocks/T2Micro.json';
 import t2Nano from '../mocks/T2Nano.json';
-import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/types/constants";
+import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from '../../src/types/constants';
 
 describe('AwsEc2InstanceUtilization', () => {
   beforeEach(() => {
@@ -71,11 +72,15 @@ describe('AwsEc2InstanceUtilization', () => {
       terminateInstances: mockTerminateInstances,
       modifyInstanceAttribute: mockModifyInstanceAttribute
     });
+
     mockAutoScaling.mockReturnValue({
       describeAutoScalingInstances: mockDescribeAutoScalingInstances
     });
+
+    mockGetMetricStatistics.mockResolvedValue({ Datapoints: [] });
     mockCloudWatch.mockReturnValue({
-      getMetricData: mockGetMetricData
+      getMetricData: mockGetMetricData,
+      getMetricStatistics: mockGetMetricStatistics
     });
   });
 
