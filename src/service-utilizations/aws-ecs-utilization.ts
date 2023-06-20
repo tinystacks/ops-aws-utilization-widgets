@@ -49,7 +49,7 @@ import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getInstanceCost } from '../utils/ec2-utils.js';
 import { Pricing } from '@aws-sdk/client-pricing';
-import { getHourlyCost, listAllRegions } from '../utils/utils.js';
+import { getHourlyCost } from '../utils/utils.js';
 import get from 'lodash.get';
 import isEmpty from 'lodash.isempty';
 
@@ -925,18 +925,17 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
         }
       }
 
-      this.addData(service.serviceArn, 'resourceId', service.serviceName);
-      this.addData(service.serviceArn, 'region', region);
-      if (service.serviceName in this.serviceCosts) {
-        const monthlyCost = this.serviceCosts[service.serviceName];
-        this.addData(service.serviceArn, 'monthlyCost', monthlyCost);
-        this.addData(service.serviceArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      }
-      await this.identifyCloudformationStack(
+      const monthlyCost = this.serviceCosts[service.serviceName] || 0;
+      await this.fillData(
+        service.serviceArn,
         credentials,
         region,
-        service.serviceArn,
-        service.serviceName
+        {
+          resourceId: service.serviceName,
+          region,
+          monthlyCost,
+          hourlyCost: getHourlyCost(monthlyCost)
+        }
       );
 
       AwsEcsMetrics.forEach(async (metricName) => { 
@@ -964,11 +963,9 @@ export class AwsEcsUtilization extends AwsServiceUtilization<AwsEcsUtilizationSc
     awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: AwsEcsUtilizationOverrides
   ) {
     const credentials = await awsCredentialsProvider.getCredentials();
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
+    for (const region of regions) {
       await this.getRegionalUtilization(credentials, region, overrides);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 
   async deleteService (

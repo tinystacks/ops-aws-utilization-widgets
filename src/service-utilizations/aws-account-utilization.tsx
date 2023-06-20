@@ -2,6 +2,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { CostExplorer } from '@aws-sdk/client-cost-explorer';
 import { Pricing } from '@aws-sdk/client-pricing';
+import { AwsServiceOverrides } from '../types/types.js';
 
 /**
  * The most relevant apis are the AWS Price List and AWS Cost Explorer APIs
@@ -25,7 +26,9 @@ export class awsAccountUtilization extends AwsServiceUtilization<awsAccountUtili
     throw new Error('Method not implemented.');
   }
 
-  async getUtilization (awsCredentialsProvider: AwsCredentialsProvider, regions: string[]): Promise<void> {
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides: AwsServiceOverrides
+  ): Promise<void> {
     const region = regions[0];
     await this.checkPermissionsForCostExplorer(awsCredentialsProvider, region);
 

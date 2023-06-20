@@ -9,6 +9,9 @@ export const Arns = {
   },
   S3 (bucketName: string) {
     return `arn:aws:s3:::${bucketName}`;
+  },
+  Ebs (region: string, accountId: string, volumeId: string) {
+    return `arn:aws:ec2:${region}:${accountId}:volume/${volumeId}`;
   }
 };
 
@@ -42,3 +45,20 @@ export const AVG_NETWORK_BYTES_IN = 'avgNetworkBytesIn';
 export const AVG_NETWORK_BYTES_OUT = 'avgNetworkBytesOut';
 export const ALB_REQUEST_COUNT = 'albRequestCount';
 export const APIG_REQUEST_COUNT = 'apigRequestCount';
+
+export const MonthAbbreviations: {
+  [ monthAsNumber: string ]: string
+} = {
+  '01': 'Jan',
+  '02': 'Feb',
+  '03': 'Mar',
+  '04': 'Apr',
+  '05': 'May',
+  '06': 'Jun',
+  '07': 'Jul',
+  '08': 'Aug',
+  '09': 'Sep',
+  '10': 'Oct',
+  '11': 'Nov',
+  '12': 'Dec'
+};

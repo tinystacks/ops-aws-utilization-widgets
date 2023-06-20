@@ -1,27 +1,33 @@
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
-import { EC2 } from '@aws-sdk/client-ec2';
+import { DescribeVolumesCommandOutput, EC2 } from '@aws-sdk/client-ec2';
 import { AwsServiceOverrides } from '../types/types.js';
 import { Volume } from '@aws-sdk/client-ec2';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
+import { Arns } from '../types/constants.js';
+import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
 
 export type ebsVolumesUtilizationScenarios = 'hasAttachedInstances' | 'volumeReadWriteOps';
 const EbsVolumesMetrics = ['VolumeWriteOps', 'VolumeReadOps'];
 
 export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtilizationScenarios> {
+  accountId: string;
+  volumeCosts: { [ volumeId: string ]: number };
+
   constructor () {
     super();
+    this.volumeCosts = {};
   }
 
   async doAction (
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
+    const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
     if (actionName === 'deleteEBSVolume') {
       const ec2Client = new EC2({
         credentials: await awsCredentialsProvider.getCredentials(),
         region: region
       });
-      const resourceId = resourceArn.split(':').at(-1);
       await this.deleteEBSVolume(ec2Client, resourceId);
     }
   }
@@ -33,76 +39,150 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     });
   }
 
-  async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
-  ): Promise<void> {
-    const region = regions[0];
-    const credentials = await awsCredentialsProvider.getCredentials();
+  async getAllVolumes (credentials: any, region: string) {
     const ec2Client = new EC2({
-      credentials: credentials,
-      region: region
+      credentials,
+      region
     });
-
-    if(_overrides){ 
-      await this.deleteEBSVolume(ec2Client, _overrides.resourceArn);
-    }
-
     let volumes: Volume[] = [];
+    let describeVolumesRes: DescribeVolumesCommandOutput;
+    do {
+      describeVolumesRes = await ec2Client.describeVolumes({
+        NextToken: describeVolumesRes?.NextToken
+      });
+      volumes = [ ...volumes, ...describeVolumesRes?.Volumes || [] ];
+    } while (describeVolumesRes?.NextToken);
 
-    let res = await ec2Client.describeVolumes({}); 
-    volumes = [...res.Volumes]; 
+    return volumes;
+  }
 
-    while(res.NextToken){ 
-      res = await ec2Client.describeVolumes({
-        NextToken: res.NextToken
-      }); 
-      volumes = [...volumes, ...res.Volumes]; 
-    }
-    
-
-    this.findUnusedVolumes(volumes);
-    const promises: Promise<any>[] = [];
-    
-    const cloudWatchClient = new CloudWatch({ 
-      credentials: credentials, 
-      region: region
-    }); 
-
-    for (let i = 0; i < volumes.length; ++i) {
-      promises.push(this.getReadWriteVolume(cloudWatchClient, volumes[i].VolumeId));
+  getVolumeCost (volume: Volume) {
+    if (volume.VolumeId in this.volumeCosts) {
+      return this.volumeCosts[volume.VolumeId];
     }
 
-    await Promise.all(promises).catch(e => console.log(e));
+    let cost = 0;
+    const storage = volume.Size || 0;
+    switch (volume.VolumeType) {
+      case 'gp3': {
+        const iops = volume.Iops || 0;
+        const throughput = volume.Throughput || 0;
+        cost = (0.08 * storage) + (0.005 * iops) + (0.040 * throughput);
+        break;
+      }
+      case 'gp2': {
+        cost = 0.10 * storage;
+        break;
+      }
+      case 'io2': {
+        let iops = volume.Iops || 0;
+        let iopsCost = 0;
+        if (iops > 64000) {
+          const iopsCharged = iops - 640000;
+          iopsCost += (0.032 * iopsCharged);
+          iops -= iopsCharged;
+        }
+        if (iops > 32000) {
+          const iopsCharged = iops - 320000;
+          iopsCost += (0.046 * iopsCharged);
+          iops -= iopsCharged;
+        }
+        iopsCost += (0.065 * iops);
+        cost = (0.125 * volume.Size) + iopsCost;
+        break;
+      }
+      case 'io1': {
+        cost = (0.125 * storage) + (0.065 * volume.Iops);
+        break;
+      }
+      case 'st1': {
+        cost = 0.045 * storage;
+        break;
+      }
+      case 'sc1': {
+        cost = 0.015 * storage;
+        break;
+      }
+      default: {
+        const iops = volume.Iops || 0;
+        const throughput = volume.Throughput || 0;
+        cost = (0.08 * storage) + (0.005 * iops) + (0.040 * throughput);
+        break;
+      }
+    }
 
-    for (let i = 0; i < volumes.length; ++i) {
+    this.volumeCosts[volume.VolumeId] = cost;
+    return cost;
+  }
+
+  async getRegionalUtilization (credentials: any, region: string) {
+    const volumes = await this.getAllVolumes(credentials, region);
+
+    const analyzeEbsVolume = async (volume: Volume) => {
+      const volumeId = volume.VolumeId;
+      const volumeArn = Arns.Ebs(region, this.accountId, volumeId);
+      
+      const cloudWatchClient = new CloudWatch({ 
+        credentials, 
+        region
+      });
+
+      this.checkForUnusedVolume(volume, volumeArn);
+      await this.getReadWriteVolume(cloudWatchClient, volume, volumeArn);
+
+      const monthlyCost = this.volumeCosts[volumeArn] || 0;
+      await this.fillData(
+        volumeArn,
+        credentials,
+        region,
+        {
+          resourceId: volumeId,
+          region,
+          monthlyCost,
+          hourlyCost: getHourlyCost(monthlyCost)
+        }
+      );
+
       EbsVolumesMetrics.forEach(async (metricName) => {  
         await this.getSidePanelMetrics(
           credentials, 
           region, 
-          volumes[i].VolumeId,
+          volumeId,
           'AWS/EBS', 
           metricName, 
-          [{ Name: 'VolumeId', Value: volumes[i].VolumeId }]);
+          [{ Name: 'VolumeId', Value: volumeId }]);
+      });
+    };
+    
+    await rateLimitMap(volumes, 5, 5, analyzeEbsVolume);
+  }
+
+  async getUtilization (
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides?: AwsServiceOverrides
+  ): Promise<void> {
+    const credentials = await awsCredentialsProvider.getCredentials();
+    for (const region of regions) {
+      await this.getRegionalUtilization(credentials, region);
+    }
+  }
+
+  checkForUnusedVolume (volume: Volume, volumeArn: string) { 
+    if(!volume.Attachments || volume.Attachments.length === 0){
+      const cost = this.getVolumeCost(volume);
+      this.addScenario(volumeArn, 'hasAttachedInstances', {
+        value: 'false',
+        delete: { 
+          action: 'deleteEBSVolume',
+          isActionable: true,
+          reason: 'This EBS volume does not have any attahcments',
+          monthlySavings: cost
+        }
       });
     }
   }
 
-  findUnusedVolumes (volumes: Volume[]){ 
-    volumes.forEach((volume) => { 
-      if(!volume.Attachments || volume.Attachments.length === 0){ 
-        this.addScenario(volume.VolumeId, 'hasAttachedInstances', {
-          value: 'false',
-          delete: { 
-            action: 'deleteEBSVolume',
-            isActionable: true,
-            reason: 'This EBS volume does not have any attahcments'
-          }
-        });
-      }
-    });
-  }
-
-  async getReadWriteVolume (cloudWatchClient: CloudWatch, volumeId: string){
+  async getReadWriteVolume (cloudWatchClient: CloudWatch, volume: Volume, volumeArn: string){
+    const volumeId = volume.VolumeId;
     const writeOpsMetricRes = await cloudWatchClient.getMetricStatistics({ 
       Namespace: 'AWS/EBS', 
       MetricName: 'VolumeWriteOps', 
@@ -141,16 +221,16 @@ export class ebsVolumesUtilization extends AwsServiceUtilization<ebsVolumesUtili
     const allMetricStats =  [...readMetricStats, ...writeMetricStats];
 
     if(allMetricStats.length === 0 || allMetricStats.every( element => element === 0 )){ 
-      this.addScenario(volumeId, 'volumeReadWriteOps', {
+      const cost = this.getVolumeCost(volume);
+      this.addScenario(volumeArn, 'volumeReadWriteOps', {
         value: '0',
         delete: { 
           action: 'deleteEBSVolume',
           isActionable: true,
-          reason: 'No operations performed on this volume in the last week'
+          reason: 'No operations performed on this volume in the last week',
+          monthlySavings: cost
         }
       });
     }
   }
-
-  
 }

@@ -3,9 +3,8 @@ import { STS } from '@aws-sdk/client-sts';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
 import isEmpty from 'lodash.isempty';
+import { ParserOptionsArgs, parseStream } from 'fast-csv';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
-
-
 
 export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
   if (!providers || isEmpty(providers)) {
@@ -46,9 +45,9 @@ export function findProvider<T extends BaseProvider> (providers: BaseProvider[] 
   return provider as T;
 }
 
-export async function listAllRegions (credentials: any) {
+export async function listAllRegions (awsCredentialsProvider: AwsCredentialsProvider) {
   const accountClient = new Account({
-    credentials,
+    credentials: await awsCredentialsProvider.getCredentials(),
     region: 'us-east-1'
   });
 
@@ -140,4 +139,22 @@ export function round (val: number, decimalPlace: number) {
 
 export function getHourlyCost (monthlyCost: number) {
   return (monthlyCost / 30) / 24;
+}
+
+export function parseStreamSync (
+  stream: NodeJS.ReadableStream, options: ParserOptionsArgs, rowProcessor: (row: any) => any
+) {
+  return new Promise((resolve, reject) => {
+    const data: any[] = [];
+
+    parseStream(stream, options)
+      .on('error', reject)
+      .on('data', (row) => {
+        const obj = rowProcessor(row);
+        if (obj) data.push(obj);
+      })
+      .on('end', () => {
+        resolve(data);
+      });
+  });
 }

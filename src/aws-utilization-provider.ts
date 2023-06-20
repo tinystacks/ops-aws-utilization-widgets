@@ -1,9 +1,31 @@
 import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
-import { AwsResourceType, AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
+import { CostAndUsageReportService } from '@aws-sdk/client-cost-and-usage-report-service';
+import { CostExplorer } from '@aws-sdk/client-cost-explorer';
+import { S3 } from '@aws-sdk/client-s3';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { createUnzip } from 'browserify-zlib';
+import dayjs from 'dayjs';
+import {
+  AwsResourceType, 
+  AwsServiceOverrides, 
+  AwsUtilizationOverrides, 
+  Utilization 
+} from './types/types.js';
+import { parseStreamSync } from './utils/utils.js';
+import { CostReport } from './types/cost-and-usage-types.js';
+import { 
+  auditCostReport, 
+  fillServiceCosts, 
+  getArnOrResourceId, 
+  getReadableResourceReportFromS3, 
+  getReportDefinition, 
+  getServiceForResource 
+} from './utils/cost-and-usage-utils.js';
 import { AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
@@ -27,13 +49,11 @@ class AwsUtilizationProvider extends BaseProvider {
   utilization: {
     [key: AwsResourceType | string]: Utilization<string>
   };
-  regions: string[];
 
   constructor (props: AwsUtilizationProviderProps) {
     super(props);
     const { 
-      services,
-      regions
+      services
     } = props;
 
     this.utilizationClasses = {};
@@ -48,7 +68,6 @@ class AwsUtilizationProvider extends BaseProvider {
       'EbsVolume',
       'RdsInstance'
     ]);
-    this.regions = regions || [ 'us-east-1' ];
   }
 
   static fromJson (props: AwsUtilizationProviderProps) {
@@ -73,10 +92,11 @@ class AwsUtilizationProvider extends BaseProvider {
   async refreshUtilizationData (
     service: AwsResourceType, 
     credentialsProvider: AwsCredentialsProvider,
+    region: string,
     overrides?: AwsServiceOverrides
   ): Promise<Utilization<string>> {
     try {
-      await this.utilizationClasses[service]?.getUtilization(credentialsProvider, this.regions, overrides);
+      await this.utilizationClasses[service]?.getUtilization(credentialsProvider, [ region ], overrides);
       return this.utilizationClasses[service]?.utilization;
     } catch (e) {
       console.error(e);
@@ -95,12 +115,12 @@ class AwsUtilizationProvider extends BaseProvider {
   }
 
   async hardRefresh (
-    credentialsProvider: AwsCredentialsProvider, overrides: AwsUtilizationOverrides = {}
+    credentialsProvider: AwsCredentialsProvider, region: string, overrides: AwsUtilizationOverrides = {}
   ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       this.utilization[service] = await this.refreshUtilizationData(
-        service, credentialsProvider, serviceOverrides
+        service, credentialsProvider, region, serviceOverrides
       );
       await cache.set(service, this.utilization[service]);
     }
@@ -109,24 +129,119 @@ class AwsUtilizationProvider extends BaseProvider {
   }
 
   async getUtilization (
-    credentialsProvider: AwsCredentialsProvider, overrides: AwsUtilizationOverrides = {}
+    credentialsProvider: AwsCredentialsProvider, region: string, overrides: AwsUtilizationOverrides = {}
   ) {
     for (const service of this.services) {
       const serviceOverrides = overrides[service];
       if (serviceOverrides?.forceRefesh) {
         this.utilization[service] = await this.refreshUtilizationData(
-          service, credentialsProvider, serviceOverrides
+          service, credentialsProvider, region, serviceOverrides
         );
         await cache.set(service, this.utilization[service]);
       } else {
         this.utilization[service] = await cache.getOrElse(
           service,
-          async () => await this.refreshUtilizationData(service, credentialsProvider, serviceOverrides)
+          async () => await this.refreshUtilizationData(service, credentialsProvider, region, serviceOverrides)
         );
       }
     }
 
     return this.utilization;
+  }
+
+  
+  // TODO: continue to audit that productName matches service returned by getCostAndUsage
+  async getCostReport (awsCredentialsProvider: AwsCredentialsProvider, region: string, accountId: string) {
+    const costReport: CostReport = {
+      report: {},
+      hasCostReportDefinition: false,
+      hasCostReport: false,
+      serviceCostsPerMonth: {},
+      monthLabels: []
+    };
+    const credentials = await awsCredentialsProvider.getCredentials();
+    const curClient = new CostAndUsageReportService({
+      credentials,
+      region: 'us-east-1'
+    });
+    const costExplorerClient = new CostExplorer({
+      credentials,
+      region
+    });
+
+    const now = dayjs();
+
+    await fillServiceCosts(costExplorerClient, costReport, accountId, region, now);
+    const costExplorerServices = new Set(Object.keys(costReport.report));
+
+    const reportDefinition = await getReportDefinition(curClient);
+    if (!reportDefinition) return costReport;
+    else costReport.hasCostReportDefinition = true;
+
+    const {
+      S3Region,
+      S3Bucket,
+      S3Prefix,
+      TimeUnit
+    } = reportDefinition;
+
+    // init is DAILY
+    let toMonthlyFactor = 30;
+    if (TimeUnit === 'HOURLY') {
+      toMonthlyFactor = 24 * 30;
+    } else if (TimeUnit === 'MONTHLY') {
+      const mtdDays = now.diff(now.startOf('month'), 'days');
+      toMonthlyFactor = 30 / mtdDays;
+    }
+
+    const s3Client = new S3({
+      credentials,
+      region: S3Region
+    });
+    const resourceReportZip = await getReadableResourceReportFromS3(s3Client, S3Bucket, S3Prefix);
+    if (!resourceReportZip) return costReport;
+    else costReport.hasCostReport = true;
+
+    const resourceReport = resourceReportZip.pipe(createUnzip());
+    await parseStreamSync(resourceReport, { headers: true }, (row) => {
+      const resourceId = getArnOrResourceId(
+        row['lineItem/ProductCode'],
+        row['lineItem/ResourceId'],
+        region,
+        accountId
+      );
+      if (
+        resourceId && 
+        (row['product/region'] === region || row['product/region'] === 'global') && 
+        row['lineItem/UsageAccountId'] === accountId
+      ) {
+        const service = getServiceForResource(resourceId, row['product/ProductName']);
+        const cost = 
+          row['reservation/EffectiveCost'] ? 
+            Number(row['reservation/EffectiveCost']) + Number(row['lineItem/BlendedCost']) : 
+            Number(row['lineItem/BlendedCost']);
+        const monthlyCostEstimate = cost * toMonthlyFactor;
+        if (service in costReport.report) {
+          if (resourceId in costReport.report[service].resourceCosts) {
+            costReport.report[service].resourceCosts[resourceId] += monthlyCostEstimate;
+          } else {
+            costReport.report[service].resourceCosts[resourceId] = monthlyCostEstimate;
+          }
+          if (!costExplorerServices.has(service)) {
+            costReport.report[service].serviceCost += monthlyCostEstimate;
+          }
+        } else {
+          costReport.report[service] = {
+            serviceCost: 0,
+            resourceCosts: {}
+          };
+        }
+      }
+    });
+
+    auditCostReport(costReport);
+
+    return costReport;
   }
 }
 

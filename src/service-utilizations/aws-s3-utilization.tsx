@@ -3,7 +3,7 @@ import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { Bucket, S3 } from '@aws-sdk/client-s3';
 import { AwsServiceOverrides } from '../types/types.js';
-import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { Arns, ONE_GB_IN_BYTES } from '../types/constants.js';
 
@@ -78,29 +78,31 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       const bucketArn = Arns.S3(bucketName);
       await this.getLifecyclePolicy(bucketArn, bucketName, region);
       await this.getIntelligentTieringConfiguration(bucketArn, bucketName, region);
-      
-      // TODO: Change bucketName to bucketArn
-      this.addData(bucketArn, 'resourceId', bucketName);
-      this.addData(bucketArn, 'region', region);
-      if (bucketName in this.bucketCostData) {
-        const monthlyCost = this.bucketCostData[bucketName].monthlyCost;
-        this.addData(bucketArn, 'monthlyCost', monthlyCost);
-        this.addData(bucketArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      }
+
+      const monthlyCost = this.bucketCostData[bucketName]?.monthlyCost || 0;
+      await this.fillData(
+        bucketArn,
+        credentials,
+        region,
+        {
+          resourceId: bucketName,
+          region,
+          monthlyCost,
+          hourlyCost: getHourlyCost(monthlyCost)
+        }
+      );
     };
 
     await rateLimitMap(allS3Buckets, 5, 5, analyzeS3Bucket);
   }
 
   async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides?: AwsServiceOverrides
   ): Promise<void> {
     const credentials = await awsCredentialsProvider.getCredentials();
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
+    for (const region of regions) {
       await this.getRegionalUtilization(credentials, region);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 
   async getIntelligentTieringConfiguration (bucketArn: string, bucketName: string, region: string) {
