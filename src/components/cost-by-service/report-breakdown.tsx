@@ -1,7 +1,9 @@
 import React from 'react';
-import { 
-  Button, 
+import {
+  Button,
+  Divider, 
   Heading, 
+  HStack, 
   Menu, 
   MenuButton,
   MenuItem, 
@@ -9,26 +11,40 @@ import {
   Stack, 
   Table, 
   TableContainer, 
-  Tbody, 
+  Tbody,
+  Text, 
   Th, 
-  Thead 
+  Thead, 
+  Tr
 } from '@chakra-ui/react';
 import isEmpty from 'lodash.isempty';
-import { AccountIdSelector, CostReport, ServiceCostTableRow } from '../../types/cost-and-usage-types.js';
+import { 
+  AccountIdSelector,
+  CostReport, 
+  RegionSelector, 
+  ServiceCostTableRow 
+} from '../../types/cost-and-usage-types.js';
 import { ServiceRow } from './service-row.js';
-import { useTableHeaderSorting } from './table-sorting.js';
+import { useTableHeaderSorting } from '../table-sorting.js';
 import { ChevronDownIcon } from '@chakra-ui/icons';
+import { ServiceCostPerMonthGraph } from './service-cost-per-month-graph.js';
 
 export default function ReportBreakdown (props: { 
   costReport: CostReport,
-  useAccountIdSelector: AccountIdSelector
+  useAccountIdSelector: AccountIdSelector,
+  useRegionSelector: RegionSelector
 }) {
   const { 
     costReport,
     useAccountIdSelector: {
-      accountId: currentAccountId,
-      allAccountIds,
+      accountName: currentAccountName,
+      accountIdMap,
       onAccountIdChange
+    },
+    useRegionSelector: {
+      region: currentRegion,
+      allRegions,
+      onRegionChange
     }
   } = props;
 
@@ -60,7 +76,7 @@ export default function ReportBreakdown (props: {
         'You need to set up an AWS Cost and Usage Report under Billing in the AWS Console. ' +
         'It only takes a couple minutes, and a report will be available in 24 hours!';
     } else {
-      headerMessage = 'All cost values are monthly estimates based on current usage costs provided by AWS.';
+      headerMessage = 'All cost values below are monthly estimates based on current usage costs provided by AWS.';
     }
       
     const tableData = Object.keys(costReport.report).map(service => (
@@ -71,43 +87,64 @@ export default function ReportBreakdown (props: {
       }
     ));
 
-    const { handleHeaderClick, sortDataTable } = useTableHeaderSorting(tableData, { column: 'cost', order: 'desc' });
+    const { sortDataTable, SortableTh } = useTableHeaderSorting(tableData, { column: 'cost', order: 'desc' });
 
     return (
       <Stack>
+        <HStack justify={'right'} spacing={4} pt={2} pr={6}>
+          <Menu>
+            <MenuButton p={4} as={Button} h={25} w={200} rightIcon={<ChevronDownIcon />}>
+              <Text fontSize='xs'>
+                <Text as='span' fontWeight={'bold'}>Account</Text>: {currentAccountName}
+              </Text>
+            </MenuButton>
+            <MenuList h={150} w={200} overflowY='scroll'>
+              {Object.keys(accountIdMap).map(accountName => (
+                <MenuItem
+                  onClick={() => onAccountIdChange(accountIdMap[accountName])}
+                  fontSize='xs'
+                >
+                  {accountName}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
+          <Menu>
+            <MenuButton p={4} as={Button} h={25} w={200} rightIcon={<ChevronDownIcon />}>
+              <Text fontSize='xs'>
+                <Text as='span' fontWeight={'bold'}>Region</Text>: {currentRegion}
+              </Text>
+            </MenuButton>
+            <MenuList h={150} w={200} overflowY='scroll'>
+              {allRegions.map(region => (
+                <MenuItem
+                  onClick={() => onRegionChange(region)}
+                  fontSize='xs'
+                >
+                  {region}
+                </MenuItem>
+              ))}
+            </MenuList>
+          </Menu>
+        </HStack>
+        <Divider/>
+        <ServiceCostPerMonthGraph 
+          serviceCostsPerMonth={costReport.serviceCostsPerMonth} 
+          monthLabels={costReport.monthLabels}
+        />
+        <Divider/>
         <Heading pt={2} pl={6} size='xs'>
           {headerMessage}
         </Heading>
-        <Stack width="20%" pt={1} pb={3} px={4} align='baseline'>
-          <Menu>
-            <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
-              Account ID
-            </MenuButton>
-            <MenuList minW="0" w={250} h={40} sx={{ overflow:'scroll' }}>
-              {allAccountIds.map((accountId) => {
-                if (accountId === currentAccountId) {
-                  return (
-                    <MenuItem 
-                      command={'current'} 
-                      onClick={() => onAccountIdChange(accountId)}
-                    >
-                      {accountId}
-                    </MenuItem>
-                  );
-                } else {
-                  return <MenuItem onClick={() => onAccountIdChange(accountId)}>{accountId}</MenuItem>;
-                }
-              })}
-            </MenuList>
-          </Menu>
-        </Stack>
         <TableContainer border="1px" borderColor="gray.100">
           <Table variant="simple">
             <Thead bgColor="gray.50">
-              <Th onClick={() => handleHeaderClick('service')}>Service</Th>
-              <Th onClick={() => handleHeaderClick('numResources')}># Resources</Th>
-              <Th onClick={() => handleHeaderClick('cost')}>Cost/Mo</Th>
-              <Th/>
+              <Tr>
+                <SortableTh header='Service' headerKey='service'/>
+                <SortableTh header='# Resources' headerKey='numResources'/>
+                <SortableTh header='Cost/Mo' headerKey='cost'/>
+                <Th/>
+              </Tr>
             </Thead>
             <Tbody>
               {sortDataTable().map((serviceRow))}

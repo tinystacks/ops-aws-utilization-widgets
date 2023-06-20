@@ -25,10 +25,16 @@ export type ResourcesPerService = {
   [ serviceName: string ]: ServiceInformation
 };
 
+export type ServiceCostsPerMonth = {
+  [ serviceName: string ]: number[]
+};
+
 export type CostReport = {
   report: ResourcesPerService,
   hasCostReportDefinition: boolean,
-  hasCostReport: boolean
+  hasCostReport: boolean,
+  serviceCostsPerMonth: ServiceCostsPerMonth,
+  monthLabels: string[]
 };
 
 export const serviceNamesMap: { [ key: string ]: string } = {
@@ -99,8 +105,16 @@ export type ServiceCostTableRow = {
   cost: number;
 };
 
+export type AccountIdMap = { [ accountName: string ]: string };
+
 export type AccountIdSelector = {
-  accountId: string;
-  allAccountIds: string[];
+  accountName: string;
+  accountIdMap: AccountIdMap;
   onAccountIdChange: (accountId: string) => void;
 };
+
+export type RegionSelector = {
+  region: string,
+  allRegions: string[],
+  onRegionChange: (region: string) => void;
+}

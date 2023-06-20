@@ -12,7 +12,7 @@ import {
   Box
 } from '@chakra-ui/react';
 import { ResourceCosts } from '../../types/cost-and-usage-types.js';
-import { useTableHeaderSorting } from './table-sorting.js';
+import { useTableHeaderSorting } from '../table-sorting.js';
 
 type ResourceCostTableRow = {
   resourceId: string;
@@ -38,7 +38,7 @@ export function ResourcesTable (props: ResourcesTableProps) {
     }
   ));
 
-  const { handleHeaderClick, sortDataTable } = useTableHeaderSorting(tableData, { column: 'cost', order: 'desc' });
+  const { sortDataTable, SortableTh } = useTableHeaderSorting(tableData, { column: 'cost', order: 'desc' });
 
   return (
     <Stack key={service + 'resource-table'} maxHeight='500px'>
@@ -51,8 +51,8 @@ export function ResourcesTable (props: ResourcesTableProps) {
         <Table variant='simple'>
           <Thead bgColor='gray.50'>
             <Tr>
-              <Th onClick={() => handleHeaderClick('resourceId')}>Resource ID</Th>
-              <Th onClick={() => handleHeaderClick('cost')}>Cost/Mo</Th>
+              <SortableTh header='Resource ID' headerKey='resourceId'/>
+              <SortableTh header='Cost/Mo' headerKey='cost'/>
               <Th />
             </Tr>
           </Thead>

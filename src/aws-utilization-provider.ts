@@ -158,7 +158,9 @@ class AwsUtilizationProvider extends BaseProvider {
     const costReport: CostReport = {
       report: {},
       hasCostReportDefinition: false,
-      hasCostReport: false
+      hasCostReport: false,
+      serviceCostsPerMonth: {},
+      monthLabels: []
     };
     const credentials = await awsCredentialsProvider.getCredentials();
     const curClient = new CostAndUsageReportService({

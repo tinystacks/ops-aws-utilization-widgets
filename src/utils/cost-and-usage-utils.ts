@@ -4,7 +4,7 @@ import { ListObjectsV2CommandOutput, S3 } from '@aws-sdk/client-s3';
 import { Dayjs } from 'dayjs';
 import isEmpty from 'lodash.isempty';
 import { Readable } from 'stream';
-import { Arns } from '../types/constants.js';
+import { Arns, MonthAbbreviations } from '../types/constants.js';
 import { CostReport } from '../types/cost-and-usage-types.js';
 
 export function getArnOrResourceId (awsService: string, resourceId: string, region: string, accountId: string) {
@@ -26,7 +26,7 @@ export async function fillServiceCosts (
 ) {
   const res = await costExplorerClient.getCostAndUsage({
     TimePeriod: {
-      Start: now.startOf('month').format('YYYY-MM-DD'),
+      Start: now.subtract(1, 'year').add(1, 'month').startOf('month').format('YYYY-MM-DD'),
       End: now.format('YYYY-MM-DD')
     },
     Granularity: 'MONTHLY',
@@ -55,15 +55,52 @@ export async function fillServiceCosts (
     ]
   });
 
-  // subtract 1 because getCostAndUsage has an exclusive End date
-  const mtdDays = now.diff(now.startOf('month'), 'days') - 1;
-  res.ResultsByTime[0].Groups.forEach((group) => {
-    const cost = Number(group.Metrics['UnblendedCost'].Amount) * (30 / mtdDays);
-    costReport.report[group.Keys[0]] = {
-      serviceCost: cost,
-      resourceCosts: {}
-    };
+  // init monthLabels
+  const monthLabels: string[] = [];
+  res.ResultsByTime.forEach((resultByTime) => {
+    const [ year, month, _ ] = resultByTime.TimePeriod.Start.split('-');
+    const monthAbbr = MonthAbbreviations[month];
+    const monthYearAbbr = `${monthAbbr} '${year.slice(2)}`;
+    monthLabels.push(monthYearAbbr);
   });
+  costReport.monthLabels = monthLabels;
+  // init all services returned by res
+  res.ResultsByTime.forEach((resultByTime) => {
+    resultByTime.Groups.forEach((group) => {
+      if (!(group.Keys[0] in costReport.serviceCostsPerMonth)) {
+        costReport.serviceCostsPerMonth[group.Keys[0]] = new Array(monthLabels.length).fill(0);
+      }
+    });
+  });
+  // fill service costs for cost report and service costs per month
+  res.ResultsByTime.forEach((resultByTime, index) => {
+    // an estimate indicates the current month
+    const factor = resultByTime.Estimated ? 
+      (30 / (now.diff(now.startOf('month'), 'days'))) :
+      1;
+    resultByTime.Groups.forEach((group) => {
+      const cost = Number(group.Metrics['UnblendedCost'].Amount) * factor;
+      if (resultByTime.Estimated) {
+        costReport.report[group.Keys[0]] = {
+          serviceCost: cost,
+          resourceCosts: {}
+        };
+      }
+      costReport.serviceCostsPerMonth[group.Keys[0]][index] = cost;
+    });
+  });
+
+  // console.log(JSON.stringify(costReport.serviceCostsPerMonth, null, 2));
+  // subtract 1 because getCostAndUsage has an exclusive End date
+  // const mtdDays = now.diff(now.startOf('month'), 'days') - 1;
+  // res.ResultsByTime.at(-1).Groups.forEach((group) => {
+  //   const cost = Number(group.Metrics['UnblendedCost'].Amount) * (30 / mtdDays);
+  //   costReport.report[group.Keys[0]] = {
+  //     serviceCost: cost,
+  //     resourceCosts: {}
+  //   };
+  //   costReport.serviceCostsPerMonth[group.Keys[0]] = {};
+  // });
 }
 
 export async function getReportDefinition (curClient: CostAndUsageReportService): Promise<ReportDefinition> {
@@ -131,7 +168,8 @@ export function auditCostReport (costReport: CostReport) {
   }
 
   if ('Amazon Elastic Compute Cloud - Compute' in costReport.report) {
-    costReport.report['Amazon Elastic Compute Cloud - Compute'].details = 'Includes IP and data transfer costs';
+    costReport.report['Amazon Elastic Compute Cloud - Compute'].details = 
+      'Resources cost values include IP and data transfer costs';
   }
 
   if ('AmazonCloudWatch' in costReport.report) {
