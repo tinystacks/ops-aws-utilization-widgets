@@ -14,7 +14,11 @@ import {
 import { filterUtilizationForActionType } from '../utils/utilization.js';
 import { AwsUtilizationRecommendations as AwsUtilizationRecommendationsType } from '../ops-types.js';
 
-export type AwsUtilizationRecommendationsProps = AwsUtilizationRecommendationsType & HasActionType & HasUtilization & Regions;
+export type AwsUtilizationRecommendationsProps = 
+  AwsUtilizationRecommendationsType & 
+  HasActionType & 
+  HasUtilization & 
+  Regions;
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
