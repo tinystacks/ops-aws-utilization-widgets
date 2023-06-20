@@ -10,10 +10,12 @@ import { TbRefresh } from 'react-icons/tb/index.js';
 import isEmpty from 'lodash.isempty';
 import ServiceTableRow from './service-table-row.js';
 import { Utilization, actionTypeText, ActionType } from '../../types/types.js';
-import { filterUtilizationForActionType, sentenceCase } from '../../utils/utilization.js';
+import { filterUtilizationForActionType, sentenceCase, splitServiceName } from '../../utils/utilization.js';
 import { RecommendationsTableProps } from '../../types/utilization-recommendations-types.js';
 import { Drawer, DrawerOverlay, DrawerContent, DrawerCloseButton, DrawerHeader, DrawerBody } from '@chakra-ui/react';
 import { ChevronDownIcon, InfoIcon, ExternalLinkIcon } from '@chakra-ui/icons';
+import SidePanelMetrics from './side-panel-usage.js';
+import SidePanelRelatedResources from './side-panel-related-resources.js';
 
 export const CHECKBOX_CELL_MAX_WIDTH = '16px';
 export const RESOURCE_PROPERTY_MAX_WIDTH = '100px';
@@ -28,6 +30,10 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   const [ sidePanelService, setSidePanelService ] = useState<string | undefined>(undefined);
 
   const filteredServices = filterUtilizationForActionType(utilization, actionType);
+  const usd = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD'
+  });
 
   // #region actions
   function onServiceCheckChange (serviceName: string) {
@@ -81,10 +87,6 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   function resourcesTable (serviceName: string, serviceUtil: Utilization<string>) {
-    const usd = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    });
     const tableHeadersSet = new Set<string>();
     Object.keys(serviceUtil).forEach(resArn =>
       Object.keys(serviceUtil[resArn].scenarios).forEach(s => tableHeadersSet.add(s))
@@ -109,7 +111,14 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
           overflow='hidden'
           textOverflow='ellipsis'
         >
-          {resArn}
+          <Tooltip 
+            label={serviceUtil[resArn]?.data?.resourceId || resArn} 
+            aria-label='A tooltip'
+            bg='purple.400'
+            color='white'
+          >
+            {serviceUtil[resArn]?.data?.resourceId || resArn}
+          </Tooltip>
         </Td>
         {tableHeaders.map(th => 
           <Td
@@ -125,8 +134,8 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
               color='white'
             >
               <Box>
-                {serviceUtil[resArn].scenarios[th]?.value || 'undefined'}
-                {<InfoIcon marginLeft={'8px'} color='black' />}
+                {serviceUtil[resArn].scenarios[th]?.value || null}
+                {serviceUtil[resArn].scenarios[th]?.value ? <InfoIcon marginLeft={'8px'} color='black' />: null}
               </Box>
             </Tooltip>            
           </Td>
@@ -197,11 +206,6 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   }
 
   function taskRowsForOptimize (serviceName: string, serviceUtil: Utilization<string>){
-    const usd = new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    });
-    
     const tableHeadersSet = new Set<string>();
     Object.keys(serviceUtil).forEach(resArn =>
       Object.keys(serviceUtil[resArn].scenarios).forEach(s => tableHeadersSet.add(s))
@@ -221,7 +225,14 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             overflow='hidden'
             textOverflow='ellipsis'
           >
-            {resArn}
+            <Tooltip 
+              label={serviceUtil[resArn]?.data?.resourceId || resArn} 
+              aria-label='A tooltip'
+              bg='purple.400'
+              color='white'
+            >
+              { serviceUtil[resArn]?.data?.resourceId || resArn }
+            </Tooltip>
           </Td>
           <Td
             key={resArn + 'cost/mo'}
@@ -270,7 +281,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                 <Table size='sm'>
                   <Tbody>
                     {tableHeaders.map(th => 
-                      serviceUtil[resArn].scenarios[th] && serviceUtil[resArn].scenarios[th][actionType]?.action && (
+                      serviceUtil[resArn].scenarios[th] && serviceUtil[resArn].scenarios[th][actionType]?.reason && (
                         <Tr>
                           <Td w={CHECKBOX_CELL_MAX_WIDTH}>
                             { ( isEmpty(serviceUtil[resArn].scenarios[th][actionType]?.action) || !serviceUtil[resArn].scenarios[th][actionType]?.isActionable ) ?  <Checkbox isDisabled/> :  <Checkbox
@@ -280,23 +291,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                           <Td
                             key={resArn + 'scenario' + th}
                           >
-                            <Tooltip 
-                              label={
-                                'Estimated ' +
-                                (serviceUtil[resArn].scenarios[th] ?
-                                  usd.format(serviceUtil[resArn].scenarios[th][actionType]?.monthlySavings) :
-                                  usd.format(0)) +
-                                ' savings/mo'
-                              } 
-                              aria-label='A tooltip'
-                              bg='purple.400'
-                              color='white'
-                            >
-                              <Box>
-                                { sentenceCase(serviceUtil[resArn].scenarios[th][actionType]?.action) }
-                                {<InfoIcon marginLeft={'8px'} color='black' />}
-                              </Box>
-                            </Tooltip> 
+                            { serviceUtil[resArn].scenarios[th][actionType]?.reason }
                           </Td>
                         </Tr>
                       )
@@ -336,6 +331,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
   function sidePanel (){ 
     const serviceUtil = sidePanelService && filteredServices[sidePanelService];
     const data = serviceUtil && serviceUtil[sidePanelResourceArn]?.data;
+    //const metric = serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics['CPUUtilization'] || serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics['BytesInFromDestination'];
 
     const adjustments = serviceUtil && Object.keys(serviceUtil[sidePanelResourceArn]?.scenarios).map(scenario => (
       <Box bg="#EDF2F7" p={2} color="black" marginBottom='8px'> 
@@ -360,7 +356,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
             <Flex>
               <Box>
                 <Heading fontSize='xl'> 
-                  {sidePanelService}
+                  { splitServiceName(sidePanelService)}
                 </Heading>
               </Box>
               <Spacer/>
@@ -370,7 +366,7 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                   size='sm' 
                   rightIcon={<ExternalLinkIcon />}
                   /*onClick={ () => { 
-                    window.open(getAwsLink(sidePanelResourceArn, sidePanelService as AwsResourceType, data?.region));
+                    window.open(getAwsLink(data.resourceId || sidePanelResourceArn, sidePanelService as AwsResourceType, data?.region));
                   }}*/
                 > 
                   View in AWS 
@@ -389,31 +385,52 @@ export function RecommendationsTable (props: RecommendationsTableProps) {
                       textOverflow='ellipsis'
                       textTransform='none'  
                     >
-                      {data?.resourceId}
+                      {data?.resourceId || sidePanelResourceArn}
                     </Th>
                     <Th maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'> {data?.region}</Th>
+                    <Th maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'> {data?.monthlyCost ? usd.format(data.monthlyCost) : 'Coming soon!'}</Th>
+                    <Th maxW={RESOURCE_PROPERTY_MAX_WIDTH} textTransform='none'> {data?.hourlyCost ? usd.format(data.hourlyCost) : 'Coming soon!'}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
                   <Tr>
                     <Td color='gray.500'>Resource ID</Td>
                     <Td color='gray.500'> Region </Td>
+                    <Td color='gray.500'> Cost/mo </Td>
+                    <Td color='gray.500'> Cost/hr </Td>
                   </Tr>
                 </Tbody>
               </Table>
-              <Box marginTop='20px'>
-                <Button
-                  variant='ghost'
-                  aria-label={'downCaret'}
-                  leftIcon={<ChevronDownIcon/>}
-                  size='lg'
-                  colorScheme='black'
-                >
-                  Adjustments
-                </Button>
-                {adjustments}
-              </Box>
             </TableContainer>
+            <Box marginTop='20px'>
+              <Button
+                variant='ghost'
+                aria-label={'downCaret'}
+                leftIcon={<ChevronDownIcon/>}
+                size='lg'
+                colorScheme='black'
+              >
+                  Adjustments
+              </Button>
+              {adjustments}
+            </Box>
+            <Box marginTop='20px'>
+              <Button
+                variant='ghost'
+                aria-label={'downCaret'}
+                leftIcon={<ChevronDownIcon/>}
+                size='lg'
+                colorScheme='black'
+              >
+                   Usage
+              </Button>
+            </Box>
+            <Box>
+              {SidePanelMetrics({ metrics: serviceUtil && serviceUtil[sidePanelResourceArn]?.metrics })}
+            </Box>
+            <Box>
+              {SidePanelRelatedResources({ data: serviceUtil && serviceUtil[sidePanelResourceArn]?.data })}
+            </Box>
             <Flex pt='1'>
               <Spacer/>
               <Spacer/>

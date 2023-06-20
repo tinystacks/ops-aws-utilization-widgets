@@ -1,16 +1,21 @@
 import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { BaseProvider } from '@tinystacks/ops-core';
-import { Provider } from '@tinystacks/ops-model';
+import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
+import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
+import { CostAndUsageReportService } from '@aws-sdk/client-cost-and-usage-report-service';
+import { CostExplorer } from '@aws-sdk/client-cost-explorer';
+import { S3 } from '@aws-sdk/client-s3';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import { createUnzip } from 'browserify-zlib';
+import dayjs from 'dayjs';
 import {
   AwsResourceType, 
   AwsServiceOverrides, 
   AwsUtilizationOverrides, 
   Utilization 
 } from './types/types.js';
-import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
-import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
-import { CostAndUsageReportService } from '@aws-sdk/client-cost-and-usage-report-service';
 import { parseStreamSync } from './utils/utils.js';
 import { CostReport } from './types/cost-and-usage-types.js';
 import { 
@@ -21,12 +26,7 @@ import {
   getReportDefinition, 
   getServiceForResource 
 } from './utils/cost-and-usage-utils.js';
-import { CostExplorer } from '@aws-sdk/client-cost-explorer';
-import { S3 } from '@aws-sdk/client-s3';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import { createUnzip } from 'browserify-zlib';
-import dayjs from 'dayjs';
+import { AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
 
 const cache = cached<Utilization<string>>('utilization-cache', {
   backend: {
@@ -34,12 +34,10 @@ const cache = cached<Utilization<string>>('utilization-cache', {
   }
 });
 
-type AwsUtilizationProviderType = Provider & {
-  services?: AwsResourceType[];
+type AwsUtilizationProviderProps = AwsUtilizationProviderType & {
   utilization?: {
     [key: AwsResourceType | string]: Utilization<string>
   };
-  region?: string;
 };
 
 class AwsUtilizationProvider extends BaseProvider {
@@ -51,9 +49,8 @@ class AwsUtilizationProvider extends BaseProvider {
   utilization: {
     [key: AwsResourceType | string]: Utilization<string>
   };
-  region: string;
 
-  constructor (props: AwsUtilizationProviderType) {
+  constructor (props: AwsUtilizationProviderProps) {
     super(props);
     const { 
       services
@@ -73,11 +70,11 @@ class AwsUtilizationProvider extends BaseProvider {
     ]);
   }
 
-  static fromJson (props: AwsUtilizationProviderType) {
+  static fromJson (props: AwsUtilizationProviderProps) {
     return new AwsUtilizationProvider(props);
   }
 
-  toJson (): AwsUtilizationProviderType {
+  toJson (): AwsUtilizationProviderProps {
     return {
       ...super.toJson(),
       services: this.services,

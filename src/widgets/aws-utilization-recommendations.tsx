@@ -1,29 +1,34 @@
 import React from 'react';
+import get from 'lodash.get';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
 import { 
-  RecommendationsOverrides, 
-  UtilizationRecommendationsWidget 
+  RecommendationsOverrides,
+  HasActionType,
+  HasUtilization,
+  Regions
 } from '../types/utilization-recommendations-types.js';
 import { 
   UtilizationRecommendationsUi 
 } from '../components/utilization-recommendations-ui/utilization-recommendations-ui.js';
 import { filterUtilizationForActionType } from '../utils/utilization.js';
-import get from 'lodash.get';
+import { AwsUtilizationRecommendations as AwsUtilizationRecommendationsType } from '../ops-types.js';
+
+export type AwsUtilizationRecommendationsProps = AwsUtilizationRecommendationsType & HasActionType & HasUtilization & Regions;
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
   allRegions?: string[];
   region?: string;
 
-  constructor (props: UtilizationRecommendationsWidget) {
+  constructor (props: AwsUtilizationRecommendationsProps) {
     super(props);
     this.utilization = props.utilization;
     this.allRegions = props.allRegions;
     this.region = props.region || 'us-east-1';
   }
 
-  static fromJson (props: UtilizationRecommendationsWidget) {
+  static fromJson (props: AwsUtilizationRecommendationsProps) {
     return new AwsUtilizationRecommendations(props);
   }
 

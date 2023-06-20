@@ -1,7 +1,7 @@
+import get from 'lodash.get';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { CloudWatchLogs, DescribeLogGroupsCommandOutput, LogGroup } from '@aws-sdk/client-cloudwatch-logs';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import _ from 'lodash';
 import { ONE_GB_IN_BYTES } from '../types/constants.js';
 import { AwsServiceOverrides } from '../types/types.js';
 import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
@@ -15,6 +15,7 @@ const sevenDaysAgo = NOW - (7 * 24 * 60 * 60 * 1000);
 const twoWeeksAgo = NOW - (14 * 24 * 60 * 60 * 1000);
 
 type AwsCloudwatchLogsUtilizationScenarioTypes = 'hasRetentionPolicy' | 'lastEventTime' | 'storedBytes';
+const AwsCloudWatchLogsMetrics = ['IncomingBytes'];
 
 export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloudwatchLogsUtilizationScenarioTypes> {
   constructor () {
@@ -115,7 +116,7 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
         }
       ]
     });
-    const monthlyIncomingBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+    const monthlyIncomingBytes = get(res, 'MetricDataResults[0].Values[0]', 0);
 
     return monthlyIncomingBytes;
   }
@@ -239,6 +240,16 @@ export class AwsCloudwatchLogsUtilization extends AwsServiceUtilization<AwsCloud
             hourlyCost: getHourlyCost(totalMonthlyCost)
           }
         );
+
+        AwsCloudWatchLogsMetrics.forEach(async (metricName) => {  
+          await this.getSidePanelMetrics(
+            credentials, 
+            region, 
+            logGroupArn,
+            'AWS/Logs', 
+            metricName, 
+            [{ Name: 'LogGroupName', Value: logGroupName }]);
+        });
       }
     };
 

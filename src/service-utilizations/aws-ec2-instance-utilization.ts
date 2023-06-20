@@ -38,6 +38,7 @@ const cache = cached<string>('ec2-util-cache', {
 });
 
 type AwsEc2InstanceUtilizationScenarioTypes = 'unused' | 'overAllocated';
+const AwsEc2InstanceMetrics = ['CPUUtilization', 'NetworkIn'];
 
 type AwsEc2InstanceUtilizationOverrides = AwsServiceOverrides & {
   instanceIds: string[];
@@ -391,6 +392,16 @@ export class AwsEc2InstanceUtilization extends AwsServiceUtilization<AwsEc2Insta
           hourlyCost: getHourlyCost(cost)
         }
       );
+
+      AwsEc2InstanceMetrics.forEach(async (metricName) => { 
+        await this.getSidePanelMetrics(
+          credentials, 
+          region, 
+          instanceArn,
+          'AWS/EC2', 
+          metricName, 
+          [{ Name: 'InstanceId', Value: instanceId }]);
+      });
     }
   }
 
