@@ -1,50 +1,55 @@
-
+import { jest } from '@jest/globals';
+import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { MockCache } from "../mocks/MockCache";
+import t2Micro from '../mocks/T2Micro.json';
+import t2Nano from '../mocks/T2Nano.json';
+import fargateTaskDef from '../mocks/FargateTaskDef.json';
+import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, MAX_CPU, MAX_MEMORY } from "../../src/types/constants.js";
 jest.useFakeTimers();
 jest.setSystemTime(new Date('2023-04-14T00:00:00.000Z'));
-const mockGetCredentials = jest.fn();
-const mockEcs = jest.fn();
-const mockEc2 = jest.fn();
-const mockElbV2 = jest.fn();
-const mockApiGatewayV2 = jest.fn();
-const mockCloudWatch = jest.fn();
+const mockGetCredentials: jest.Mock<any> = jest.fn();
+const mockEcs: jest.Mock<any> = jest.fn();
+const mockEc2: jest.Mock<any> = jest.fn();
+const mockElbV2: jest.Mock<any> = jest.fn();
+const mockApiGatewayV2: jest.Mock<any> = jest.fn();
+const mockCloudWatch: jest.Mock<any> = jest.fn();
 
 // ECS
-const mockDescribeServices = jest.fn();
-const mockListClusters = jest.fn();
-const mockListServices = jest.fn();
-const mockListTasks = jest.fn();
-const mockDescribeTasks = jest.fn();
-const mockDescribeContainerInstances = jest.fn();
-const mockDeleteService = jest.fn();
-const mockDescribeTaskDefinition = jest.fn();
-const mockRegisterTaskDefinition = jest.fn();
-const mockUpdateService = jest.fn();
+const mockDescribeServices: jest.Mock<any> = jest.fn();
+const mockListClusters: jest.Mock<any> = jest.fn();
+const mockListServices: jest.Mock<any> = jest.fn();
+const mockListTasks: jest.Mock<any> = jest.fn();
+const mockDescribeTasks: jest.Mock<any> = jest.fn();
+const mockDescribeContainerInstances: jest.Mock<any> = jest.fn();
+const mockDeleteService: jest.Mock<any> = jest.fn();
+const mockDescribeTaskDefinition: jest.Mock<any> = jest.fn();
+const mockRegisterTaskDefinition: jest.Mock<any> = jest.fn();
+const mockUpdateService: jest.Mock<any> = jest.fn();
 
 // EC2
-const mockDescribeInstances = jest.fn();
-const mockDescribeInstanceTypes = jest.fn();
+const mockDescribeInstances: jest.Mock<any> = jest.fn();
+const mockDescribeInstanceTypes: jest.Mock<any> = jest.fn();
 
 // ElbV2
-const mockDescribeTargetGroups = jest.fn();
+const mockDescribeTargetGroups: jest.Mock<any> = jest.fn();
 
 // CloudWatch
-const mockGetMetricData = jest.fn();
-const mockGetMetricStatistics = jest.fn();
+const mockGetMetricData: jest.Mock<any> = jest.fn();
+const mockGetMetricStatistics: jest.Mock<any> = jest.fn();
 
 // ApiGatewayV2
-const mockGetApis = jest.fn();
-const mockGetIntegrations = jest.fn();
+const mockGetApis: jest.Mock<any> = jest.fn();
+const mockGetIntegrations: jest.Mock<any> = jest.fn();
 
 // ec2 utils
-const mockGetInstanceCost = jest.fn();
+const mockGetInstanceCost: jest.Mock<any> = jest.fn();
 
 const mockCache = new MockCache();
 
 jest.mock('cached', () => () => mockCache);
 
 jest.mock('@aws-sdk/client-ecs', () => {
-  const original = jest.requireActual('@aws-sdk/client-ecs');
+  const original: any = jest.requireActual('@aws-sdk/client-ecs');
   const {
     ContainerInstance,
     DesiredStatus,
@@ -72,7 +77,7 @@ jest.mock('@aws-sdk/client-ecs', () => {
   };
 });
 jest.mock('@aws-sdk/client-ec2', () => {
-  const original = jest.requireActual('@aws-sdk/client-ec2');
+  const original: any = jest.requireActual('@aws-sdk/client-ec2');
   const { DescribeInstanceTypesCommandOutput, Instance, InstanceTypeInfo, _InstanceType } = original;
   return {
     EC2: mockEc2,
@@ -83,7 +88,7 @@ jest.mock('@aws-sdk/client-ec2', () => {
   };
 });
 jest.mock('@aws-sdk/client-apigatewayv2', () => {
-  const original = jest.requireActual('@aws-sdk/client-apigatewayv2');
+  const original: any = jest.requireActual('@aws-sdk/client-apigatewayv2');
   const {
     Api,
     GetApisCommandOutput,
@@ -100,7 +105,7 @@ jest.mock('@aws-sdk/client-elastic-load-balancing-v2', () => ({
   ElasticLoadBalancingV2: mockElbV2
 }));
 jest.mock('@aws-sdk/client-cloudwatch', () => {
-  const original = jest.requireActual('@aws-sdk/client-cloudwatch');
+  const original: any = jest.requireActual('@aws-sdk/client-cloudwatch');
   const { MetricDataQuery, MetricDataResult } = original;
   return {
     CloudWatch: mockCloudWatch,
@@ -109,19 +114,14 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
   };
 });
 jest.mock('../../src/utils/ec2-utils.js', () => {
-  const original = jest.requireActual('../../src/utils/ec2-utils.js');
+  const original: any = jest.requireActual('../../src/utils/ec2-utils.js');
   return {
     ...original,
     getInstanceCost: mockGetInstanceCost
   }
 });
 
-import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsEcsUtilization } from '../../src/service-utilizations/aws-ecs-utilization';
-import t2Micro from '../mocks/T2Micro.json';
-import t2Nano from '../mocks/T2Nano.json';
-import fargateTaskDef from '../mocks/FargateTaskDef.json';
-import { ALB_REQUEST_COUNT, APIG_REQUEST_COUNT, AVG_CPU, AVG_MEMORY, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_MEMORY, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from "../../src/types/constants.js";
+const { AwsEcsUtilization } = await import('../../src/service-utilizations/aws-ecs-utilization');
 
 describe('AwsEcsUtilization', () => {
   beforeEach(() => {

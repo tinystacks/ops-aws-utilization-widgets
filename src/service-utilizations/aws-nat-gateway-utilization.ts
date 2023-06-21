@@ -1,8 +1,8 @@
+import get from 'lodash.get';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
 import { DescribeNatGatewaysCommandOutput, EC2, NatGateway } from '@aws-sdk/client-ec2';
 import { Pricing } from '@aws-sdk/client-pricing';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import get from 'lodash.get';
 import { Arns } from '../types/constants.js';
 import { getAccountId, getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
@@ -239,13 +239,15 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
         }
       ]
     });
-    const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
-    const onDemandKeys = Object.keys(onDemandData);
-    const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
-    const priceDimensionsKeys = Object.keys(priceDimensionsData);
-    const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
-
-    // monthly cost
-    return pricePerHour * 24 * 30;
+    if (res?.PriceList?.at(0)) {
+      const onDemandData = JSON.parse(res.PriceList[0] as string).terms.OnDemand;
+      const onDemandKeys = Object.keys(onDemandData);
+      const priceDimensionsData = onDemandData[onDemandKeys[0]].priceDimensions;
+      const priceDimensionsKeys = Object.keys(priceDimensionsData);
+      const pricePerHour = priceDimensionsData[priceDimensionsKeys[0]].pricePerUnit.USD;
+      
+      // monthly cost
+      return pricePerHour * 24 * 30;
+    }
   }
 }

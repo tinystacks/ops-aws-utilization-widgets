@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 export class MockCache {
   cacheName?: string;
   options?: Record<string, any>;

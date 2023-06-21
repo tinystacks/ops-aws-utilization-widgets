@@ -1,23 +1,25 @@
+import { jest } from '@jest/globals';
+import { AwsCredentialsProvider } from "@tinystacks/ops-aws-core-widgets";
 jest.useFakeTimers();
 jest.setSystemTime(new Date('2023-04-14T00:00:00.000Z'));
 
-const mockCloudWatchLogs = jest.fn();
-const mockDescribeLogGroups = jest.fn();
-const mockDescribeLogStreams = jest.fn();
-const mockGetCredentials = jest.fn();
-const mockPutRetentionPolicy = jest.fn();
-const mockDeleteLogGroup = jest.fn();
-const mockCreateExportTask = jest.fn();
-const mockAccount = jest.fn();
-const mockListRegions = jest.fn();
-const mockCloudFormation = jest.fn();
-const mockDescribeStackResources = jest.fn();
-const mockCloudWatch = jest.fn();
-const mockGetMetricData = jest.fn();
-const mockGetMetricStatistics = jest.fn();
+const mockCloudWatchLogs: jest.Mock<any> = jest.fn();
+const mockDescribeLogGroups: jest.Mock<any> = jest.fn();
+const mockDescribeLogStreams: jest.Mock<any> = jest.fn();
+const mockGetCredentials: jest.Mock<any> = jest.fn();
+const mockPutRetentionPolicy: jest.Mock<any> = jest.fn();
+const mockDeleteLogGroup: jest.Mock<any> = jest.fn();
+const mockCreateExportTask: jest.Mock<any> = jest.fn();
+const mockAccount: jest.Mock<any> = jest.fn();
+const mockListRegions: jest.Mock<any> = jest.fn();
+const mockCloudFormation: jest.Mock<any> = jest.fn();
+const mockDescribeStackResources: jest.Mock<any> = jest.fn();
+const mockCloudWatch: jest.Mock<any> = jest.fn();
+const mockGetMetricData: jest.Mock<any> = jest.fn();
+const mockGetMetricStatistics: jest.Mock<any> = jest.fn();
 
 jest.mock('@aws-sdk/client-cloudwatch-logs', () => {
-  const original = jest.requireActual('@aws-sdk/client-cloudwatch-logs');
+  const original: any = jest.requireActual('@aws-sdk/client-cloudwatch-logs');
   return {
     ...original,
     CloudWatchLogs: mockCloudWatchLogs
@@ -25,7 +27,7 @@ jest.mock('@aws-sdk/client-cloudwatch-logs', () => {
 });
 
 jest.mock('@aws-sdk/client-account', () => {
-  const original = jest.requireActual('@aws-sdk/client-account');
+  const original: any = jest.requireActual('@aws-sdk/client-account');
   return {
     ...original,
     Account: mockAccount
@@ -46,9 +48,8 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
 
 const TEN_GB_IN_BYTES = 10737418240;
 
-import { CloudWatchLogs } from "@aws-sdk/client-cloudwatch-logs";
-import { AwsCredentialsProvider } from "@tinystacks/ops-aws-core-widgets";
-import { AwsCloudwatchLogsUtilization } from "../../src/service-utilizations/aws-cloudwatch-logs-utilization";
+const { CloudWatchLogs } = await import("@aws-sdk/client-cloudwatch-logs");
+const { AwsCloudwatchLogsUtilization } = await import("../../src/service-utilizations/aws-cloudwatch-logs-utilization");
 
 describe('AwsCloudwatchLogsUtilization', () => {
   beforeEach(() => {
@@ -155,7 +156,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           hourlyCost: 0,
           monthlyCost: 0,
           maxMonthlySavings: 0
-        }
+        },
+        metrics: {
+          IncomingBytes: {
+            values: [],
+            yAxisLabel: "IncomingBytes",
+          },
+        },
       });
     });
 
@@ -222,7 +229,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           hourlyCost: 0,
           monthlyCost: 0,
           maxMonthlySavings: 0
-        }
+        },
+        metrics: {
+          IncomingBytes: {
+            values: [],
+            yAxisLabel: "IncomingBytes",
+          },
+        },
       });
     });
 
@@ -290,7 +303,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           hourlyCost: 0,
           monthlyCost: 0,
           maxMonthlySavings: 0
-        }
+        },
+        metrics: {
+          IncomingBytes: {
+            values: [],
+            yAxisLabel: "IncomingBytes",
+          },
+        },
       });
     });
 
@@ -359,7 +378,13 @@ describe('AwsCloudwatchLogsUtilization', () => {
           hourlyCost: (0.3 / 30) / 24,
           monthlyCost: 0.3,
           maxMonthlySavings: 0.3
-        }
+        },
+        metrics: {
+          IncomingBytes: {
+            values: [],
+            yAxisLabel: "IncomingBytes",
+          },
+        },
       });
     });
   });

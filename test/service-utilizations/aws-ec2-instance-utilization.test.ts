@@ -1,25 +1,30 @@
+import { jest } from '@jest/globals';
+import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
+import t2Micro from '../mocks/T2Micro.json';
+import t2Nano from '../mocks/T2Nano.json';
+import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from '../../src/types/constants';
 import { MockCache } from '../mocks/MockCache';
 jest.useFakeTimers();
 jest.setSystemTime(new Date('2023-04-14T00:00:00.000Z'));
-const mockGetCredentials = jest.fn();
-const mockEc2 = jest.fn();
-const mockDescribeInstances = jest.fn();
-const mockDescribeInstanceTypes = jest.fn();
-const mockAutoScaling = jest.fn();
-const mockDescribeAutoScalingInstances = jest.fn();
-const mockCloudWatch = jest.fn();
-const mockGetMetricData = jest.fn();
-const mockGetMetricStatistics = jest.fn();
-const mockGetInstanceCost = jest.fn();
-const mockTerminateInstances = jest.fn();
-const mockModifyInstanceAttribute = jest.fn();
+const mockGetCredentials: jest.Mock<any> = jest.fn();
+const mockEc2: jest.Mock<any> = jest.fn();
+const mockDescribeInstances: jest.Mock<any> = jest.fn();
+const mockDescribeInstanceTypes: jest.Mock<any> = jest.fn();
+const mockAutoScaling: jest.Mock<any> = jest.fn();
+const mockDescribeAutoScalingInstances: jest.Mock<any> = jest.fn();
+const mockCloudWatch: jest.Mock<any> = jest.fn();
+const mockGetMetricData: jest.Mock<any> = jest.fn();
+const mockGetMetricStatistics: jest.Mock<any> = jest.fn();
+const mockGetInstanceCost: jest.Mock<any> = jest.fn();
+const mockTerminateInstances: jest.Mock<any> = jest.fn();
+const mockModifyInstanceAttribute: jest.Mock<any> = jest.fn();
 
 const mockCache = new MockCache();
 
 jest.mock('cached', () => () => mockCache);
 
 jest.mock('@aws-sdk/client-ec2', () => {
-  const original = jest.requireActual('@aws-sdk/client-ec2');
+  const original: any = jest.requireActual('@aws-sdk/client-ec2');
   const { DescribeInstanceTypesCommandOutput, Instance, InstanceTypeInfo, _InstanceType } = original;
   return {
     EC2: mockEc2,
@@ -33,7 +38,7 @@ jest.mock('@aws-sdk/client-auto-scaling', () => ({
     AutoScaling: mockAutoScaling
 }));
 jest.mock('@aws-sdk/client-cloudwatch', () => {
-  const original = jest.requireActual('@aws-sdk/client-cloudwatch');
+  const original: any = jest.requireActual('@aws-sdk/client-cloudwatch');
   const { MetricDataQuery, MetricDataResult } = original;
   return {
     CloudWatch: mockCloudWatch,
@@ -41,8 +46,8 @@ jest.mock('@aws-sdk/client-cloudwatch', () => {
     MetricDataResult
   };
 });
-jest.mock('../../src/utils/ec2-utils.js', () => {
-  const original = jest.requireActual('../../src/utils/ec2-utils.js');
+jest.mock('../../src/utils/ec2-utils', () => {
+  const original: any = jest.requireActual('../../src/utils/ec2-utils');
   return {
     ...original,
     getInstanceCost: mockGetInstanceCost
@@ -58,11 +63,7 @@ const mockInstance2 = {
   InstanceType: 'm5.medium'
 };
 
-import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { AwsEc2InstanceUtilization } from '../../src/service-utilizations/aws-ec2-instance-utilization';
-import t2Micro from '../mocks/T2Micro.json';
-import t2Nano from '../mocks/T2Nano.json';
-import { AVG_CPU, AVG_NETWORK_BYTES_IN, AVG_NETWORK_BYTES_OUT, DISK_READ_OPS, DISK_WRITE_OPS, MAX_CPU, MAX_NETWORK_BYTES_IN, MAX_NETWORK_BYTES_OUT } from '../../src/types/constants';
+const { AwsEc2InstanceUtilization } = await import('../../src/service-utilizations/aws-ec2-instance-utilization');
 
 describe('AwsEc2InstanceUtilization', () => {
   beforeEach(() => {
