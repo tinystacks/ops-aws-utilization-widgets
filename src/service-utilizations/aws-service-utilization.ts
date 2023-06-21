@@ -10,6 +10,9 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     this._utilization = {};
   }
 
+  /* TODO: all services have a sub getRegionalUtilization function that needs to be deprecated
+   * since calls are now region specific
+   */
   abstract getUtilization (
     awsCredentialsProvider: AwsCredentialsProvider, regions?: string[], overrides?: any
   ): void | Promise<void>;
@@ -27,6 +30,25 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
       } as Resource<ScenarioTypes>;
     }
     this.utilization[resourceArn].scenarios[scenarioType] = scenario;
+  }
+
+  protected async fillData (
+    resourceArn: string, 
+    credentials: any, 
+    region: string, 
+    data: { [ key: keyof Data ]: Data[keyof Data] }
+  ) {
+    for (const key in data) {
+      this.addData(resourceArn, key, data[key]);
+    }
+    await this.identifyCloudformationStack(
+      credentials, 
+      region, 
+      resourceArn, 
+      data.resourceId,
+      data.associatedResourceId
+    );
+    this.getEstimatedMaxMonthlySavings(resourceArn);
   }
 
   protected addData (resourceArn: string, dataType: keyof Data, value: any) {
@@ -59,8 +81,9 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
     }
   }
 
-  protected getEstimatedMaxMonthlySavings () {
-    for (const resourceArn in this.utilization) {
+  protected getEstimatedMaxMonthlySavings (resourceArn: string) {
+    // for (const resourceArn in this.utilization) {
+    if (resourceArn in this.utilization) {
       const scenarios = (this.utilization as Utilization<string>)[resourceArn].scenarios;
       const maxSavingsPerScenario = Object.values(scenarios).map((scenario) => {
         return Math.max(
@@ -69,8 +92,8 @@ export abstract class AwsServiceUtilization<ScenarioTypes extends string> {
           scenario.optimize?.monthlySavings || 0
         );
       });
-      const maxSavingsPerResource = Math.max(...maxSavingsPerScenario);
-      this.utilization[resourceArn].data.maxMonthlySavings = maxSavingsPerResource;
+      const maxSavingsForResource = Math.max(...maxSavingsPerScenario);
+      this.addData(resourceArn, 'maxMonthlySavings', maxSavingsForResource);
     }
   }
 

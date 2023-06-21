@@ -46,9 +46,9 @@ export function findProvider<T extends BaseProvider> (providers: BaseProvider[] 
   return provider as T;
 }
 
-export async function listAllRegions (credentials: any) {
+export async function listAllRegions (awsCredentialsProvider: AwsCredentialsProvider) {
   const accountClient = new Account({
-    credentials,
+    credentials: await awsCredentialsProvider.getCredentials(),
     region: 'us-east-1'
   });
 
