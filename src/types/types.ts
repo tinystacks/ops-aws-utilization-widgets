@@ -1,3 +1,5 @@
+import { Tag } from '@aws-sdk/client-ec2';
+
 
 export type Data = {
   region: string,
@@ -8,6 +10,7 @@ export type Data = {
   monthlyCost?: number,
   maxMonthlySavings?: number,
   [ key: string ]: any;
+  tags?: Tag[];
 }
 
 export type Metrics = { 
@@ -21,7 +24,7 @@ export type Metric = {
 }
 
 export type MetricData = { 
-  timestamp?: Date;
+  timestamp?: number | Date;
   value: number
 }
 
@@ -74,8 +77,8 @@ export type Utilization<ScenarioTypes extends string> = {
 export type UserInput = { [ key: string ]: any }
 
 export type AwsServiceOverrides = {
-  resourceArn?: string,
-  scenarioType?: string,
+  resourceArn: string,
+  scenarioType: string,
   delete?: boolean,
   scaleDown?: boolean,
   optimize?: boolean,

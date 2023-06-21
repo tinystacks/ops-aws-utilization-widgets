@@ -1,16 +1,29 @@
 import React from 'react';
-import { Box, Button, Flex, Heading, Icon, Spacer, Stack, Text } from '@chakra-ui/react';
-import { DeleteIcon, ArrowForwardIcon, ArrowDownIcon } from '@chakra-ui/icons';
+import { 
+  Box, 
+  Button, 
+  Flex, 
+  Heading, 
+  Icon, 
+  Menu, 
+  MenuButton,
+  MenuItem, 
+  MenuList, 
+  Spacer, 
+  Stack, 
+  Text 
+} from '@chakra-ui/react';
+import { DeleteIcon, ArrowForwardIcon, ArrowDownIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { TbVectorBezier2 } from 'react-icons/tb/index.js';
-import { filterUtilizationForActionType, getNumberOfResourcesFromFilteredActions, getNumberOfResourcesInProgress } from '../../utils/utilization.js';
+import { filterUtilizationForActionType, 
+  getNumberOfResourcesFromFilteredActions, 
+  getNumberOfResourcesInProgress } from '../../utils/utilization.js';
 import { ActionType } from '../../types/types.js';
 import { RecommendationsActionSummaryProps } from '../../types/utilization-recommendations-types.js';
 import { TbRefresh } from 'react-icons/tb/index.js';
 
-
-
 export function RecommendationsActionSummary (props: RecommendationsActionSummaryProps) {
-  const { utilization, sessionHistory, onContinue, onRefresh } = props;
+  const { utilization, sessionHistory, onContinue, onRefresh, allRegions, region: regionLabel, onRegionChange } = props;
 
   const deleteChanges = filterUtilizationForActionType(utilization, ActionType.DELETE, sessionHistory);
   const scaleDownChanges = filterUtilizationForActionType(utilization, ActionType.SCALE_DOWN, sessionHistory);
@@ -70,6 +83,19 @@ export function RecommendationsActionSummary (props: RecommendationsActionSummar
 
   return (
     <Stack pt="20px" pb="20px" w="100%">
+      <Stack width="20%" pb={3} px={4} align='baseline'>
+        <Menu>
+          <MenuButton as={Button} rightIcon={<ChevronDownIcon />}>
+            {regionLabel}
+          </MenuButton>
+          <MenuList minW="0" w={150} h={40} sx={{ overflow:'scroll' }}>
+            {allRegions.map(region => 
+              <MenuItem onClick={() => onRegionChange(region)}>{region}</MenuItem>
+            )}
+          </MenuList>
+        </Menu>
+      </Stack>
+      <hr />
       {actionSummaryStack(
         ActionType.DELETE, <DeleteIcon color='gray' />, 'Delete', numDeleteChanges,
         'Resources that have had no recent activity.', inProgressActions['delete']

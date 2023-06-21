@@ -12,7 +12,7 @@ enum WizardSteps {
 }
 
 export function UtilizationRecommendationsUi (props: UtilizationRecommendationsUiProps) {
-  const { utilization, onResourcesAction, onRefresh, sessionHistory } = props;
+  const { utilization, sessionHistory, onResourcesAction, onRefresh, allRegions, region, onRegionChange } = props;
   const [wizardStep, setWizardStep] = useState<string>(WizardSteps.SUMMARY);
   const [selectedResourceArns, setSelectedResourceArns] = useState<string[]>([]);
   const [actionType, setActionType] = useState<ActionType>(ActionType.DELETE);
@@ -27,6 +27,9 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
           setActionType(selectedActionType);
           setWizardStep(WizardSteps.TABLE);
         }}
+        allRegions={allRegions}
+        onRegionChange={onRegionChange}
+        region={region}
       />
     );
   }
@@ -77,6 +80,9 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
         setActionType(selectedActionType);
         setWizardStep(WizardSteps.TABLE);
       }}
+      allRegions={allRegions}
+      region={region}
+      onRegionChange={onRegionChange}
     />
   );
   // #endregion

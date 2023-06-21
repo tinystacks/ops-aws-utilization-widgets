@@ -1,14 +1,16 @@
 import React from 'react';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
 import { Widget } from '@tinystacks/ops-model';
+import { Stack } from '@chakra-ui/react';
 import RecommendationOverview from '../components/recommendation-overview.js';
 import { AwsUtilizationOverrides, HistoryEvent, Utilization } from '../types/types.js';
-import { Stack } from '@chakra-ui/react';
+import { AwsUtilization as AwsUtilizationType } from '../ops-types.js';
 
-type AwsUtilizationType = Widget & {
-  utilization: { [ serviceName: string ] : Utilization<string> },
+export type AwsUtilizationProps = AwsUtilizationType & {
+  utilization: { [ serviceName: string ] : Utilization<string> };
   sessionHistory: HistoryEvent[]
   region: string
+  
 }
 
 export class AwsUtilization extends BaseWidget {
@@ -16,7 +18,7 @@ export class AwsUtilization extends BaseWidget {
   sessionHistory: HistoryEvent[];
   region: string;
 
-  constructor (props: AwsUtilizationType) {
+  constructor (props: AwsUtilizationProps) {
     super(props);
     this.region = props.region || 'us-east-1';
     this.utilization = props.utilization || {};
@@ -31,14 +33,14 @@ export class AwsUtilization extends BaseWidget {
     const { getAwsCredentialsProvider, getAwsUtilizationProvider } = await import(depMap.utils);
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.region);
   }
 
-  static fromJson (object: AwsUtilizationType): AwsUtilization {
+  static fromJson (object: AwsUtilizationProps): AwsUtilization {
     return new AwsUtilization(object);
   }
 
-  toJson (): AwsUtilizationType {
+  toJson (): AwsUtilizationProps {
     return {
       ...super.toJson(),
       utilization: this.utilization,

@@ -1,10 +1,10 @@
+import get from 'lodash.get';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { AwsServiceUtilization } from './aws-service-utilization.js';
 import { Bucket, S3 } from '@aws-sdk/client-s3';
 import { AwsServiceOverrides } from '../types/types.js';
-import { getHourlyCost, listAllRegions, rateLimitMap } from '../utils/utils.js';
+import { getHourlyCost, rateLimitMap } from '../utils/utils.js';
 import { CloudWatch } from '@aws-sdk/client-cloudwatch';
-import _ from 'lodash';
 import { Arns, ONE_GB_IN_BYTES } from '../types/constants.js';
 
 type S3CostData = {
@@ -35,7 +35,11 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
   }
 
   async enableIntelligientTiering (s3Client: S3, bucketName: string, userInput?: any) {
-    const configurationId = userInput?.configurationId || `${bucketName}-tiering-configuration`;
+    let configurationId = userInput?.configurationId || `${bucketName}-tiering-configuration`;
+
+    if(configurationId.length > 63){ 
+      configurationId = configurationId.substring(0, 63);
+    }
    
     return await s3Client.putBucketIntelligentTieringConfiguration({ 
       Bucket: bucketName, 
@@ -74,29 +78,31 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       const bucketArn = Arns.S3(bucketName);
       await this.getLifecyclePolicy(bucketArn, bucketName, region);
       await this.getIntelligentTieringConfiguration(bucketArn, bucketName, region);
-      
-      // TODO: Change bucketName to bucketArn
-      this.addData(bucketArn, 'resourceId', bucketName);
-      this.addData(bucketArn, 'region', region);
-      if (bucketName in this.bucketCostData) {
-        const monthlyCost = this.bucketCostData[bucketName].monthlyCost;
-        this.addData(bucketArn, 'monthlyCost', monthlyCost);
-        this.addData(bucketArn, 'hourlyCost', getHourlyCost(monthlyCost));
-      }
+
+      const monthlyCost = this.bucketCostData[bucketName]?.monthlyCost || 0;
+      await this.fillData(
+        bucketArn,
+        credentials,
+        region,
+        {
+          resourceId: bucketName,
+          region,
+          monthlyCost,
+          hourlyCost: getHourlyCost(monthlyCost)
+        }
+      );
     };
 
     await rateLimitMap(allS3Buckets, 5, 5, analyzeS3Bucket);
   }
 
   async getUtilization (
-    awsCredentialsProvider: AwsCredentialsProvider, regions: string[],  _overrides?: AwsServiceOverrides
+    awsCredentialsProvider: AwsCredentialsProvider, regions: string[], _overrides?: AwsServiceOverrides
   ): Promise<void> {
     const credentials = await awsCredentialsProvider.getCredentials();
-    const usedRegions = regions || await listAllRegions(credentials);
-    for (const region of usedRegions) {
+    for (const region of regions) {
       await this.getRegionalUtilization(credentials, region);
     }
-    this.getEstimatedMaxMonthlySavings();
   }
 
   async getIntelligentTieringConfiguration (bucketArn: string, bucketName: string, region: string) {
@@ -185,7 +191,7 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
         ]
       });
       
-      const bucketBytes = _.get(res, 'MetricDataResults[0].Values[0]', 0);
+      const bucketBytes = get(res, 'MetricDataResults[0].Values[0]', 0);
       
       const monthlyCost = (bucketBytes / ONE_GB_IN_BYTES) * 0.022;
 
@@ -194,19 +200,14 @@ export class s3Utilization extends AwsServiceUtilization<s3UtilizationScenarios>
       * Uses arbitrary percentages to separate amount of data in tiers
       */
 
-      let totalBytes = bucketBytes;
-      let infrequentlyAccessedBytes = 0.4 * bucketBytes;
-      let archiveInstantAccess = 0.4 * infrequentlyAccessedBytes;
-      let archiveAccess = 0.4 * archiveInstantAccess;
-      const deepArchiveAccess = 0.4 * archiveAccess;
-
-      totalBytes = (totalBytes - infrequentlyAccessedBytes) / ONE_GB_IN_BYTES;
-      infrequentlyAccessedBytes = (infrequentlyAccessedBytes - archiveInstantAccess) / ONE_GB_IN_BYTES;
-      archiveInstantAccess = (archiveInstantAccess - archiveAccess) / ONE_GB_IN_BYTES;
-      archiveAccess = (archiveAccess - deepArchiveAccess) / ONE_GB_IN_BYTES;
+      const frequentlyAccessedBytes = (0.5 * bucketBytes) / ONE_GB_IN_BYTES;
+      const infrequentlyAccessedBytes = (0.25 * bucketBytes) / ONE_GB_IN_BYTES;
+      const archiveInstantAccess = (0.1 * bucketBytes) / ONE_GB_IN_BYTES;
+      const archiveAccess = (0.1 * bucketBytes) / ONE_GB_IN_BYTES;
+      const deepArchiveAccess = (0.05 * bucketBytes) / ONE_GB_IN_BYTES;
 
       const newMonthlyCost = 
-        (totalBytes * 0.022) +
+        (frequentlyAccessedBytes * 0.022) +
         (infrequentlyAccessedBytes * 0.0125) +
         (archiveInstantAccess * 0.004) +
         (archiveAccess * 0.0036) +
