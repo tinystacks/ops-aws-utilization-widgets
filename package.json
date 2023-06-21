@@ -1,6 +1,6 @@
 {
   "name": "@tinystacks/ops-aws-utilization-widgets",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "main": "dist/index.js",
   "type": "module",
   "files": [
