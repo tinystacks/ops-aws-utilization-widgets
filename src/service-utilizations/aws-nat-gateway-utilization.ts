@@ -258,5 +258,6 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
       // monthly cost
       return pricePerHour * 24 * 30;
     }
+    return undefined;
   }
 }
