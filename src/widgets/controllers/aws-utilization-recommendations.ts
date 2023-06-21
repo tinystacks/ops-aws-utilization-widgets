@@ -8,7 +8,8 @@ import { RecommendationsOverrides, actionTypeToEnum } from '../../types/index.js
 import {
   filterUtilizationForActionType,
   getAwsCredentialsProvider,
-  getAwsUtilizationProvider
+  getAwsUtilizationProvider,
+  listAllRegions
 } from '../../utils/index.js';
 
 import Widget = Controllers.Widget;
@@ -21,12 +22,18 @@ class AwsUtilizationRecommendations extends AwsUtilizationRecommendationsModel i
   async getData (providers: Provider[], overrides?: RecommendationsOverrides) {
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
+    this.allRegions = await listAllRegions(awsCredsProvider);
     
     if (overrides?.refresh) {
-      await utilProvider.hardRefresh(awsCredsProvider);
+      await utilProvider.hardRefresh(awsCredsProvider, this.region);
     }
 
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
+    if (overrides?.region) {
+      this.region = overrides.region;
+      await utilProvider.hardRefresh(awsCredsProvider, this.region);
+    }
+
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.region);
 
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;

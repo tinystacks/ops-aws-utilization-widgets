@@ -18,7 +18,7 @@ class AwsUtilization extends AwsUtilizationModel implements Widget {
   async getData (providers?: Provider[]): Promise<void> {
     const utilProvider = getAwsUtilizationProvider(providers);
     const awsCredsProvider = getAwsCredentialsProvider(providers);
-    this.utilization = await utilProvider.getUtilization(awsCredsProvider);
+    this.utilization = await utilProvider.getUtilization(awsCredsProvider, this.region);
   }
 }
 

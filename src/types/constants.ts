@@ -9,6 +9,9 @@ export const Arns = {
   },
   S3 (bucketName: string) {
     return `arn:aws:s3:::${bucketName}`;
+  },
+  Ebs (region: string, accountId: string, volumeId: string) {
+    return `arn:aws:ec2:${region}:${accountId}:volume/${volumeId}`;
   }
 };
 

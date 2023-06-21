@@ -22,14 +22,21 @@ interface Refresh {
   onRefresh: () => void;
 }
 
-export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction & Refresh
+export interface Regions {
+  onRegionChange: (region: string) => void;
+  allRegions: string[];
+  region: string;
+}
+
+export type UtilizationRecommendationsUiProps = HasUtilization & HasResourcesAction & Refresh & Regions;
 export type RecommendationsCallback = (props: RecommendationsOverrides) => void;
 export type RecommendationsOverrides = {
   refresh?: boolean;
   resourceActions?: {
     actionType: string,
     resourceArns: string[]
-  }
+  };
+  region?: string;
 };
 export type RecommendationsTableProps = HasActionType & HasUtilization & {
   onContinue: (resourceArns: string[]) => void;
@@ -37,7 +44,7 @@ export type RecommendationsTableProps = HasActionType & HasUtilization & {
   onRefresh: () => void;
 };
 export type RecommendationsActionsSummaryProps = Widget & HasUtilization;
-export type RecommendationsActionSummaryProps = HasUtilization & {
+export type RecommendationsActionSummaryProps = HasUtilization & Regions & {
   onContinue: (selectedActionType: ActionType) => void;
   onRefresh: () => void;
 };

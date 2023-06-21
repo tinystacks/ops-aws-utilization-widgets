@@ -31,11 +31,20 @@ class AwsUtilizationRecommendations extends AwsUtilizationRecommendationsModel i
       });
     }
 
+    function onRegionChange (region: string) {
+      overridesCallback({
+        region
+      });
+    }
+
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
         onResourcesAction={onResourcesAction}
         onRefresh={onRefresh}
+        allRegions={this.allRegions || []}
+        region={this.region}
+        onRegionChange={onRegionChange}
       />
     );
   }

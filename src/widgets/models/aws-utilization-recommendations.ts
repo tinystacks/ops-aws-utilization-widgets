@@ -2,7 +2,8 @@ import { Models } from '@tinystacks/ops-core';
 import {
   HasActionType,
   HasUtilization,
-  Utilization
+  Utilization,
+  Regions
 } from '../../types/index.js';
 import {
   AwsResourceType,
@@ -11,13 +12,22 @@ import {
 
 import Widget = Models.Widget;
 
-type AwsUtilizationRecommendationsProps = AwsUtilizationRecommendationsType & HasActionType & HasUtilization;
+type AwsUtilizationRecommendationsProps = 
+  AwsUtilizationRecommendationsType &
+  HasActionType &
+  HasUtilization &
+  Regions;
 
 class AwsUtilizationRecommendations extends Widget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
+  allRegions?: string[];
+  region?: string;
+
   constructor (props: AwsUtilizationRecommendationsProps) {
     super(props);
     this.utilization = props.utilization;
+    this.allRegions = props.allRegions;
+    this.region = props.region || 'us-east-1';
   }
 
   static fromJson (props: AwsUtilizationRecommendationsProps) {
@@ -27,7 +37,9 @@ class AwsUtilizationRecommendations extends Widget {
   toJson () {
     return {
       ...super.toJson(),
-      utilization: this.utilization
+      utilization: this.utilization,
+      allRegions: this.allRegions,
+      region: this.region
     };
   }
 }
