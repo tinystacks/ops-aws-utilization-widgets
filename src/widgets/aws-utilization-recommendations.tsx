@@ -1,7 +1,7 @@
 import React from 'react';
 import get from 'lodash.get';
 import { BaseProvider, BaseWidget } from '@tinystacks/ops-core';
-import { AwsResourceType, Utilization, actionTypeToEnum } from '../types/types.js';
+import { AwsResourceType, Utilization, actionTypeToEnum, HistoryEvent } from '../types/types.js';
 import { 
   RecommendationsOverrides,
   HasActionType,
@@ -22,14 +22,16 @@ export type AwsUtilizationRecommendationsProps =
 
 export class AwsUtilizationRecommendations extends BaseWidget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
+  sessionHistory: HistoryEvent[];
   allRegions?: string[];
   region?: string;
 
   constructor (props: AwsUtilizationRecommendationsProps) {
     super(props);
     this.utilization = props.utilization;
-    this.allRegions = props.allRegions;
     this.region = props.region || 'us-east-1';
+    this.sessionHistory = props.sessionHistory || [];
+    this.allRegions = props.allRegions;
   }
 
   static fromJson (props: AwsUtilizationRecommendationsProps) {
@@ -40,6 +42,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     return {
       ...super.toJson(),
       utilization: this.utilization,
+      sessionHistory: this.sessionHistory,
       allRegions: this.allRegions,
       region: this.region
     };
@@ -62,6 +65,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
       await utilProvider.hardRefresh(awsCredsProvider, this.region);
     }
 
+    this.sessionHistory = await utilProvider.getSessionHistory();
     if (overrides?.region) {
       this.region = overrides.region;
       await utilProvider.hardRefresh(awsCredsProvider, this.region);
@@ -72,7 +76,8 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     if (overrides?.resourceActions) {
       const { actionType, resourceArns } = overrides.resourceActions;
       const resourceArnsSet = new Set<string>(resourceArns);
-      const filteredServices = filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType]);
+      const filteredServices = 
+      filterUtilizationForActionType(this.utilization, actionTypeToEnum[actionType], this.sessionHistory);
       
       for (const serviceUtil of Object.keys(filteredServices)) {
         const filteredServiceUtil = Object.keys(filteredServices[serviceUtil])
@@ -84,6 +89,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
               serviceUtil,
               awsCredsProvider, 
               get(resource.scenarios[scenario], `${actionType}.action`),
+              actionTypeToEnum[actionType],
               resourceArn,
               get(resource.data, 'region', 'us-east-1')
             );
@@ -115,6 +121,7 @@ export class AwsUtilizationRecommendations extends BaseWidget {
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
+        sessionHistory={this.sessionHistory}
         onResourcesAction={onResourcesAction}
         onRefresh={onRefresh}
         allRegions={this.allRegions || []}

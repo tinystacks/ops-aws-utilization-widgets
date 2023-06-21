@@ -127,3 +127,12 @@ export type AwsResourceType = 'Account' |
   'S3Bucket' |
   'EbsVolume' |
   'RdsInstance';
+
+export type HistoryEvent = {
+  service: AwsResourceType;
+  actionType: ActionType;
+  actionName: string;
+  resourceArn: string;
+  region: string;
+  timestamp: string;
+}
