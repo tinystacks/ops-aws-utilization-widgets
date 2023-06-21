@@ -40,6 +40,7 @@ class AwsUtilizationRecommendations extends AwsUtilizationRecommendationsModel i
     return (
       <UtilizationRecommendationsUi
         utilization={this.utilization || {}}
+        sessionHistory={this.sessionHistory}
         onResourcesAction={onResourcesAction}
         onRefresh={onRefresh}
         allRegions={this.allRegions || []}

@@ -28,12 +28,12 @@ export class AwsNatGatewayUtilization extends AwsServiceUtilization<AwsNatGatewa
   async doAction (
     awsCredentialsProvider: AwsCredentialsProvider, actionName: string, resourceArn: string, region: string
   ): Promise<void> {
-    const resourceId = (resourceArn.split(':').at(-1)).split('/').at(-1);
     if (actionName === 'deleteNatGateway') {
       const ec2Client = new EC2({
         credentials: await awsCredentialsProvider.getCredentials(),
         region
       });
+      const resourceId = resourceArn.split('/')[1];
       await this.deleteNatGateway(ec2Client, resourceId);
     }
   }

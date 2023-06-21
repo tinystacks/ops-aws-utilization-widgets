@@ -12,7 +12,7 @@ enum WizardSteps {
 }
 
 export function UtilizationRecommendationsUi (props: UtilizationRecommendationsUiProps) {
-  const { utilization, onResourcesAction, onRefresh, allRegions, region, onRegionChange } = props;
+  const { utilization, sessionHistory, onResourcesAction, onRefresh, allRegions, region, onRegionChange } = props;
   const [wizardStep, setWizardStep] = useState<string>(WizardSteps.SUMMARY);
   const [selectedResourceArns, setSelectedResourceArns] = useState<string[]>([]);
   const [actionType, setActionType] = useState<ActionType>(ActionType.DELETE);
@@ -21,6 +21,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
     return (
       <RecommendationsActionSummary
         utilization={utilization}
+        sessionHistory={sessionHistory}
         onRefresh={onRefresh}
         onContinue={(selectedActionType: ActionType) => {
           setActionType(selectedActionType);
@@ -37,6 +38,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
       <RecommendationsTable
         utilization={utilization}
         actionType={actionType}
+        sessionHistory={sessionHistory}
         onRefresh={() => { 
           onRefresh();
           setWizardStep(WizardSteps.TABLE); //this does nothing
@@ -58,6 +60,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
       <ConfirmRecommendations
         resourceArns={selectedResourceArns}
         actionType={actionType}
+        sessionHistory={sessionHistory}
         onRemoveResource={(resourceArn: string) => {
           setSelectedResourceArns(selectedResourceArns.filter((r: string) => r !== resourceArn));
         }}
@@ -71,6 +74,7 @@ export function UtilizationRecommendationsUi (props: UtilizationRecommendationsU
   return (
     <RecommendationsActionSummary
       utilization={utilization}
+      sessionHistory={sessionHistory}
       onRefresh={onRefresh}
       onContinue={(selectedActionType: ActionType) => {
         setActionType(selectedActionType);

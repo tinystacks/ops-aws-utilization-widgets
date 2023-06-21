@@ -1,19 +1,19 @@
 import React from 'react';
 import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
-import { ActionType, Utilization } from '../../../types/index.js';
+import { ActionType, HistoryEvent, Utilization } from '../../../types/index.js';
 import { filterUtilizationForActionType, 
   getNumberOfResourcesFromFilteredActions, 
   getTotalMonthlySavings, 
   getTotalNumberOfResources } from '../../../utils/index.js';
 
 export default function RecommendationOverview (
-  props: { utilizations: { [ serviceName: string ] : Utilization<string> } }
+  props: { utilizations: { [ serviceName: string ] : Utilization<string> }, sessionHistory: HistoryEvent[] }
 ) {
 
-  const { utilizations } = props;
+  const { utilizations, sessionHistory } = props;
 
   const { totalUnusedResources, totalMonthlySavings, totalResources } =
-    getTotalRecommendationValues(utilizations);
+    getTotalRecommendationValues(utilizations, sessionHistory);
 
   const labelStyles = {
     fontFamily: 'Inter',
@@ -52,8 +52,11 @@ export default function RecommendationOverview (
 
 }
 
-function getTotalRecommendationValues (utilizations:  { [ serviceName: string ] : Utilization<string> }) { 
-  const deleteChanges = filterUtilizationForActionType(utilizations, ActionType.DELETE);
+function getTotalRecommendationValues (
+  utilizations:  { [ serviceName: string ] : Utilization<string> },
+  sessionHistory: HistoryEvent[]
+) { 
+  const deleteChanges = filterUtilizationForActionType(utilizations, ActionType.DELETE, sessionHistory);
   const totalUnusedResources = getNumberOfResourcesFromFilteredActions(deleteChanges);
   const totalResources = getTotalNumberOfResources(utilizations);
   const totalMonthlySavings = getTotalMonthlySavings(utilizations);

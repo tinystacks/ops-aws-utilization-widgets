@@ -1,4 +1,5 @@
 import { Tag } from '@aws-sdk/client-ec2';
+import { AwsResourceType } from '../ops-types.js';
 
 
 export type Data = {
@@ -116,4 +117,13 @@ export type StabilityStatsOptions = {
   outlierZScore?: number;
   anomalyThreshold?: number;
   stabilityZScore?: number;
+};
+
+export type HistoryEvent = {
+  service: AwsResourceType | string;
+  actionType: ActionType;
+  actionName: string;
+  resourceArn: string;
+  region: string;
+  timestamp: string;
 };

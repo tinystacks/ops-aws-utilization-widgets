@@ -22,7 +22,7 @@ export class AwsUtilization extends AwsUtilizationModel implements Widget {
   ): JSX.Element {
     return (
       <Stack width='100%'>
-        <RecommendationOverview utilizations={this.utilization}/>
+        <RecommendationOverview utilizations={this.utilization} sessionHistory={this.sessionHistory} />
       </Stack>
     );
   }

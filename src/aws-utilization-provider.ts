@@ -1,12 +1,24 @@
 import cached from 'cached';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
 import { Provider } from '@tinystacks/ops-core';
-import { AwsServiceOverrides, AwsUtilizationOverrides, Utilization } from './types/types.js';
+import {
+  ActionType,
+  AwsServiceOverrides,
+  AwsUtilizationOverrides,
+  HistoryEvent,
+  Utilization
+} from './types/types.js';
 import { AwsServiceUtilization } from './service-utilizations/aws-service-utilization.js';
 import { AwsServiceUtilizationFactory } from './service-utilizations/aws-service-utilization-factory.js';
 import { AwsResourceType, AwsUtilizationProvider as AwsUtilizationProviderType } from './ops-types.js';
 
-const cache = cached<Utilization<string>>('utilization-cache', {
+const utilizationCache = cached<Utilization<string>>('utilization', {
+  backend: {
+    type: 'memory'
+  }
+});
+
+const sessionHistoryCache = cached<Array<HistoryEvent>>('session-history', {
   backend: {
     type: 'memory'
   }
@@ -88,10 +100,22 @@ class AwsUtilizationProvider extends Provider {
     service: AwsResourceType | string,
     credentialsProvider: AwsCredentialsProvider,
     actionName: string,
+    actionType: ActionType,
     resourceArn: string,
     region: string
   ) {
+    const event: HistoryEvent = {
+      service,
+      actionType,
+      actionName,
+      resourceArn,
+      region,
+      timestamp: new Date().toISOString()
+    };
+    const history: HistoryEvent[] = await this.getSessionHistory();
+    history.push(event);
     await this.utilizationClasses[service].doAction(credentialsProvider, actionName, resourceArn, region);
+    await sessionHistoryCache.set('history', history);
   }
 
   async hardRefresh (
@@ -102,7 +126,7 @@ class AwsUtilizationProvider extends Provider {
       this.utilization[service] = await this.refreshUtilizationData(
         service, credentialsProvider, region, serviceOverrides
       );
-      await cache.set(service, this.utilization[service]);
+      await utilizationCache.set(service, this.utilization[service]);
     }
 
     return this.utilization;
@@ -117,9 +141,9 @@ class AwsUtilizationProvider extends Provider {
         this.utilization[service] = await this.refreshUtilizationData(
           service, credentialsProvider, region, serviceOverrides
         );
-        await cache.set(service, this.utilization[service]);
+        await utilizationCache.set(service, this.utilization[service]);
       } else {
-        this.utilization[service] = await cache.getOrElse(
+        this.utilization[service] = await utilizationCache.getOrElse(
           service,
           async () => await this.refreshUtilizationData(service, credentialsProvider, region, serviceOverrides)
         );
@@ -127,6 +151,10 @@ class AwsUtilizationProvider extends Provider {
     }
 
     return this.utilization;
+  }
+
+  async getSessionHistory (): Promise<HistoryEvent[]> {
+    return sessionHistoryCache.getOrElse('history', []);
   }
 }
 

@@ -3,7 +3,8 @@ import {
   HasActionType,
   HasUtilization,
   Utilization,
-  Regions
+  Regions,
+  HistoryEvent
 } from '../../types/index.js';
 import {
   AwsResourceType,
@@ -20,6 +21,7 @@ type AwsUtilizationRecommendationsProps =
 
 class AwsUtilizationRecommendations extends Widget {
   utilization?: { [key: AwsResourceType | string]: Utilization<string> };
+  sessionHistory: HistoryEvent[];
   allRegions?: string[];
   region?: string;
 
@@ -28,6 +30,7 @@ class AwsUtilizationRecommendations extends Widget {
     this.utilization = props.utilization;
     this.allRegions = props.allRegions;
     this.region = props.region || 'us-east-1';
+    this.sessionHistory = props.sessionHistory || [];
   }
 
   static fromJson (props: AwsUtilizationRecommendationsProps) {
@@ -39,7 +42,8 @@ class AwsUtilizationRecommendations extends Widget {
       ...super.toJson(),
       utilization: this.utilization,
       allRegions: this.allRegions,
-      region: this.region
+      region: this.region,
+      sessionHistory: this.sessionHistory
     };
   }
 }
