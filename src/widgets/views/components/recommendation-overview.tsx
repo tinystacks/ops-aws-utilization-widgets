@@ -1,10 +1,10 @@
 import React from 'react';
 import { Box, Heading, Text, SimpleGrid } from '@chakra-ui/react';
-import { ActionType, HistoryEvent, Utilization } from '../types/types.js';
+import { ActionType, HistoryEvent, Utilization } from '../../../types/index.js';
 import { filterUtilizationForActionType, 
   getNumberOfResourcesFromFilteredActions, 
   getTotalMonthlySavings, 
-  getTotalNumberOfResources } from '../utils/utilization.js';
+  getTotalNumberOfResources } from '../../../utils/index.js';
 
 export default function RecommendationOverview (
   props: { utilizations: { [ serviceName: string ] : Utilization<string> }, sessionHistory: HistoryEvent[] }
@@ -52,7 +52,10 @@ export default function RecommendationOverview (
 
 }
 
-function getTotalRecommendationValues (utilizations:  { [ serviceName: string ] : Utilization<string> }, sessionHistory: HistoryEvent[]) { 
+function getTotalRecommendationValues (
+  utilizations:  { [ serviceName: string ] : Utilization<string> },
+  sessionHistory: HistoryEvent[]
+) { 
   const deleteChanges = filterUtilizationForActionType(utilizations, ActionType.DELETE, sessionHistory);
   const totalUnusedResources = getNumberOfResourcesFromFilteredActions(deleteChanges);
   const totalResources = getTotalNumberOfResources(utilizations);

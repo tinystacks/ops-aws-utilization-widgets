@@ -11,7 +11,7 @@ import {
   Tr
 } from '@chakra-ui/react';
 import React from 'react';
-import { Data } from '../../types/types';
+import { Data } from '../../../types/types';
 import isEmpty from 'lodash.isempty';
 import { ChevronDownIcon } from '@chakra-ui/icons';
 

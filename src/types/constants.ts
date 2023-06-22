@@ -1,4 +1,4 @@
-import { AwsResourceType } from './types.js';
+import { AwsResourceType } from '../ops-types.js';
 
 export const Arns = {
   NatGateway (region: string, accountId: string, natGatewayId: string) {

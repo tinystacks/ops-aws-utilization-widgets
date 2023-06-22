@@ -5,9 +5,9 @@ import {
 } from '@chakra-ui/react';
 import { ArrowBackIcon } from '@chakra-ui/icons';
 import { ConfirmSingleRecommendation } from './confirm-single-recommendation.js';
-import { ConfirmRecommendationsProps } from '../../types/utilization-recommendations-types.js';
-import { actionTypeText } from '../../types/types.js';
-import { filterUtilizationForActionType } from '../../utils/utilization.js';
+import { ConfirmRecommendationsProps } from '../../../types/utilization-recommendations-types.js';
+import { actionTypeText } from '../../../types/types.js';
+import { filterUtilizationForActionType } from '../../../utils/utilization.js';
 
 export function ConfirmRecommendations (props: ConfirmRecommendationsProps) {
   const { actionType, resourceArns, onRemoveResource, onResourcesAction, utilization, sessionHistory } = props;

@@ -1,13 +1,13 @@
+import isEmpty from 'lodash.isempty';
 import { Account, ListRegionsCommandOutput } from '@aws-sdk/client-account';
 import { STS } from '@aws-sdk/client-sts';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
-import { BaseProvider } from '@tinystacks/ops-core';
-import isEmpty from 'lodash.isempty';
+import { Provider } from '@tinystacks/ops-core';
 import { AwsUtilizationProvider } from '../aws-utilization-provider.js';
 
 
 
-export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtilizationProvider {
+export function getAwsUtilizationProvider (providers?: Provider[]): AwsUtilizationProvider {
   if (!providers || isEmpty(providers)) {
     throw new Error('No AwsUtilizationProvider provided');
   }
@@ -20,7 +20,7 @@ export function getAwsUtilizationProvider (providers?: BaseProvider[]): AwsUtili
   return provider as AwsUtilizationProvider;
 }
 
-export function getAwsCredentialsProvider (providers?: BaseProvider[]): AwsCredentialsProvider {
+export function getAwsCredentialsProvider (providers?: Provider[]): AwsCredentialsProvider {
   if (!providers || isEmpty(providers)) {
     throw new Error('No AwsCredentialsProvider provided');
   }
@@ -33,7 +33,7 @@ export function getAwsCredentialsProvider (providers?: BaseProvider[]): AwsCrede
   return provider as AwsCredentialsProvider;
 }
 
-export function findProvider<T extends BaseProvider> (providers: BaseProvider[] = [], providerType: string): T {
+export function findProvider<T extends Provider> (providers: Provider[] = [], providerType: string): T {
   if (!providers || isEmpty(providers)) {
     throw new Error('No providers are available!');
   }

@@ -1,4 +1,5 @@
 import { Tag } from '@aws-sdk/client-ec2';
+import { AwsResourceType } from '../ops-types.js';
 
 
 export type Data = {
@@ -118,21 +119,11 @@ export type StabilityStatsOptions = {
   stabilityZScore?: number;
 };
 
-export type AwsResourceType = 'Account' |
-  'CloudwatchLogs' |
-  'AutoscalingGroup' |
-  'Ec2Instance' |
-  'EcsService' |
-  'NatGateway' |
-  'S3Bucket' |
-  'EbsVolume' |
-  'RdsInstance';
-
 export type HistoryEvent = {
-  service: AwsResourceType;
+  service: AwsResourceType | string;
   actionType: ActionType;
   actionName: string;
   resourceArn: string;
   region: string;
   timestamp: string;
-}
+};

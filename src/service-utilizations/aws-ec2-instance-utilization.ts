@@ -4,7 +4,12 @@ import isNil from 'lodash.isnil';
 import chunk from 'lodash.chunk';
 import * as stats from 'simple-statistics';
 import {
-  DescribeInstanceTypesCommandOutput, DescribeInstancesCommandOutput, EC2, Instance, InstanceTypeInfo, _InstanceType
+  DescribeInstanceTypesCommandOutput,
+  DescribeInstancesCommandOutput,
+  EC2,
+  Instance,
+  InstanceTypeInfo,
+  _InstanceType
 } from '@aws-sdk/client-ec2';
 import { AutoScaling } from '@aws-sdk/client-auto-scaling';
 import { AwsCredentialsProvider } from '@tinystacks/ops-aws-core-widgets';
