@@ -50,6 +50,21 @@ This featureset is part of the open source [OpsConsole project](https://github.c
 
 ## Installation
 
+```bash
+# PREREQ: Have docker installed and running
+
+# install the opsconsole framework package
+npm i -g opsconsole;
+
+# download the template for AWS Utilization and Cost
+curl https://raw.githubusercontent.com/tinystacks/opsconsole/main/samples/aws-sample.yml -o config-template.yml;
+
+# Initialize a config file from the template
+opsconsole init -t config-template.yml;
+
+# start the console
+opsconsole up -c config.yml;
+```
 
 ### Development
 advanced installation and development instructions can be found in [DEVELOPMENT.md](/DEVELOPMENT.md).
