@@ -9,7 +9,7 @@
 
 # Aws Utilization
 
-Aws Utilization is a developer's ultimate money-saving companion on AWS. This suite of visual workflows is the most convenient way to identify resources ready for optimization.
+Aws Utilization is a developer's ultimate cost-saving companion on AWS. This suite of visual workflows is the most convenient way to identify resources ready for optimization.
 
 The main features are
 
